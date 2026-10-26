@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fertility Tracker — births per woman, by country</title>
+  <meta name="description" content="Live fertility rates for every country, and what each generation looks like if today's rate holds." />
+  <meta property="og:title" content="Fertility Tracker" />
+  <meta property="og:description" content="Start with 100 people. At today's fertility rate, how many are left after a few generations?" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><circle cx='8' cy='8' r='7' fill='%23f0a35e'/></svg>" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <h1>Fertility Tracker</h1>
+      <p class="sub">Births per woman in every country — and what happens to 100 people if today's rate holds.</p>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="picker">
+      <label for="country">Country</label>
+      <input id="country" list="country-list" autocomplete="off" placeholder="Search a country…" />
+      <datalist id="country-list"></datalist>
+      <button id="share" type="button">Copy link</button>
+    </section>
+
+    <section class="cards" id="cards"></section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2 id="gen-title">Start with 100 people</h2>
+        <div class="whatif">
+          <label for="tfr-slider">Fertility rate <output id="tfr-out"></output></label>
+          <input id="tfr-slider" type="range" min="0.5" max="4" step="0.01" />
+          <button id="tfr-reset" type="button" class="link">reset</button>
+        </div>
+      </div>
+      <p class="note" id="gen-note"></p>
+      <div id="generations"></div>
+    </section>
+
+    <section class="panel">
+      <h2 id="trend-title">Fertility rate over time</h2>
+      <p class="note">Solid: UN estimates. Dashed: UN medium-variant projection. Dot: latest World Bank figure. Line at 2.1 = replacement.</p>
+      <div id="trend"></div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Every country, lowest first</h2>
+        <input id="filter" placeholder="Filter…" autocomplete="off" />
+      </div>
+      <p class="note" id="rank-note"></p>
+      <ol id="ranking"></ol>
+    </section>
+  </main>
+
+  <footer class="wrap">
+    <p id="sources"></p>
+    <p class="note">
+      How the generations model works: each generation is the previous one × (fertility rate ÷ 2.1), where 2.1 births per woman
+      keeps a population stable. A generation is about 30 years. It deliberately ignores migration, changing life expectancy
+      and age-structure momentum, so it shows the long-run pull of a fertility rate, not a forecast. The UN projection on the
+      trend chart is the forecast.
+    </p>
+    <p class="note">Data refreshes automatically every week. <a href="https://github.com/RostyslavDzhohola/fertility-tracker">Source on GitHub</a>.</p>
+  </footer>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

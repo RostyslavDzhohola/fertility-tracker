@@ -1,0 +1,86 @@
+:root {
+  --bg: #0f1115;
+  --panel: #171a21;
+  --line: #2a2f3a;
+  --fg: #e8e9ed;
+  --muted: #9097a5;
+  --accent: #f0a35e;
+  --low: #e5625e;
+  --mid: #f0a35e;
+  --ok: #5ec27f;
+  --dot-gone: #2a2f3a;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+.wrap { max-width: 980px; margin: 0 auto; padding: 0 20px; }
+header { border-bottom: 1px solid var(--line); padding: 28px 0 20px; }
+h1 { margin: 0; font-size: 28px; letter-spacing: -0.01em; }
+h2 { margin: 0; font-size: 19px; }
+.sub, .note { color: var(--muted); margin: 6px 0 0; }
+.note { font-size: 14px; }
+a { color: var(--accent); }
+
+.picker { display: flex; gap: 10px; align-items: center; margin: 24px 0 16px; flex-wrap: wrap; }
+.picker label { color: var(--muted); }
+input, button {
+  font: inherit; color: var(--fg); background: var(--panel);
+  border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px;
+}
+#country { flex: 1; min-width: 200px; }
+button { cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button.link { border: 0; background: none; color: var(--accent); padding: 0 4px; font-size: 14px; }
+
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+.card .k { color: var(--muted); font-size: 13px; }
+.card .v { font-size: 30px; font-weight: 650; line-height: 1.2; margin-top: 2px; }
+.card .s { color: var(--muted); font-size: 13px; }
+
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px; margin: 16px 0; }
+.panel-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.whatif { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted); }
+.whatif output { color: var(--fg); font-weight: 600; min-width: 3ch; display: inline-block; }
+#tfr-slider { padding: 0; width: 160px; accent-color: var(--accent); }
+
+.gen { display: grid; grid-template-columns: 120px 1fr 64px; gap: 12px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
+.gen:first-child { border-top: 0; }
+.gen .label { font-size: 14px; color: var(--muted); }
+.gen .label b { color: var(--fg); display: block; font-size: 15px; }
+.gen .count { text-align: right; font-size: 22px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.dots { display: grid; grid-template-columns: repeat(50, 1fr); gap: 2px; max-width: 520px; }
+.dots i { aspect-ratio: 1; border-radius: 50%; background: var(--accent); }
+.dots i.gone { background: var(--dot-gone); }
+.dots i.part { background: linear-gradient(90deg, var(--accent) var(--p), var(--dot-gone) var(--p)); }
+
+#trend svg { width: 100%; height: auto; display: block; margin-top: 10px; }
+#trend text { fill: var(--muted); font-size: 12px; }
+
+#filter { width: 180px; }
+#ranking { list-style: none; padding: 0; margin: 12px 0 0; max-height: 520px; overflow: auto; }
+#ranking li {
+  display: grid; grid-template-columns: 34px 180px 1fr 48px; gap: 10px; align-items: center;
+  padding: 4px 6px; border-radius: 6px; cursor: pointer; font-size: 14px;
+}
+#ranking li:hover, #ranking li.sel { background: #222733; }
+#ranking .n { color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+#ranking .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#ranking .bar { height: 10px; border-radius: 5px; position: relative; background: #1f232c; }
+#ranking .bar span { position: absolute; inset: 0 auto 0 0; border-radius: 5px; }
+#ranking .bar::after { content: ""; position: absolute; top: -3px; bottom: -3px; left: var(--rep); border-left: 1px dashed var(--muted); }
+#ranking .val { text-align: right; font-variant-numeric: tabular-nums; }
+
+footer { padding: 8px 20px 40px; }
+footer p { margin: 8px 0; }
+
+@media (max-width: 600px) {
+  .gen { grid-template-columns: 1fr 56px; }
+  .gen .dots { grid-column: 1 / -1; grid-row: 2; grid-template-columns: repeat(25, 1fr); }
+  #ranking li { grid-template-columns: 28px 1fr 80px 40px; }
+}
