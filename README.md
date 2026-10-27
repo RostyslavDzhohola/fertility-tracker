@@ -4,7 +4,7 @@ Live fertility rates (births per woman) for every country, plus a plain-language
 over a few generations: start with 100 people, and at a fertility rate of 1.14 each generation is about 54% the size of
 the last (1.14 ÷ 2.1 replacement), so 100 → 54 → 29 → 16 → 9.
 
-**Live:** https://rostyslavdzhohola.github.io/fertility-tracker/ (shareable per country, e.g. `#KOR`, `#JPN`, `#USA`)
+**Live:** https://fertility-tracker-live.vercel.app/ (shareable per country, e.g. `#KOR`, `#JPN`, `#USA`)
 
 ## What's in it
 
@@ -34,11 +34,11 @@ carries its year and source. How it works: [docs/METHODOLOGY.md](docs/METHODOLOG
 runs the tests, refetches everything, and refuses to publish in three cases: a source that worked before is down,
 any country or metric has less data than in the last build, or a sanity or schema check fails. It commits only when
 a number actually changed (unchanged data gives byte-identical files), never deploys if the branch moved mid-run, and
-deploys `public/` to GitHub Pages. Each deploy also writes `api/v1/status.json` with the time of the last check.
+deploys `public/` to Vercel. Each deploy also writes `api/v1/status.json` with the time of the last check.
 
 ## API (for people and agents)
 
-Base URL `https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/`: no key, CORS open, JSON and CSV.
+Base URL `https://fertility-tracker-live.vercel.app/api/v1/`: no key, CORS open, JSON and CSV.
 
 | File | What |
 | --- | --- |
@@ -49,8 +49,8 @@ Base URL `https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/`: no key
 | `countries.csv`, `timeseries.csv` | Spreadsheet-friendly (long format `iso3,year,variant,metric,value`) |
 | `openapi.json`, `schema/*.schema.json`, `status.json` | OpenAPI 3.1, JSON Schemas, last-run status |
 
-Human docs: [/api/](https://rostyslavdzhohola.github.io/fertility-tracker/api/). Agent guide:
-[/llms.txt](https://rostyslavdzhohola.github.io/fertility-tracker/llms.txt). Field reference: [docs/API.md](docs/API.md).
+Human docs: [/api/](https://fertility-tracker-live.vercel.app/api/). Agent guide:
+[/llms.txt](https://fertility-tracker-live.vercel.app/llms.txt). Field reference: [docs/API.md](docs/API.md).
 
 ## Run locally
 

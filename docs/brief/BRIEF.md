@@ -21,7 +21,7 @@ shrinking": 1.14 / 2.1 replacement ≈ 0.54, so 100 → 54 → 29 → 16 → 9).
 
 ## Ros's feedback on v1 (must fix)
 
-1. Keep GitHub Pages hosting (free). No Vercel.
+1. Hosting: ~~GitHub Pages~~. **Update from Ros, 2026-10-27: host on Vercel, not GitHub Pages** (free Hobby plan, `https://fertility-tracker-live.vercel.app/`).
 2. PRIMARY VISUAL: a **world map / globe** with country outlines colored by fertility / risk, so a regular person instantly
    sees who is in trouble. The map is the hero, not a line chart + dropdown.
 3. v1 country dropdown was broken UX: selecting a country yanked the page to the dashed projection line. Selecting a
@@ -38,10 +38,10 @@ shrinking": 1.14 / 2.1 replacement ≈ 0.54, so 100 → 54 → 29 → 16 → 9).
 
 ## Constraints
 
-- Free tiers only. Static site on GitHub Pages, deployed from `public/` by `.github/workflows/refresh-and-deploy.yml`.
+- Free tiers only. Static site on Vercel (Hobby, free), deployed from `public/` by `.github/workflows/refresh-and-deploy.yml`.
 - No runtime CDN dependencies for the live site; vendor any library into `public/vendor/`. No paid APIs, no API keys.
 - Zero-dependency Node 22 scripts for the data pipeline (global fetch, node:test for tests).
-- Repo: github.com/RostyslavDzhohola/fertility-tracker (public, MIT). Live: https://rostyslavdzhohola.github.io/fertility-tracker/
+- Repo: github.com/RostyslavDzhohola/fertility-tracker (public, MIT). Live: https://fertility-tracker-live.vercel.app/
 - Branch `v2-map-redo` is checked out. Do NOT run git commands that change state (no commit, checkout, stash, reset, push).
   The orchestrator commits.
 - Several agents work in this folder at once. Only write the files your brief assigns you.
@@ -53,7 +53,7 @@ medium projections via Our World in Data). `public/index.html`, `app.js`, `style
 
 ## Planned API contract (backend owns it; others build against it)
 
-Base: `https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/` (relative in the app: `api/v1/`).
+Base: `https://fertility-tracker-live.vercel.app/api/v1/` (relative in the app: `api/v1/`).
 
 - `index.json` — manifest: version, generatedAt, sources, endpoint list, methodology links.
 - `countries.json` — one summary record per country (+ `WLD` world): iso3, name, region, population, tfr, latest

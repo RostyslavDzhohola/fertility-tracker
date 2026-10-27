@@ -43,7 +43,7 @@ https://example.org/jp
 
 ### Page link (optional)
 
-https://rostyslavdzhohola.github.io/fertility-tracker/#JPN`;
+https://fertility-tracker-live.vercel.app/#JPN`;
 
 const issue = (n, labels, extra = {}) => ({
   number: n,
@@ -63,7 +63,7 @@ test("parseIssueForm splits sections and maps _No response_ to empty", () => {
   assert.equal(s["which country?"], "Japan");
   assert.equal(s["which number? (optional)"], "");
   assert.match(s["what looks wrong?"], /^The 2023/);
-  assert.equal(s["page link (optional)"], "https://rostyslavdzhohola.github.io/fertility-tracker/#JPN");
+  assert.equal(s["page link (optional)"], "https://fertility-tracker-live.vercel.app/#JPN");
   assert.deepEqual(parseIssueForm(null), {});
   assert.deepEqual(parseIssueForm("free text, no form"), {});
 });
@@ -155,7 +155,7 @@ test("summarizeIssue extracts type, country, page and flags", () => {
   const s = summarizeIssue(issue(9, ["data-problem", "needs-human"], { body: DATA_BODY, comments: 2 }), { since: "2026-10-19T08:00:00Z", index: INDEX });
   assert.equal(s.type, "data-problem");
   assert.equal(s.country.iso3, "JPN");
-  assert.equal(s.page, "https://rostyslavdzhohola.github.io/fertility-tracker/#JPN");
+  assert.equal(s.page, "https://fertility-tracker-live.vercel.app/#JPN");
   assert.equal(s.isNew, true);
   assert.equal(s.needsHuman, true);
   assert.equal(s.triaged, false);

@@ -1,8 +1,8 @@
 blank_issues_enabled: false
 contact_links:
   - name: Email instead (no GitHub account needed)
-    url: https://rostyslavdzhohola.github.io/fertility-tracker/#feedback
+    url: https://fertility-tracker-live.vercel.app/#feedback
     about: Write to andromedus+fertility@mail.grokbot.com. Email stays private; GitHub issues are public.
   - name: Use the data in your own tools or agents
-    url: https://rostyslavdzhohola.github.io/fertility-tracker/api/
+    url: https://fertility-tracker-live.vercel.app/api/
     about: JSON and CSV endpoints, OpenAPI and llms.txt for people and AI agents.

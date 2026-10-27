@@ -287,7 +287,7 @@ export function renderFiles(ds, manifest) {
         code: "MIT",
         data: "CC BY 4.0 (World Bank, Our World in Data); UN data CC BY 3.0 IGO. Cite the original publishers and this API.",
       },
-      cors: "Served by GitHub Pages with Access-Control-Allow-Origin: *, so browsers and agents can fetch any file cross-origin.",
+      cors: "Served by Vercel with Access-Control-Allow-Origin: *, so browsers and agents can fetch any file cross-origin.",
     }),
   );
   return files;

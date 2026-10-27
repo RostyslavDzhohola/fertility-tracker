@@ -2,7 +2,7 @@
 // pipeline (refuse to publish output that does not match its schema) and by the tests.
 import { RISK_MODEL } from "./risk.mjs";
 
-export const SITE_URL = "https://rostyslavdzhohola.github.io/fertility-tracker/";
+export const SITE_URL = "https://fertility-tracker-live.vercel.app/";
 export const API_BASE = `${SITE_URL}api/v1/`;
 export const SCHEMA_VERSION = "1.0.0";
 
@@ -340,7 +340,7 @@ export function openapi() {
       summary: "Fertility, births, deaths, migration, UN projections and population-decline risk for every country.",
       description:
         "Static, read-only JSON/CSV files regenerated weekly from the World Bank (WDI), UN World Population Prospects 2024 " +
-        "and UN DESA International Migrant Stock 2024. No key, no rate limit beyond GitHub Pages; CORS is open " +
+        "and UN DESA International Migrant Stock 2024. No key, no rate limit beyond Vercel static hosting; CORS is open " +
         "(Access-Control-Allow-Origin: *). Missing values are null. See /llms.txt and /api/ for a guide.",
       license: { name: "MIT (code); data CC BY 4.0 from the original publishers", url: "https://github.com/RostyslavDzhohola/fertility-tracker/blob/main/LICENSE" },
       contact: { name: "Feedback", email: "andromedus+fertility@mail.grokbot.com", url: "https://github.com/RostyslavDzhohola/fertility-tracker/issues" },

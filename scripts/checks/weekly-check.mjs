@@ -20,7 +20,7 @@ import { assessWorkflowRuns, assessWorkflowStates, findCountryRecords, runSiteCh
 // CHECK_REPO_ROOT points the checker at another checkout (tests use an empty one).
 const REPO_ROOT = path.resolve(process.env.CHECK_REPO_ROOT || path.join(path.dirname(fileURLToPath(import.meta.url)), "../.."));
 const DEFAULTS = {
-  site: "https://rostyslavdzhohola.github.io/fertility-tracker/",
+  site: "https://fertility-tracker-live.vercel.app/",
   repo: "RostyslavDzhohola/fertility-tracker",
   refreshWorkflow: "refresh-and-deploy.yml",
 };

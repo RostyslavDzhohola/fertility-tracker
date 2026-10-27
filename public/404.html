@@ -17,10 +17,10 @@
   .dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: #FFCB52; margin-right: 8px; }
 </style>
 <script>
-  // GitHub Pages serves this file for any missing path. "/fertility-tracker/KOR" → "/fertility-tracker/#KOR".
+  // Vercel serves this file for any missing path. "/KOR" and the old GitHub Pages form "/fertility-tracker/KOR" → "/#KOR".
   (function () {
-    var m = /^(\/fertility-tracker)?\/([A-Za-z]{3})\/?$/.exec(location.pathname);
-    if (m) location.replace((m[1] || "") + "/#" + m[2].toUpperCase());
+    var m = /^(?:\/fertility-tracker)?\/([A-Za-z]{3})\/?$/.exec(location.pathname);
+    if (m) location.replace("/#" + m[1].toUpperCase());
   })();
 </script>
 </head>
@@ -28,7 +28,7 @@
 <main>
   <h1><span class="dot" aria-hidden="true"></span>Page not found</h1>
   <p>This page doesn't exist. The map, the data and the API are still here.</p>
-  <p><a href="https://rostyslavdzhohola.github.io/fertility-tracker/">Open the Fertility Tracker</a> · <a href="https://rostyslavdzhohola.github.io/fertility-tracker/api/">API</a> · <a href="https://rostyslavdzhohola.github.io/fertility-tracker/llms.txt">llms.txt</a></p>
+  <p><a href="https://fertility-tracker-live.vercel.app/">Open the Fertility Tracker</a> · <a href="https://fertility-tracker-live.vercel.app/api/">API</a> · <a href="https://fertility-tracker-live.vercel.app/llms.txt">llms.txt</a></p>
 </main>
 </body>
 </html>

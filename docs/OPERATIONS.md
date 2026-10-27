@@ -9,7 +9,7 @@ Every Monday, three loops run in sequence:
 
 | When (UTC) | Loop | Where | What it does |
 | --- | --- | --- | --- |
-| 06:17 | Data refresh | `.github/workflows/refresh-and-deploy.yml` | Refetches UN WPP / World Bank data, commits it if anything changed, deploys `public/` to GitHub Pages. Also deploys on every push to `main`. |
+| 06:17 | Data refresh | `.github/workflows/refresh-and-deploy.yml` | Refetches UN WPP / World Bank data, commits it if anything changed, deploys `public/` to Vercel (Vercel CLI, `VERCEL_TOKEN` repo secret). Also deploys on every push to `main`. |
 | 08:00 | Weekly check | `.github/workflows/weekly-check.yml` → `scripts/checks/weekly-check.mjs` | Checks the live site and every API endpoint, data freshness, the refresh run, and the past 7 days of feedback issues. Keeps one open issue titled `Weekly check — YYYY-MM-DD` (label `weekly-check`) and closes last week's. |
 | After the check | Weekly agent | T3 Code scheduled task on Ros's machine, following `docs/weekly-agent-prompt.md` | Verifies the report, triages feedback, ships fixes in one reviewed PR, merges only through the gate in the prompt, comments on every feedback issue, reports in the weekly-check issue and its thread. |
 
@@ -43,7 +43,7 @@ section and spells out the address in its description.
 The site opens a form with the country and page already filled in:
 
 ```
-https://github.com/RostyslavDzhohola/fertility-tracker/issues/new?template=data-problem.yml&title=%5BData%5D%20Japan%3A%20&country=JPN&page=https%3A%2F%2Frostyslavdzhohola.github.io%2Ffertility-tracker%2F%23JPN
+https://github.com/RostyslavDzhohola/fertility-tracker/issues/new?template=data-problem.yml&title=%5BData%5D%20Japan%3A%20&country=JPN&page=https%3A%2F%2Ffertility-tracker-live.vercel.app%2F%23JPN
 ```
 
 - `template=<file>.yml` picks the form; `title=` sets the title; any other parameter is a form field `id`
@@ -188,6 +188,6 @@ by hand stays off: the weekly agent re-enables only workflows GitHub disabled fo
 - **Scheduled runs drift.** GitHub may start cron runs several minutes late under load; the 08:00 check
   leaves the 06:17 refresh well over an hour of slack.
 - **Local servers list directories.** `python3 -m http.server` answers `api/` with a directory listing, so a
-  missing `public/api/index.html` passes a local check but returns 404 on GitHub Pages.
+  missing `public/api/index.html` passes a local check but returns 404 on the live site.
 - **Issue text is untrusted.** The check never copies issue bodies into its report; the weekly agent treats all
   issue and email text as data, per its prompt.

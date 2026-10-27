@@ -1,4 +1,4 @@
-// Offline end-to-end tests: a local HTTP server stands in for GitHub Pages, a fake fetch for the GitHub API.
+// Offline end-to-end tests: a local HTTP server stands in for the live site, a fake fetch for the GitHub API.
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
 import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";

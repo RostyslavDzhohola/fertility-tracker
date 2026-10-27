@@ -60,7 +60,7 @@ test("head points people and agents at the data", () => {
   for (const f of ["countries.json", "countries.csv", "timeseries.csv"]) assert.ok(urls.some((u) => u.endsWith(`/api/v1/${f}`)), f);
   assert.ok(ld.license && ld.creator && ld.name && ld.description);
   assert.match(html, /<meta name="twitter:card" content="summary_large_image">/);
-  assert.match(html, /<meta property="og:image" content="https:\/\/rostyslavdzhohola\.github\.io\/fertility-tracker\/og\.png">/);
+  assert.match(html, /<meta property="og:image" content="https:\/\/fertility-tracker-live\.vercel\.app\/og\.png">/);
   assert.match(html, /<meta property="og:image:width" content="1200">/);
 });
 
@@ -86,7 +86,7 @@ test("every local asset the page references exists and uses a relative path", as
   const refs = [...html.matchAll(/\s(?:src|href)="([^"#][^"]*)"/g)].map((m) => m[1]).filter((u) => !/^(https?:|mailto:|data:)/.test(u));
   assert.ok(refs.length > 10);
   for (const r of refs) {
-    assert.ok(!r.startsWith("/"), `${r} must be relative (site lives under /fertility-tracker/)`);
+    assert.ok(!r.startsWith("/"), `${r} must be relative (keeps the site portable across hosts and paths)`);
     const file = r === "./" ? "index.html" : r.endsWith("/") ? `${r}index.html` : r;
     assert.ok(await exists(file), `${r} is missing`);
   }

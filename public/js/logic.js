@@ -3,7 +3,7 @@
 
 export const REPLACEMENT = 2.1;
 export const MINUS = "−";
-export const SITE_URL = "https://rostyslavdzhohola.github.io/fertility-tracker/";
+export const SITE_URL = "https://fertility-tracker-live.vercel.app/";
 export const FALLBACK_EMAIL = "andromedus+fertility@mail.grokbot.com";
 export const GEN_YEARS = 30;
 
