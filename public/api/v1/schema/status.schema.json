@@ -1,0 +1,138 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/schema/status.schema.json",
+  "title": "Fertility Tracker: status.json",
+  "description": "status.json",
+  "type": "object",
+  "required": [
+    "apiVersion",
+    "checkedAt",
+    "refresh",
+    "trigger",
+    "run",
+    "commit",
+    "dataChangedAt",
+    "contentHash",
+    "latestEstimateYear",
+    "sources",
+    "note"
+  ],
+  "properties": {
+    "apiVersion": {
+      "type": "string",
+      "description": "API version.",
+      "const": "v1"
+    },
+    "checkedAt": {
+      "type": "string",
+      "description": "When the pipeline last ran (ISO 8601).",
+      "format": "date-time"
+    },
+    "refresh": {
+      "type": "string",
+      "description": "Outcome of the source refresh in that run.",
+      "enum": [
+        "success",
+        "failure",
+        "skipped",
+        "cancelled",
+        "unknown"
+      ]
+    },
+    "trigger": {
+      "type": "string",
+      "description": "What started the run (schedule, workflow_dispatch, push, local)."
+    },
+    "run": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "GitHub Actions run URL."
+    },
+    "commit": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Deployed commit SHA."
+    },
+    "dataChangedAt": {
+      "type": "string",
+      "description": "generatedAt of the published data: when a number last changed.",
+      "format": "date-time"
+    },
+    "contentHash": {
+      "type": "string",
+      "description": "contentHash from index.json.",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "latestEstimateYear": {
+      "type": "integer",
+      "description": "Latest UN WPP estimate year."
+    },
+    "sources": {
+      "type": "array",
+      "description": "Source vintages and per-dataset status from index.json.",
+      "items": {
+        "type": "object",
+        "description": "Source.",
+        "required": [
+          "id",
+          "vintage",
+          "datasets"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Source id."
+          },
+          "vintage": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Source vintage (last update date)."
+          },
+          "datasets": {
+            "type": "array",
+            "description": "Datasets.",
+            "items": {
+              "type": "object",
+              "description": "Dataset.",
+              "required": [
+                "id",
+                "status",
+                "lastUpdated"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "Dataset id."
+                },
+                "status": {
+                  "type": "string",
+                  "description": "ok or unavailable."
+                },
+                "lastUpdated": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Last update."
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "note": {
+      "type": "string",
+      "description": "Explanation."
+    }
+  },
+  "additionalProperties": false
+}

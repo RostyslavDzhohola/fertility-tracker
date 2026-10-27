@@ -1,0 +1,46 @@
+# Fertility Tracker
+
+> Live, weekly-refreshed fertility and population data for every country: fertility rate, births, deaths, net migration, immigrant and emigrant stocks, migration corridors, UN projections to 2100, and a population-decline risk score (0-100) with plain-English reasons. Static JSON/CSV on GitHub Pages: no key, CORS open (Access-Control-Allow-Origin: *).
+
+Sources: World Bank World Development Indicators (latest reported year), UN World Population Prospects 2024 (estimates 1950-2023 + medium-variant projection 2024-2100) and UN DESA International Migrant Stock 2024, the UN data via Our World in Data. Codes are ISO 3166-1 alpha-3 (WLD = world, XKX = Kosovo). Numbers are JSON numbers; missing = null. Every record includes iso3, name and region.
+
+## API (base: https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/)
+
+- [index.json](https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/index.json): manifest with exact source URLs, data vintages, endpoints, known data gaps, generatedAt and contentHash (changes only when numbers change)
+- [countries.json](https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/countries.json): one summary record per country + WLD: population, tfr, median age, 65+ share, latest births/deaths/net migration (absolute and per 1,000), immigrant/emigrant stock, UN 2050/2100 projection, generation ratio, risk {score, tier, rank, factors}
+- [countries/{ISO3}.json](https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/countries/KOR.json): everything for one country, including yearly series 1950-2100 (population, births, deaths, naturalChange, netMigration, populationChange, tfr, medianAge, share65), migrant stock history, top 10 origin and destination countries, full risk breakdown
+- [risk.json](https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/risk.json): countries ranked by population-decline risk (rank 1 = highest), component points, inputs, factors and the full methodology
+- [countries.csv](https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/countries.csv): one row per country, nested fields flattened with underscores
+- [timeseries.csv](https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/timeseries.csv): long format iso3,year,variant,metric,value (variant = estimate | projection), about 11 MB
+- [status.json](https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/status.json): when the weekly refresh last ran and whether it succeeded
+- [openapi.json](https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/openapi.json): OpenAPI 3.1; JSON Schemas with field descriptions under api/v1/schema/
+
+## Field meanings
+
+- tfr: total fertility rate, births per woman; 2.1 = replacement (each generation the same size)
+- population / tfr / share65 / medianAge (and, in country files, birthRate, deathRate, naturalChangeRate, netMigration, populationGrowthPct): {value, year, source}, newest year across sources; source = WB | UN-WPP | UN-DESA
+- components: demographic balance for the latest UN estimate year (2023): populationChange = births - deaths + netMigration; perThousand = the same per 1,000 people; migrationOffsetPct = net migration as % of the natural decline (deaths minus births), null when births >= deaths
+- migrantStock.immigrants: people living in the country who were born elsewhere (inflow proxy); migrantStock.emigrants: people born there who live abroad (outflow proxy). Gross annual inflows and outflows are not published globally; use netMigration for the annual flow
+- projection: UN WPP medium variant; change2050Pct / change2100Pct vs the latest estimate year; peakYear; halfPopulationYear; naturalDeclineSince = start of more deaths than births (past or projected)
+- generations.ratio = tfr / 2.1: each ~30-year generation is this fraction of the previous one (100 people -> 100*ratio -> ...)
+- risk.score 0-100 = 35 x fertility gap (2.1 -> 0.8) + 15 x natural decline (+5 -> -7 per 1,000) + 10 x aging (65+ share 7 -> 30%, median age 25 -> 50) + 30 x UN-projected decline (2050: 0 -> -25%, weight 1; 2100: 0 -> -60%, weight 2) + 10 x migration not offsetting the decline; each part is a linear ramp clamped to 0..1
+- risk.tier: Critical >= 70, High >= 55, Elevated >= 40, Moderate >= 20, Low < 20. risk.rank: 1 = highest risk, null when not ranked (WLD, places under 100,000 people)
+
+## Example calls
+
+- Highest-risk countries: GET api/v1/risk.json -> .ranking[0:10] -> {rank, name, score, tier, factors}
+- One country now and in 2050: GET api/v1/countries/JPN.json -> .tfr, .components, .series[] where year == 2050
+- Where a country's emigrants live: GET api/v1/countries/UKR.json -> .migrationCorridors.topDestinations
+- Spreadsheet: GET api/v1/countries.csv; all years: GET api/v1/timeseries.csv
+- Change detection: GET api/v1/index.json -> compare contentHash with your cached copy
+
+## Docs
+
+- [Human API docs](https://rostyslavdzhohola.github.io/fertility-tracker/api/)
+- [API reference](https://github.com/RostyslavDzhohola/fertility-tracker/blob/main/docs/API.md)
+- [Methodology: sources, decomposition, risk formula, limitations](https://github.com/RostyslavDzhohola/fertility-tracker/blob/main/docs/METHODOLOGY.md)
+- [Live tracker](https://rostyslavdzhohola.github.io/fertility-tracker/): per country via #ISO3, e.g. #KOR
+
+## Licence and citation
+
+Code MIT. Data: World Bank (CC BY 4.0); UN WPP 2024 and UN DESA International Migrant Stock 2024 (CC BY 3.0 IGO) via Our World in Data (CC BY 4.0). Cite the original publishers and "Fertility Tracker (github.com/RostyslavDzhohola/fertility-tracker)". Feedback and corrections: https://github.com/RostyslavDzhohola/fertility-tracker/issues or andromedus+fertility@mail.grokbot.com

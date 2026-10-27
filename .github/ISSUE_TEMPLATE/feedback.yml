@@ -1,0 +1,29 @@
+name: General feedback
+description: Something confusing, something you liked, or anything else about the tracker.
+title: "[Feedback] "
+labels: ["feedback"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking a moment. Every note is read in the weekly review.
+        This issue is public, so please leave out personal details. Prefer email? Write to andromedus+fertility@mail.grokbot.com.
+  - type: textarea
+    id: message
+    attributes:
+      label: Your feedback
+      placeholder: What did you try to do, and what got in the way (or what worked well)?
+    validations:
+      required: true
+  - type: input
+    id: country
+    attributes:
+      label: Country (optional)
+      description: If your note is about one country. Name or 3-letter code.
+      placeholder: Japan or JPN
+  - type: input
+    id: page
+    attributes:
+      label: Page link (optional)
+      description: Filled in for you when you come from the site.
+      placeholder: https://rostyslavdzhohola.github.io/fertility-tracker/

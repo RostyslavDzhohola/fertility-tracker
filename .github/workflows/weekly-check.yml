@@ -1,0 +1,58 @@
+name: Weekly check
+
+# Mondays 08:00 UTC, after the 06:17 "Refresh data and deploy" run. Checks the live site and API, data
+# freshness, the refresh workflow, and the week's feedback issues; keeps one open "Weekly check — YYYY-MM-DD"
+# issue. Fails only when the site or API is actually broken (or the report could not be published).
+# Docs: docs/OPERATIONS.md. Turn off: gh workflow disable weekly-check.yml
+
+on:
+  schedule:
+    - cron: "0 8 * * 1"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Print the report only; do not open, update or close issues"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  issues: write
+  actions: read
+
+concurrency:
+  group: weekly-check
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Run weekly check
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Files in public/ on main must be live; on any other ref they may not be deployed yet.
+          CHECK_EXPECT_DEPLOYED: ${{ github.ref == 'refs/heads/main' }}
+          CHECK_DRY_RUN: ${{ inputs.dry_run == true }}
+        run: node scripts/checks/weekly-check.mjs --out weekly-check-out
+
+      - name: Self-test the checker
+        if: always()
+        run: node --test "test/checks/*.test.mjs"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: weekly-check-report
+          path: weekly-check-out/
+          retention-days: 30
+          if-no-files-found: ignore

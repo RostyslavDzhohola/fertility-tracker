@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/schema/index.schema.json",
+  "title": "Fertility Tracker: index.json",
+  "description": "API manifest.",
+  "type": "object",
+  "required": [
+    "name",
+    "apiVersion",
+    "schemaVersion",
+    "generatedAt",
+    "contentHash",
+    "baseUrl",
+    "latestEstimateYear",
+    "counts",
+    "sources",
+    "endpoints",
+    "dataGaps",
+    "links"
+  ],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "API name."
+    },
+    "description": {
+      "type": "string",
+      "description": "What this is."
+    },
+    "apiVersion": {
+      "type": "string",
+      "description": "API version.",
+      "const": "v1"
+    },
+    "schemaVersion": {
+      "type": "string",
+      "description": "Schema version (semver; breaking changes bump the API version instead)."
+    },
+    "generatedAt": {
+      "type": "string",
+      "description": "When the numbers last changed.",
+      "format": "date-time"
+    },
+    "contentHash": {
+      "type": "string",
+      "description": "SHA-256 over all published files; changes exactly when any number changes.",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "baseUrl": {
+      "type": "string",
+      "description": "Base URL of the API."
+    },
+    "latestEstimateYear": {
+      "type": "integer",
+      "description": "Latest UN WPP estimate year."
+    },
+    "replacementTfr": {
+      "type": "number",
+      "description": "Replacement fertility.",
+      "const": 2.1
+    },
+    "counts": {
+      "type": "object",
+      "description": "Record counts."
+    },
+    "sources": {
+      "type": "array",
+      "description": "Upstream sources with exact URLs and vintages.",
+      "items": {
+        "type": "object",
+        "description": "Source."
+      }
+    },
+    "endpoints": {
+      "type": "array",
+      "description": "Published files.",
+      "items": {
+        "type": "object",
+        "description": "Endpoint.",
+        "required": [
+          "path",
+          "url",
+          "format",
+          "description"
+        ]
+      }
+    },
+    "dataGaps": {
+      "type": "array",
+      "description": "Known gaps and caveats.",
+      "items": {
+        "type": "string",
+        "description": "Gap."
+      }
+    },
+    "links": {
+      "type": "object",
+      "description": "Docs, methodology, OpenAPI, llms.txt, repo, feedback."
+    },
+    "license": {
+      "type": "object",
+      "description": "Licences."
+    },
+    "cors": {
+      "type": "string",
+      "description": "CORS note."
+    }
+  },
+  "additionalProperties": false
+}

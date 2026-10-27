@@ -1,5 +1,7 @@
 name: Refresh data and deploy
 
+# Weekly autonomous loop: refetch every source, rebuild public/api/v1/, test + validate, commit only real changes,
+# deploy public/ to GitHub Pages. Free: GitHub-hosted runner, no secrets beyond the built-in GITHUB_TOKEN.
 on:
   push:
     branches: [main]
@@ -19,26 +21,43 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Fetch latest data
-        if: github.event_name != 'push'
+
+      - name: Test
+        run: node --test
+
+      - name: Fetch latest sources and rebuild the API
+        id: refresh
+        # Refuses to overwrite good data (sanity checks, schema validation, sources that worked last time).
+        # On pushes a source outage must not block deploying code changes; scheduled and manual runs fail loudly.
+        continue-on-error: ${{ github.event_name == 'push' }}
         run: node scripts/fetch-data.mjs
+
+      - name: Verify the API files about to be deployed
+        run: node scripts/fetch-data.mjs --verify
+
       - name: Commit data if changed
-        if: github.event_name != 'push'
+        if: steps.refresh.outcome == 'success'
         run: |
-          if git diff --quiet -- public/data; then
+          git add -A public/api
+          if git diff --cached --quiet; then
             echo "No data changes"
           else
             git config user.name "github-actions[bot]"
             git config user.email "41898333+github-actions[bot]@users.noreply.github.com"
-            git add public/data
             git commit -m "data: refresh $(date -u +%F)"
-            git push
+            git pull --rebase origin "$GITHUB_REF_NAME"
+            git push origin "HEAD:$GITHUB_REF_NAME"
           fi
+
+      - name: Write deploy status (not committed)
+        run: node scripts/fetch-data.mjs --write-status --outcome "${{ steps.refresh.outcome || 'unknown' }}"
+
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

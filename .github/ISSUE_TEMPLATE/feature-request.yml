@@ -1,0 +1,33 @@
+name: Idea or feature request
+description: A chart, country detail, data field or API feature you would like to see.
+title: "[Idea] "
+labels: ["feature-request"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Ideas are welcome, from people and from agents using the API.
+        This issue is public, so please leave out personal details. Prefer email? Write to andromedus+fertility@mail.grokbot.com.
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like to see?
+      placeholder: Compare two countries side by side on the map.
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: How would it help you? (optional)
+      placeholder: I write about demographics and want to show neighbours together.
+  - type: input
+    id: country
+    attributes:
+      label: Country (optional)
+      placeholder: Japan or JPN
+  - type: input
+    id: page
+    attributes:
+      label: Page link (optional)
+      description: Filled in for you when you come from the site.
+      placeholder: https://rostyslavdzhohola.github.io/fertility-tracker/
