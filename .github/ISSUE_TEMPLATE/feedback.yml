@@ -26,4 +26,4 @@ body:
     attributes:
       label: Page link (optional)
       description: Filled in for you when you come from the site.
-      placeholder: https://rostyslavdzhohola.github.io/fertility-tracker/
+      placeholder: https://fertility-tracker-live.vercel.app/

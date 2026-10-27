@@ -47,8 +47,8 @@
   <p id="live"></p>
 
   <h2>Base URL</h2>
-  <pre>https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/</pre>
-  <p>GitHub Pages serves every file with <code>Access-Control-Allow-Origin: *</code>, so browsers, servers and AI agents can fetch it directly. Codes are ISO 3166-1 alpha-3 (<code>WLD</code> = world, <code>XKX</code> = Kosovo). Numbers are numbers, missing values are <code>null</code>, and every record includes <code>iso3</code>, <code>name</code> and <code>region</code>.</p>
+  <pre>https://fertility-tracker-live.vercel.app/api/v1/</pre>
+  <p>Every API file is served with <code>Access-Control-Allow-Origin: *</code>, so browsers, servers and AI agents can fetch it directly. Codes are ISO 3166-1 alpha-3 (<code>WLD</code> = world, <code>XKX</code> = Kosovo). Numbers are numbers, missing values are <code>null</code>, and every record includes <code>iso3</code>, <code>name</code> and <code>region</code>.</p>
 
   <h2>Endpoints</h2>
   <div class="table-scroll" role="region" tabindex="0" aria-label="Endpoints table">
@@ -67,13 +67,13 @@
 
   <h2>Try it</h2>
 <pre># The 10 countries at highest risk of population decline
-curl -s https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/risk.json \
+curl -s https://fertility-tracker-live.vercel.app/api/v1/risk.json \
   | jq -r '.ranking[:10][] | "\(.rank). \(.name)  \(.score) \(.tier)"'
 
 # Japan in 2050 (UN projection): births, deaths, net migration
-curl -s https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/countries/JPN.json \
+curl -s https://fertility-tracker-live.vercel.app/api/v1/countries/JPN.json \
   | jq '.series[] | select(.year == 2050) | {births, deaths, netMigration}'</pre>
-<pre>const base = "https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/";
+<pre>const base = "https://fertility-tracker-live.vercel.app/api/v1/";
 const { countries } = await (await fetch(base + "countries.json")).json();
 const korea = countries.find((c) => c.iso3 === "KOR");
 console.log(korea.tfr.value, korea.risk.tier, korea.risk.factors[0]);</pre>

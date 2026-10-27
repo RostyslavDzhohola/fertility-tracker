@@ -4,11 +4,11 @@ Static, read-only JSON and CSV for every country: fertility, births, deaths, net
 stocks, migration corridors, UN projections to 2100 and a population-decline risk score. No key, no sign-up,
 refreshed weekly.
 
-- **Base URL:** `https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/`
-- **CORS:** GitHub Pages sends `Access-Control-Allow-Origin: *`, so any file can be fetched cross-origin from a
+- **Base URL:** `https://fertility-tracker-live.vercel.app/api/v1/`
+- **CORS:** Vercel sends `Access-Control-Allow-Origin: *` for `api/`, `llms.txt` and `feedback.json` (set in `vercel.json`), so any file can be fetched cross-origin from a
   browser, a server or an agent.
-- **Formats:** JSON (UTF-8) and CSV (RFC 4180, header row). OpenAPI 3.1: [`openapi.json`](https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/openapi.json).
-  JSON Schemas: `schema/*.schema.json`. Agent guide: [`/llms.txt`](https://rostyslavdzhohola.github.io/fertility-tracker/llms.txt).
+- **Formats:** JSON (UTF-8) and CSV (RFC 4180, header row). OpenAPI 3.1: [`openapi.json`](https://fertility-tracker-live.vercel.app/api/v1/openapi.json).
+  JSON Schemas: `schema/*.schema.json`. Agent guide: [`/llms.txt`](https://fertility-tracker-live.vercel.app/llms.txt).
 - **Conventions:** ISO 3166-1 alpha-3 codes (`WLD` = world, `XKX` = Kosovo); numbers are JSON numbers, never strings;
   missing values are `null`; every record carries `iso3`, `name` and `region`, so no join is needed. Field names are
   stable within v1. Breaking changes would ship as `/api/v2/`.
@@ -120,23 +120,23 @@ reason`). The method is described in [METHODOLOGY.md](METHODOLOGY.md).
 
 ```sh
 # 10 highest-risk countries
-curl -s https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/risk.json \
+curl -s https://fertility-tracker-live.vercel.app/api/v1/risk.json \
   | jq -r '.ranking[:10][] | "\(.rank). \(.name) \(.score) \(.tier)"'
 
 # Japan's births, deaths and net migration in 2050 (UN projection)
-curl -s https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/countries/JPN.json \
+curl -s https://fertility-tracker-live.vercel.app/api/v1/countries/JPN.json \
   | jq '.series[] | select(.year == 2050) | {births, deaths, netMigration}'
 ```
 
 ```js
-const base = "https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/";
+const base = "https://fertility-tracker-live.vercel.app/api/v1/";
 const { countries } = await (await fetch(base + "countries.json")).json();
 const belowReplacement = countries.filter((c) => c.iso3 !== "WLD" && c.tfr?.value < 2.1).length;
 ```
 
 ```python
 import pandas as pd
-ts = pd.read_csv("https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/timeseries.csv")
+ts = pd.read_csv("https://fertility-tracker-live.vercel.app/api/v1/timeseries.csv")
 kor = ts[(ts.iso3 == "KOR") & (ts.metric == "births")]
 ```
 

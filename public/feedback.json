@@ -2,7 +2,7 @@
   "$comment": "Single source of truth for feedback channels. The site reads this file; scripts/checks/weekly-check.mjs reads labels, templates and site URL from it. To set the X handle, replace TODO_X_HANDLE in x.handle (no @). See docs/OPERATIONS.md.",
   "version": 1,
   "site": {
-    "url": "https://rostyslavdzhohola.github.io/fertility-tracker/",
+    "url": "https://fertility-tracker-live.vercel.app/",
     "feedbackAnchor": "feedback"
   },
   "email": {
@@ -62,8 +62,8 @@
     },
     "prefill": {
       "howTo": "Append URL-encoded query parameters to a template's newIssueUrl: title=<text> plus any key listed in that template's fields (the key is the form field id). The same parameters also work on chooserUrl and carry over into whichever template the visitor picks.",
-      "example": "https://github.com/RostyslavDzhohola/fertility-tracker/issues/new?template=data-problem.yml&title=%5BData%5D%20Japan%3A%20&country=JPN&metric=Fertility%20rate&page=https%3A%2F%2Frostyslavdzhohola.github.io%2Ffertility-tracker%2F%23JPN",
-      "chooserExample": "https://github.com/RostyslavDzhohola/fertility-tracker/issues/new/choose?country=JPN&page=https%3A%2F%2Frostyslavdzhohola.github.io%2Ffertility-tracker%2F%23JPN",
+      "example": "https://github.com/RostyslavDzhohola/fertility-tracker/issues/new?template=data-problem.yml&title=%5BData%5D%20Japan%3A%20&country=JPN&metric=Fertility%20rate&page=https%3A%2F%2Ffertility-tracker-live.vercel.app%2F%23JPN",
+      "chooserExample": "https://github.com/RostyslavDzhohola/fertility-tracker/issues/new/choose?country=JPN&page=https%3A%2F%2Ffertility-tracker-live.vercel.app%2F%23JPN",
       "rules": [
         "Only text fields (inputs and textareas) prefill; these templates have no dropdowns.",
         "Labels come from the template automatically. Leave out labels=, which needs triage rights and otherwise 404s.",

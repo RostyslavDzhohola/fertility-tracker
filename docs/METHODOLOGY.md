@@ -188,7 +188,7 @@ rank 6.
    stops without committing or deploying, and the run triggered by the newer commit refreshes, tests and deploys it
    (no rebase, so untested code is never deployed). Otherwise it commits changes with a plain fast-forward push and
    writes a deploy-time `api/v1/status.json` (not committed). That file holds `checkedAt`, the refresh outcome, the run
-   URL, the deployed `commit` and the `triggerCommit`. Then it deploys `public/` to GitHub Pages.
+   URL, the deployed `commit` and the `triggerCommit`. Then it deploys `public/` to Vercel (production) with the Vercel CLI.
 
 ## Limitations
 

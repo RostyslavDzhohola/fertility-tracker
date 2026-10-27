@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/schema/country.schema.json",
+  "$id": "https://fertility-tracker-live.vercel.app/api/v1/schema/country.schema.json",
   "title": "Fertility Tracker: countries/{ISO3}.json",
   "description": "Everything about one country.",
   "type": "object",

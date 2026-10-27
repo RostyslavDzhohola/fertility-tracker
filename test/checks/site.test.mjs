@@ -23,19 +23,18 @@ import {
   validateResponse,
 } from "../../scripts/checks/lib/site.mjs";
 
-const SITE = "https://rostyslavdzhohola.github.io/fertility-tracker/";
+const SITE = "https://fertility-tracker-live.vercel.app/";
 const ok = (text, contentType = "application/json") => ({ status: 200, contentType, text });
 
 test("toSitePath resolves absolute, root-relative, api-relative and manifest-relative refs", () => {
   assert.equal(toSitePath(`${SITE}api/v1/risk.json`, SITE), "api/v1/risk.json");
-  assert.equal(toSitePath("/fertility-tracker/api/v1/risk.json", SITE), "api/v1/risk.json");
   assert.equal(toSitePath("/api/v1/risk.json", SITE), "api/v1/risk.json");
   assert.equal(toSitePath("api/v1/risk.json", SITE), "api/v1/risk.json");
   assert.equal(toSitePath("countries.csv", SITE), "api/v1/countries.csv");
   assert.equal(toSitePath("./countries/{ISO3}.json", SITE), "api/v1/countries/{ISO3}.json");
   assert.equal(toSitePath("../../llms.txt", SITE), "llms.txt");
   assert.equal(toSitePath("https://api.worldbank.org/v2/x.json", SITE), null);
-  assert.equal(toSitePath("https://rostyslavdzhohola.github.io/other-repo/x.json", SITE), null);
+  assert.equal(toSitePath("https://other-project.vercel.app/x.json", SITE), null);
   assert.equal(toSitePath("mailto:a@b.c", SITE), null);
 });
 

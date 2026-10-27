@@ -139,11 +139,11 @@ test("GitHub issue URLs: template + title + only the template's field ids, never
   assert.equal(u.searchParams.get("template"), "data-problem.yml");
   assert.equal(u.searchParams.get("title"), "[Data] South Korea: ");
   assert.equal(u.searchParams.get("country"), "KOR");
-  assert.equal(u.searchParams.get("page"), "https://rostyslavdzhohola.github.io/fertility-tracker/#KOR");
+  assert.equal(u.searchParams.get("page"), "https://fertility-tracker-live.vercel.app/#KOR");
   assert.ok(!url.includes("labels="));
   for (const key of u.searchParams.keys()) assert.ok(["template", "title", ...Object.keys(feedback.github.templates["data-problem"].fields)].includes(key), key);
   // Values are percent-encoded, so the page URL's '#' does not end the query string.
-  assert.ok(url.includes("page=https%3A%2F%2Frostyslavdzhohola.github.io%2Ffertility-tracker%2F%23KOR"));
+  assert.ok(url.includes("page=https%3A%2F%2Ffertility-tracker-live.vercel.app%2F%23KOR"));
 
   const world = new URL(L.buildIssueUrl(feedback, "feedback", { iso3: "WLD", name: "World" }));
   assert.equal(world.searchParams.get("country"), "World");
@@ -162,7 +162,7 @@ test("mailto link carries subject and body; falls back to the brief's address", 
   assert.ok(m.startsWith("mailto:andromedus+fertility@mail.grokbot.com?subject="));
   const q = new URLSearchParams(m.split("?")[1]);
   assert.equal(q.get("subject"), "Fertility Tracker feedback: Japan");
-  assert.equal(q.get("body"), "Page: https://rostyslavdzhohola.github.io/fertility-tracker/#JPN\n\nWhat should we fix or add?\n");
+  assert.equal(q.get("body"), "Page: https://fertility-tracker-live.vercel.app/#JPN\n\nWhat should we fix or add?\n");
   assert.ok(L.buildMailto(null, { iso3: "JPN", name: "Japan" }).startsWith(`mailto:${L.FALLBACK_EMAIL}?`));
 });
 

@@ -4,7 +4,7 @@
     "title": "Fertility Tracker API",
     "version": "1.0.0",
     "summary": "Fertility, births, deaths, migration, UN projections and population-decline risk for every country.",
-    "description": "Static, read-only JSON/CSV files regenerated weekly from the World Bank (WDI), UN World Population Prospects 2024 and UN DESA International Migrant Stock 2024. No key, no rate limit beyond GitHub Pages; CORS is open (Access-Control-Allow-Origin: *). Missing values are null. See /llms.txt and /api/ for a guide.",
+    "description": "Static, read-only JSON/CSV files regenerated weekly from the World Bank (WDI), UN World Population Prospects 2024 and UN DESA International Migrant Stock 2024. No key, no rate limit beyond Vercel static hosting; CORS is open (Access-Control-Allow-Origin: *). Missing values are null. See /llms.txt and /api/ for a guide.",
     "license": {
       "name": "MIT (code); data CC BY 4.0 from the original publishers",
       "url": "https://github.com/RostyslavDzhohola/fertility-tracker/blob/main/LICENSE"
@@ -17,7 +17,7 @@
   },
   "servers": [
     {
-      "url": "https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/"
+      "url": "https://fertility-tracker-live.vercel.app/api/v1/"
     }
   ],
   "paths": {

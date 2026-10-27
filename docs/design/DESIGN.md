@@ -874,13 +874,13 @@ One line of links, 14px:
 - **Risk ranking** → `api/v1/risk.json`
 - A code block, monospace 13px with a [Copy] button. The ISO3 follows the selection:
   ```
-  curl -s https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/countries/KOR.json
+  curl -s https://fertility-tracker-live.vercel.app/api/v1/countries/KOR.json
   ```
 - **"Prompt for your agent"**: a block with a [Copy] button. Show it verbatim, with the absolute base URL:
   ```
   Use the Fertility Tracker open data (no key needed).
-  Guide: https://rostyslavdzhohola.github.io/fertility-tracker/llms.txt
-  OpenAPI: https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/openapi.json
+  Guide: https://fertility-tracker-live.vercel.app/llms.txt
+  OpenAPI: https://fertility-tracker-live.vercel.app/api/v1/openapi.json
   Fetch api/v1/countries.json for every country's latest numbers and decline-risk tier, or
   api/v1/countries/{ISO3}.json for yearly 1950–2100 series (UN projection after the last recorded year).
   Question: <your question>
@@ -926,7 +926,7 @@ One line of links, 14px:
   https://github.com/RostyslavDzhohola/fertility-tracker/issues/new?template=data-problem.yml
     &title=[Data] South Korea: 
     &country=KOR
-    &page=https://rostyslavdzhohola.github.io/fertility-tracker/#KOR
+    &page=https://fertility-tracker-live.vercel.app/#KOR
   ```
   - Every value is `encodeURIComponent`'d. The title is the template's `titlePrefix` + country name + ": ".
   - **Never add `labels=`**: without triage rights it returns a 404 (per `feedback.json` → `github.prefill.rules`).
@@ -1215,7 +1215,7 @@ JavaScript. Per-country cards are out of scope for v2.
   - Title "Highest decline risk" (26px muted).
   - The **live top 5**, 34px rows: rank · swatch · name · births per woman, e.g. "1 ■ South Korea 0.75".
 - **Bottom strip:** the 5-swatch risk legend (Low → Critical, 22px labels) on the left. On the right, the URL
-  `rostyslavdzhohola.github.io/fertility-tracker` (24px muted).
+  `fertility-tracker-live.vercel.app` (24px muted).
 - **Size rules:** no text under 22px. Keep everything inside x 60–1140, y 40–590, since X can crop slightly toward
   1.91:1.
 - **Production:**
@@ -1228,7 +1228,7 @@ JavaScript. Per-country cards are out of scope for v2.
   - `og:title` = the default `<title>`.
   - `og:description` = "Live map of births per woman and population-decline risk for every country, with UN projections
     to 2100. Free data for people and AI agents."
-  - `og:image` = `https://rostyslavdzhohola.github.io/fertility-tracker/og.png`, with `og:image:width` 1200,
+  - `og:image` = `https://fertility-tracker-live.vercel.app/og.png`, with `og:image:width` 1200,
     `og:image:height` 630, and `og:image:alt` = "World map colored by population-decline risk, with the five
     highest-risk countries listed".
   - `twitter:card` = `summary_large_image`. No `twitter:site` until the handle exists.

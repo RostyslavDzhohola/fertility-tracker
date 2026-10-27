@@ -1,7 +1,9 @@
 name: Refresh data and deploy
 
 # Weekly autonomous loop: refetch every source, rebuild public/api/v1/, test + validate, commit only real changes,
-# deploy public/ to GitHub Pages. Free: GitHub-hosted runner, no secrets beyond the built-in GITHUB_TOKEN.
+# deploy public/ to Vercel (production, https://fertility-tracker-live.vercel.app/). Free: GitHub-hosted runner and
+# Vercel Hobby. Secrets: VERCEL_TOKEN (team-scoped deploy token); variables: VERCEL_ORG_ID, VERCEL_PROJECT_ID.
+# Vercel is not connected to the repo's Git, so only revisions that passed this workflow ever reach production.
 on:
   push:
     branches: [main]
@@ -11,19 +13,15 @@ on:
 
 permissions:
   contents: write
-  pages: write
-  id-token: write
 
 concurrency:
-  group: pages
+  group: deploy
   cancel-in-progress: false
 
 jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    outputs:
-      deploy: ${{ steps.head.outputs.current }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -76,20 +74,17 @@ jobs:
         if: steps.head.outputs.current == 'true'
         run: node scripts/fetch-data.mjs --write-status --outcome "${{ steps.refresh.outcome || 'unknown' }}" --commit "$(git rev-parse HEAD)"
 
-      - uses: actions/configure-pages@v5
+      - name: Deploy public/ to Vercel (production)
         if: steps.head.outputs.current == 'true'
-      - uses: actions/upload-pages-artifact@v3
-        if: steps.head.outputs.current == 'true'
-        with:
-          path: public
-
-  deploy:
-    needs: build
-    if: needs.build.outputs.deploy == 'true'
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
-    steps:
-      - id: deploy
-        uses: actions/deploy-pages@v4
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+        run: |
+          npm install --global --silent vercel@59.11.2
+          vercel pull --yes --environment=production --token "$VERCEL_TOKEN"
+          # Static build: copies public/ (including the status.json written above) and applies vercel.json headers.
+          vercel build --prod --token "$VERCEL_TOKEN"
+          url=$(vercel deploy --prebuilt --prod --yes --token "$VERCEL_TOKEN")
+          echo "Deployed $url (production alias https://fertility-tracker-live.vercel.app/)"
+          echo "### Deployed to Vercel: $url" >> "$GITHUB_STEP_SUMMARY"

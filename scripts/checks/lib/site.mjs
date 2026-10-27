@@ -666,7 +666,7 @@ export function crossCheck({ countries, index, risk, details = new Map(), countr
  * @param {object} o
  * @param {string} o.siteUrl live site base URL
  * @param {string} o.repoRoot repo checkout, used to see which public/ files should be live
- * @param {boolean} o.expectDeployed true when the checkout is the branch Pages deploys (main)
+ * @param {boolean} o.expectDeployed true when the checkout is the branch that deploys to Vercel (main)
  * @param {boolean} [o.deployInProgress] downgrade repo-derived failures while a deploy is running
  * @param {boolean} [o.apiWasLive] the previous weekly check saw the API manifest live
  * @param {boolean} [o.localBuild] checking a local server: deploy-only files (status.json) are not expected.

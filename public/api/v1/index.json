@@ -3,9 +3,9 @@
   "description": "Fertility, births, deaths, net migration, migrant stocks, UN projections to 2100 and a population-decline risk score for every country. Static files, no key, CORS open, refreshed weekly.",
   "apiVersion": "v1",
   "schemaVersion": "1.0.0",
-  "generatedAt": "2026-10-27T00:35:59Z",
-  "contentHash": "74dd7f4825f4bff6d395b770ba46f626c86c5fd662d53237887bf9754704b571",
-  "baseUrl": "https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/",
+  "generatedAt": "2026-10-27T07:36:24Z",
+  "contentHash": "659567b4da0d35b05c374e7706a59242357b18d7bcee9a33cee4957a7aba0265",
+  "baseUrl": "https://fertility-tracker-live.vercel.app/api/v1/",
   "latestEstimateYear": 2023,
   "replacementTfr": 2.1,
   "counts": {
@@ -272,56 +272,56 @@
   "endpoints": [
     {
       "path": "index.json",
-      "url": "https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/index.json",
+      "url": "https://fertility-tracker-live.vercel.app/api/v1/index.json",
       "format": "json",
       "description": "This manifest.",
-      "schema": "https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/schema/index.schema.json"
+      "schema": "https://fertility-tracker-live.vercel.app/api/v1/schema/index.schema.json"
     },
     {
       "path": "countries.json",
-      "url": "https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/countries.json",
+      "url": "https://fertility-tracker-live.vercel.app/api/v1/countries.json",
       "format": "json",
       "description": "Summary for every country + WLD (sorted by iso3).",
-      "schema": "https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/schema/countries.schema.json"
+      "schema": "https://fertility-tracker-live.vercel.app/api/v1/schema/countries.schema.json"
     },
     {
       "path": "countries/{iso3}.json",
-      "url": "https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/countries/{iso3}.json",
+      "url": "https://fertility-tracker-live.vercel.app/api/v1/countries/{iso3}.json",
       "format": "json",
       "description": "Full record for one country: series 1950-2100, demographic balance, migrant stocks and corridors, risk detail.",
-      "schema": "https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/schema/country.schema.json"
+      "schema": "https://fertility-tracker-live.vercel.app/api/v1/schema/country.schema.json"
     },
     {
       "path": "risk.json",
-      "url": "https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/risk.json",
+      "url": "https://fertility-tracker-live.vercel.app/api/v1/risk.json",
       "format": "json",
       "description": "Countries ranked by population-decline risk + methodology.",
-      "schema": "https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/schema/risk.schema.json"
+      "schema": "https://fertility-tracker-live.vercel.app/api/v1/schema/risk.schema.json"
     },
     {
       "path": "countries.csv",
-      "url": "https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/countries.csv",
+      "url": "https://fertility-tracker-live.vercel.app/api/v1/countries.csv",
       "format": "csv",
       "description": "One row per country; nested fields flattened with underscores (components_births, projection_change2100Pct, ...)."
     },
     {
       "path": "timeseries.csv",
-      "url": "https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/timeseries.csv",
+      "url": "https://fertility-tracker-live.vercel.app/api/v1/timeseries.csv",
       "format": "csv",
       "description": "Long format iso3,year,variant,metric,value. Metrics: population, births, deaths, naturalChange, netMigration, populationChange, tfr, medianAge, share65, immigrants, immigrantsPct, emigrants, emigrantsPct, livingAbroadPct. Rows with no data are omitted."
     },
     {
       "path": "openapi.json",
-      "url": "https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/openapi.json",
+      "url": "https://fertility-tracker-live.vercel.app/api/v1/openapi.json",
       "format": "json",
       "description": "OpenAPI 3.1 description of these endpoints."
     },
     {
       "path": "status.json",
-      "url": "https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/status.json",
+      "url": "https://fertility-tracker-live.vercel.app/api/v1/status.json",
       "format": "json",
       "description": "When the weekly refresh last ran and whether it succeeded (written at deploy time; generatedAt elsewhere only moves when numbers change).",
-      "schema": "https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/schema/status.schema.json"
+      "schema": "https://fertility-tracker-live.vercel.app/api/v1/schema/status.schema.json"
     }
   ],
   "dataGaps": [
@@ -335,19 +335,19 @@
     "Places with fewer than 100,000 people are scored where possible but not ranked: small numbers make rates noisy."
   ],
   "links": {
-    "docs": "https://rostyslavdzhohola.github.io/fertility-tracker/api/",
-    "llms": "https://rostyslavdzhohola.github.io/fertility-tracker/llms.txt",
-    "openapi": "https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/openapi.json",
+    "docs": "https://fertility-tracker-live.vercel.app/api/",
+    "llms": "https://fertility-tracker-live.vercel.app/llms.txt",
+    "openapi": "https://fertility-tracker-live.vercel.app/api/v1/openapi.json",
     "methodology": "https://github.com/RostyslavDzhohola/fertility-tracker/blob/main/docs/METHODOLOGY.md",
     "apiReference": "https://github.com/RostyslavDzhohola/fertility-tracker/blob/main/docs/API.md",
     "repo": "https://github.com/RostyslavDzhohola/fertility-tracker",
     "issues": "https://github.com/RostyslavDzhohola/fertility-tracker/issues",
     "feedbackEmail": "andromedus+fertility@mail.grokbot.com",
-    "site": "https://rostyslavdzhohola.github.io/fertility-tracker/"
+    "site": "https://fertility-tracker-live.vercel.app/"
   },
   "license": {
     "code": "MIT",
     "data": "CC BY 4.0 (World Bank, Our World in Data); UN data CC BY 3.0 IGO. Cite the original publishers and this API."
   },
-  "cors": "Served by GitHub Pages with Access-Control-Allow-Origin: *, so browsers and agents can fetch any file cross-origin."
+  "cors": "Served by Vercel with Access-Control-Allow-Origin: *, so browsers and agents can fetch any file cross-origin."
 }

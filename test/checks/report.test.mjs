@@ -4,7 +4,7 @@ import { buildCountryIndex, groupFeedback, summarizeIssue } from "../../scripts/
 import { compactJson, machineSummary, overallStatus, renderReport, reportTitle, safePageLink, summarizeTargets, TITLE_RE, MARKER } from "../../scripts/checks/lib/report.mjs";
 import { outsideCodeSpans } from "./helpers.mjs";
 
-const SITE = "https://rostyslavdzhohola.github.io/fertility-tracker/";
+const SITE = "https://fertility-tracker-live.vercel.app/";
 const target = (path, level, extra = {}) => ({
   path,
   url: SITE + path,
@@ -34,7 +34,7 @@ function sampleResult({ targets, feedback = true } = {}) {
       created_at: "2026-10-24T00:00:00Z",
       updated_at: "2026-10-24T00:00:00Z",
       comments: 1,
-      body: "### Which country?\n\nJapan\n\n### Page link (optional)\n\nhttps://rostyslavdzhohola.github.io/fertility-tracker/#JPN",
+      body: "### Which country?\n\nJapan\n\n### Page link (optional)\n\nhttps://fertility-tracker-live.vercel.app/#JPN",
     },
     { number: 13, title: "Love it", html_url: "u", state: "closed", labels: [{ name: "feedback" }], created_at: "2026-10-01T00:00:00Z", updated_at: "2026-10-25T00:00:00Z", comments: 0, body: "" },
   ].map((i, n) => summarizeIssue(i, { since, index, reason: n === 0 ? "new" : "new human activity since last handled", activity: n === 0 ? null : { handledAt: "2026-10-20T00:00:00.000Z" } }));
@@ -103,7 +103,7 @@ test("renderReport: headline, failing rows first, grouped feedback, sanitised ti
   assert.match(body, /- #13 ` Love it ` · feedback · new human activity since last handled · closed/);
   assert.match(body, /Handled, nothing new from people since the agent's last reply: #4, #5\./);
   assert.match(body, /WARN Workflow schedules: refresh-and-deploy\.yml was disabled by GitHub/);
-  assert.match(body, /\[page\]\(https:\/\/rostyslavdzhohola\.github\.io\/fertility-tracker\/#JPN\)/);
+  assert.match(body, /\[page\]\(https:\/\/fertility-tracker-live\.vercel\.app\/#JPN\)/);
   const parsed = outsideCodeSpans(body);
   assert.ok(!parsed.includes("@everyone"), "mention only inside a code span");
   assert.ok(!parsed.includes("<img"), "HTML only inside a code span");
@@ -131,8 +131,8 @@ test("safePageLink keeps on-site links and encodes anything that could escape th
   assert.equal(safePageLink(`${SITE})@victim`, SITE), `${SITE}%29%40victim`);
   assert.equal(safePageLink(`${SITE}#JPN) [x](https://evil.example`, SITE), `${SITE}#JPN%29%20%5Bx%5D%28https://evil.example`);
   assert.equal(safePageLink("https://evil.example/fertility-tracker/", SITE), null);
-  assert.equal(safePageLink("https://rostyslavdzhohola.github.io/other/", SITE), null);
-  assert.equal(safePageLink("https://user:pw@rostyslavdzhohola.github.io/fertility-tracker/", SITE), null);
+  assert.equal(safePageLink("https://fertility-tracker-live.vercel.app.evil.example/", SITE), null);
+  assert.equal(safePageLink("https://user:pw@fertility-tracker-live.vercel.app/", SITE), null);
   assert.equal(safePageLink("javascript:alert(1)", SITE), null);
   assert.equal(safePageLink("not a url", SITE), null);
 });

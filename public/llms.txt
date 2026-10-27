@@ -1,19 +1,19 @@
 # Fertility Tracker
 
-> Live, weekly-refreshed fertility and population data for every country: fertility rate, births, deaths, net migration, immigrant and emigrant stocks, migration corridors, UN projections to 2100, and a population-decline risk score (0-100) with plain-English reasons. Static JSON/CSV on GitHub Pages: no key, CORS open (Access-Control-Allow-Origin: *).
+> Live, weekly-refreshed fertility and population data for every country: fertility rate, births, deaths, net migration, immigrant and emigrant stocks, migration corridors, UN projections to 2100, and a population-decline risk score (0-100) with plain-English reasons. Static JSON/CSV on Vercel: no key, CORS open (Access-Control-Allow-Origin: *).
 
 Sources: World Bank World Development Indicators (latest reported year), UN World Population Prospects 2024 (estimates 1950-2023 + medium-variant projection 2024-2100) and UN DESA International Migrant Stock 2024, the UN data via Our World in Data. Codes are ISO 3166-1 alpha-3 (WLD = world, XKX = Kosovo). Numbers are JSON numbers; missing = null. Every record includes iso3, name and region.
 
-## API (base: https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/)
+## API (base: https://fertility-tracker-live.vercel.app/api/v1/)
 
-- [index.json](https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/index.json): manifest with exact source URLs, data vintages, endpoints, known data gaps, generatedAt and contentHash (changes only when numbers change)
-- [countries.json](https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/countries.json): one summary record per country + WLD: population, tfr, median age, 65+ share, latest births/deaths/net migration (absolute and per 1,000), immigrant/emigrant stock, UN 2050/2100 projection, generation ratio, risk {score, tier, rank, factors}
-- [countries/{ISO3}.json](https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/countries/KOR.json): everything for one country, including yearly series 1950-2100 (population, births, deaths, naturalChange, netMigration, populationChange, tfr, medianAge, share65), migrant stock history, top 10 origin and destination countries, full risk breakdown
-- [risk.json](https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/risk.json): countries ranked by population-decline risk (rank 1 = highest), component points, inputs, factors and the full methodology
-- [countries.csv](https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/countries.csv): one row per country, nested fields flattened with underscores
-- [timeseries.csv](https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/timeseries.csv): long format iso3,year,variant,metric,value (variant = estimate | projection), about 11 MB
-- [status.json](https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/status.json): when the weekly refresh last ran, whether it succeeded, and the deployed commit
-- [openapi.json](https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/openapi.json): OpenAPI 3.1; JSON Schemas with field descriptions under api/v1/schema/
+- [index.json](https://fertility-tracker-live.vercel.app/api/v1/index.json): manifest with exact source URLs, data vintages, endpoints, known data gaps, generatedAt and contentHash (changes only when numbers change)
+- [countries.json](https://fertility-tracker-live.vercel.app/api/v1/countries.json): one summary record per country + WLD: population, tfr, median age, 65+ share, latest births/deaths/net migration (absolute and per 1,000), immigrant/emigrant stock, UN 2050/2100 projection, generation ratio, risk {score, tier, rank, factors}
+- [countries/{ISO3}.json](https://fertility-tracker-live.vercel.app/api/v1/countries/KOR.json): everything for one country, including yearly series 1950-2100 (population, births, deaths, naturalChange, netMigration, populationChange, tfr, medianAge, share65), migrant stock history, top 10 origin and destination countries, full risk breakdown
+- [risk.json](https://fertility-tracker-live.vercel.app/api/v1/risk.json): countries ranked by population-decline risk (rank 1 = highest), component points, inputs, factors and the full methodology
+- [countries.csv](https://fertility-tracker-live.vercel.app/api/v1/countries.csv): one row per country, nested fields flattened with underscores
+- [timeseries.csv](https://fertility-tracker-live.vercel.app/api/v1/timeseries.csv): long format iso3,year,variant,metric,value (variant = estimate | projection), about 11 MB
+- [status.json](https://fertility-tracker-live.vercel.app/api/v1/status.json): when the weekly refresh last ran, whether it succeeded, and the deployed commit
+- [openapi.json](https://fertility-tracker-live.vercel.app/api/v1/openapi.json): OpenAPI 3.1; JSON Schemas with field descriptions under api/v1/schema/
 
 ## Field meanings
 
@@ -36,10 +36,10 @@ Sources: World Bank World Development Indicators (latest reported year), UN Worl
 
 ## Docs
 
-- [Human API docs](https://rostyslavdzhohola.github.io/fertility-tracker/api/)
+- [Human API docs](https://fertility-tracker-live.vercel.app/api/)
 - [API reference](https://github.com/RostyslavDzhohola/fertility-tracker/blob/main/docs/API.md)
 - [Methodology: sources, decomposition, risk formula, limitations](https://github.com/RostyslavDzhohola/fertility-tracker/blob/main/docs/METHODOLOGY.md)
-- [Live tracker](https://rostyslavdzhohola.github.io/fertility-tracker/): per country via #ISO3, e.g. #KOR
+- [Live tracker](https://fertility-tracker-live.vercel.app/): per country via #ISO3, e.g. #KOR
 
 ## Licence and citation
 
