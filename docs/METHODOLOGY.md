@@ -163,16 +163,27 @@ rank 6.
      "South Korea TFR < 1.3", "Niger TFR > 4", "Nigeria projected to grow";
    - **coverage regresses vs the previous published build**. The check runs per country and per metric: years with
      data in each series metric (births, deaths, net migration, …), migrant stock years, every headline field and block
-     (`components`, `migrantStock`, `projection`, corridors), the risk score, and membership of the ranking. Any loss
-     is refused, so a partial upstream outage (for example one country's births and deaths missing from a CSV) cannot
-     erase good data. Intentional changes need `--force`;
+     (`components`, `migrantStock`, `projection`), each migration-corridor direction (`topOrigins`,
+     `topDestinations`), the risk score, and membership of the ranking. Any loss is refused, so a partial upstream
+     outage (for example one country's births and deaths missing from a CSV) cannot erase good data;
+   - **provenance moves backwards**. For every headline field (`population`, `tfr`, `birthRate`, `deathRate`,
+     `naturalChangeRate`, `netMigration`, `populationGrowthPct`, `medianAge`, `share65`) and for `migrantStock`,
+     `components`, corridors and `projection.baseYear`, the published year must never decrease. A World Bank value
+     may not be replaced by another source for the same year. Without this check, a successful but partial World
+     Bank reply that omits one country would silently fall back to the older UN figure: France's fertility rate would
+     go from 1.61 (WB, 2024) to 1.639 (UN, 2023). Policy: **refuse the write** and keep the last published data
+     untouched; the failed run is visible in Actions and `status.json`. The pipeline never mixes old and new data in
+     one build. A maintainer who has confirmed an upstream change is intentional reruns with `--force`;
    - any JSON file fails its JSON Schema.
 3. Output is idempotent. Unchanged numbers give byte-identical files. `generatedAt` and `contentHash` in `index.json`
    move only when some published value changes, so the workflow commits only real changes.
 4. The migration corridors (about 460 small CSVs) are reused from the previous build while their source vintage is
-   unchanged. When the vintage changes, the refresh is all-or-nothing: if any country fails (network error or a
-   structurally empty CSV with no data year or World total, or no partner country in either direction), the last
-   published corridors are kept as one consistent set. Countries are never silently dropped.
+   unchanged. When the vintage changes, the refresh is all-or-nothing. Any of these count as a country failure:
+   a network error; a structurally empty CSV (no data year or World total, or no partner country in either
+   direction); a direction whose partner breakdown was published before coming back with only a World total. On any
+   failure, the last published corridors are kept as one consistent set with their original vintage. Directions that
+   never had a breakdown (UN DESA gives only totals for immigrants into Bonaire and the Vatican) stay valid. Countries
+   and directions are never silently dropped.
 5. The workflow verifies the files, then checks that the branch has not moved since checkout. If it moved, the run
    stops without committing or deploying, and the run triggered by the newer commit refreshes, tests and deploys it
    (no rebase, so untested code is never deployed). Otherwise it commits changes with a plain fast-forward push and

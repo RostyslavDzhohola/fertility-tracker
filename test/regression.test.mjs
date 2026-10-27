@@ -10,7 +10,7 @@ import { test } from "node:test";
 import { buildDataset, livingAbroadPct } from "../scripts/lib/build.mjs";
 import { API_DIR, finalize, renderFiles, writeFiles } from "../scripts/lib/publish.mjs";
 import { riskFactors, scoreRisk } from "../scripts/lib/risk.mjs";
-import { coverage, coverageRegressions, sanityCheck } from "../scripts/lib/sanity.mjs";
+import { coverage, coverageRegressions, provenanceRegressions, sanityCheck } from "../scripts/lib/sanity.mjs";
 import { schemas, validate } from "../scripts/lib/schema.mjs";
 import { fixtureManifest, fixtureRaw } from "./helpers/fixture.mjs";
 
@@ -138,4 +138,55 @@ test("status.json records the deployed commit and the trigger commit separately"
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
+});
+
+test("partial World Bank response: a country missing from a successful WB reply cannot fall back to older UN data", () => {
+  const good = buildDataset(fixtureRaw());
+  const previous = { countries: good.records, details: good.details };
+  const raw = fixtureRaw();
+  raw.wb.latest.tfr.delete("SHR"); // HTTP 200, every other country present, SHR missing
+  raw.wb.latest.population.delete("SHR");
+  const partial = buildDataset(raw);
+  assert.deepEqual(partial.details.get("SHR").tfr, { value: 0.8, year: 2023, source: "UN-WPP" }, "precondition: silent fallback");
+  const errors = coverageRegressions(previous.details, partial.details);
+  assert.equal(errors.length, 1, errors.join("\n"));
+  assert.match(errors[0], /^SHR \(Shrinkland\): older data would replace newer: population 2025 WB -> 2023 UN-WPP, tfr 2024 WB -> 2023 UN-WPP$/);
+  assert.ok(sanityCheck(partial, previous).includes(errors[0]), "the write gate refuses it");
+});
+
+test("provenance rules: years never move backwards; a same-year WB value may not be replaced; newer data is fine", () => {
+  const wb = (year) => ({ value: 1.5, year, source: "WB" });
+  const un = (year) => ({ value: 1.6, year, source: "UN-WPP" });
+  assert.deepEqual(provenanceRegressions({ tfr: wb(2024) }, { tfr: un(2023) }), ["tfr 2024 WB -> 2023 UN-WPP"]);
+  assert.deepEqual(provenanceRegressions({ tfr: wb(2023) }, { tfr: un(2023) }), ["tfr 2023 WB -> 2023 UN-WPP"]);
+  assert.deepEqual(provenanceRegressions({ tfr: wb(2023) }, { tfr: un(2025) }), [], "a newer UN estimate may win");
+  assert.deepEqual(provenanceRegressions({ tfr: wb(2024) }, { tfr: wb(2025) }), []);
+  assert.deepEqual(provenanceRegressions({ tfr: un(2023) }, { tfr: wb(2023) }), []);
+  assert.deepEqual(provenanceRegressions({ migrantStock: { year: 2024, source: "UN-DESA" } }, { migrantStock: { year: 2020, source: "UN-DESA" } }), [
+    "migrantStock 2024 UN-DESA -> 2020 UN-DESA",
+  ]);
+  assert.deepEqual(provenanceRegressions({ migrantStock: { year: 2024, source: "UN-DESA" } }, { migrantStock: { year: 2024, source: "WB" } }), [
+    "migrantStock source UN-DESA -> WB",
+  ]);
+  assert.deepEqual(provenanceRegressions({ projection: { baseYear: 2023 } }, { projection: { baseYear: 2021 } }), ["projection.baseYear 2023 -> 2021"]);
+});
+
+test("published France record: WB tfr 2024 falling back to the UN 2023 value is refused", { skip: !existsSync(new URL("../public/api/v1/countries/FRA.json", import.meta.url)) && "no published output" }, () => {
+  const fra = JSON.parse(readFileSync(new URL("../public/api/v1/countries/FRA.json", import.meta.url), "utf8"));
+  assert.equal(fra.tfr.source, "WB");
+  const fallback = structuredClone(fra);
+  fallback.tfr = { value: fra.series.find((r) => r.year === 2023).tfr, year: 2023, source: "UN-WPP" };
+  assert.deepEqual(coverageRegressions(new Map([["FRA", fra]]), new Map([["FRA", fallback]])), [
+    `FRA (France): older data would replace newer: tfr ${fra.tfr.year} WB -> 2023 UN-WPP`,
+  ]);
+});
+
+test("a corridor direction whose breakdown existed may not become empty; never-available directions are fine", () => {
+  const corr = (origins) => ({ year: 2024, source: "UN-DESA", topOrigins: origins, topDestinations: [{ iso3: "USA", name: "United States", people: 9 }] });
+  const rec = (c) => ({ iso3: "KOR", name: "South Korea", migrationCorridors: c });
+  const had = new Map([["KOR", rec(corr([{ iso3: "CHN", name: "China", people: 5 }]))]]);
+  const emptied = new Map([["KOR", rec(corr([]))]]);
+  assert.deepEqual(coverageRegressions(had, emptied), ["KOR (South Korea): lost data vs the previous build: migrationCorridors.topOrigins"]);
+  const never = new Map([["VAT", { ...rec(corr([])), iso3: "VAT", name: "Vatican" }]]);
+  assert.deepEqual(coverageRegressions(never, never), []);
 });

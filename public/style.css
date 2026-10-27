@@ -546,11 +546,12 @@ a:hover { text-decoration: underline; text-underline-offset: 2px; }
 .ranking-title { font-size: 16px; line-height: 22px; font-weight: 650; }
 .ranking-sub { font-size: 13px; line-height: 18px; color: var(--text-muted); }
 .ranking-cols {
-  flex: none; display: flex; justify-content: flex-end; gap: 0;
+  flex: none; display: flex; justify-content: flex-end; gap: 8px;
   padding: 6px 12px 4px 0; font-size: 12px; line-height: 16px; color: var(--text-muted);
 }
 .ranking-cols .col-tfr { width: 84px; text-align: right; }
-.ranking-cols .col-2100 { width: 64px; text-align: right; white-space: nowrap; }
+/* Header and row columns share widths and the 8px row gap so labels sit over their numbers. */
+.ranking-cols .col-2100 { width: 72px; text-align: right; white-space: nowrap; }
 .mode-tfr .ranking-cols .col-2100 { display: none; }
 .ranking-list {
   flex: 1 1 auto; min-height: 120px;
@@ -576,7 +577,7 @@ a:hover { text-decoration: underline; text-underline-offset: 2px; }
 .row .rank-num { width: 28px; flex: none; text-align: right; color: var(--text-muted); font-size: 13px; }
 .row .row-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .row .row-tfr { width: 44px; flex: none; text-align: right; }
-.row .row-2100 { width: 52px; flex: none; text-align: right; color: var(--text-muted); }
+.row .row-2100 { width: 72px; flex: none; text-align: right; color: var(--text-muted); }
 .mode-tfr .row .row-2100 { display: none; }
 .dialog-list .row { height: 44px; }
 

@@ -9,7 +9,7 @@ import { after, before, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { createGitHub } from "../../scripts/checks/lib/github.mjs";
-import { assessActivity } from "../../scripts/checks/lib/feedback.mjs";
+import { assessActivity, selectIssues } from "../../scripts/checks/lib/feedback.mjs";
 import { TITLE_RE } from "../../scripts/checks/lib/report.mjs";
 import { runSiteChecks } from "../../scripts/checks/lib/site.mjs";
 import { json, makeSite } from "./helpers.mjs";
@@ -345,13 +345,48 @@ test("collectActivity reads comments and GraphQL edit times, and skips issues wi
     { number: 9, comments: 0, created_at: "2026-10-26T00:00:00Z", user: { login: "y", type: "User" } }, // GraphQL cannot resolve it
   ];
   const { activity, editsKnown } = await gh.collectActivity(issues, assessActivity);
-  assert.equal(editsKnown, true, "one unresolvable issue does not throw away the batch");
+  assert.equal(editsKnown, false, "issue 9 could not be resolved");
+  assert.deepEqual((await gh.collectActivity(issues, assessActivity)).unknownEdits, [9]);
+  assert.equal(activity.get(9).editsUnknown, true);
   assert.equal(activity.get(7).handledAt, "2026-10-27T09:00:00.000Z");
-  assert.equal(activity.get(7).newSinceHandled, true, "body edited after the handled reply");
+  assert.equal(activity.get(7).newSinceHandled, true, "body edited after the handled reply (kept despite issue 9 failing)");
+  assert.equal(activity.get(7).editsUnknown, undefined);
   assert.equal(activity.get(8).handledAt, null);
   assert.equal(fake.calls.filter((c) => c.path.endsWith("/issues/8/comments")).length, 0);
   const noToken = await createGitHub({ repo: "o/r", fetchImpl: fake.fetchImpl }).collectActivity(issues, assessActivity);
   assert.equal(noToken.editsKnown, false);
+  assert.deepEqual(noToken.unknownEdits, [7, 8, 9]);
+});
+
+test("partial GraphQL failure: unknown edit history is reported and recent handled issues need attention again", async () => {
+  // Same shape as the Codex re-check stub: alias i1 resolves, i2 is null with an error pointing at it.
+  const issue = (n) => ({ number: n, state: "open", labels: [{ name: "feedback" }, { name: "triaged" }], user: { type: "User", login: "reporter" }, created_at: "2026-10-01T00:00:00Z", updated_at: "2026-10-26T00:00:00Z", comments: 1 });
+  const handledReply = [{ author_association: "OWNER", user: { type: "User", login: "owner" }, body: "done\n<!-- fertility-tracker:handled 2026-10-20 -->", created_at: "2026-10-20T00:00:00Z", updated_at: "2026-10-20T00:00:00Z" }];
+  const fetchImpl = async (url) =>
+    new Response(
+      JSON.stringify(
+        url.endsWith("/graphql")
+          ? { data: { repository: { i1: { lastEditedAt: null, editor: null }, i2: null } }, errors: [{ message: "failure retrieving issue edits", path: ["repository", "i2"] }] }
+          : handledReply,
+      ),
+      { status: 200, headers: { "content-type": "application/json" } },
+    );
+  const gh = createGitHub({ token: "fixture", repo: "o/r", fetchImpl });
+  const issues = [issue(1), issue(2)];
+  const c = await gh.collectActivity(issues, assessActivity);
+  assert.equal(c.editsKnown, false);
+  assert.deepEqual(c.unknownEdits, [2]);
+  assert.equal(c.activity.get(1).editsUnknown, undefined);
+  assert.equal(c.activity.get(2).editsUnknown, true);
+  const selected = selectIssues(issues, { since: "2026-10-19T00:00:00Z", activity: c.activity });
+  assert.deepEqual(selected.handled.map((x) => x.issue.number), [1]);
+  assert.deepEqual(selected.attention.map((x) => [x.issue.number, x.reason]), [[2, "edit history unknown, recently updated"]]);
+
+  // Not updated in the window: no edit can have happened since, so it stays handled.
+  const quiet = { ...issue(2), updated_at: "2026-10-12T00:00:00Z" };
+  const quietActivity = { handledAt: "2026-10-10T00:00:00.000Z", lastHumanAt: "2026-10-01T00:00:00.000Z", newSinceHandled: false, editsUnknown: true };
+  const q = selectIssues([quiet], { since: "2026-10-19T00:00:00Z", activity: new Map([[2, quietActivity]]) });
+  assert.deepEqual([q.attention.length, q.handled.length], [0, 1]);
 });
 
 test("ensureLabels creates only the missing labels", async () => {

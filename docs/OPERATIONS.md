@@ -79,8 +79,9 @@ check reads each feedback issue's comments and body edits and lists an issue und
 Labels, closing, bot comments and the agent's own marker replies never bring an issue back, so the agent doesn't
 keep answering itself. Markers count only from the repo owner, members, collaborators and bots, so a stranger
 can't hide an issue by pasting the marker. A maintainer who answers by hand can add the same line to stop the
-agent from replying too. Body edit times come from GraphQL; if that call fails, the report says so and only
-comments count that week.
+agent from replying too. Body edit times come from GraphQL. When an issue's edit history can't be read (the
+call fails, or just that issue's alias errors), the report names the issue, and a handled issue updated in the
+last 7 days goes back on the "needs attention" list to be safe.
 
 ## The weekly check
 

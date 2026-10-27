@@ -120,7 +120,8 @@ export function assessActivity(issue, comments = [], { lastEditedAt = null, edit
 /**
  * Pick the issues the weekly report covers. A feedback issue needs attention when
  *  - it was never handled (no marker reply) and is new, recently updated, or still open without `triaged`; or
- *  - a human commented or edited after the last handled reply, whatever its age, state or labels.
+ *  - a human commented or edited after the last handled reply, whatever its age, state or labels; or
+ *  - it was handled, updated recently, and its body-edit history could not be read (`editsUnknown`).
  * Handled issues with no human activity since are listed separately so the agent leaves them alone.
  * @param {Map<number, {handledAt: string|null, lastHumanAt: string|null}>} [activity] from assessActivity()
  */
@@ -144,6 +145,8 @@ export function selectIssues(issues, { since, labels = FEEDBACK_TYPES, activity 
     const act = activity.get(issue.number);
     if (act?.handledAt) {
       if (act.newSinceHandled) attention.push({ issue, reason: "new human activity since last handled", activity: act });
+      // Body edits could not be read: a recent update may be an edit after the last reply, so look again.
+      else if (act.editsUnknown && recent) attention.push({ issue, reason: "edit history unknown, recently updated", activity: act });
       else handled.push({ issue, activity: act });
     } else if (new Date(issue.created_at).getTime() >= sinceMs) attention.push({ issue, reason: "new", activity: act });
     else if (recent) attention.push({ issue, reason: "updated, not yet handled", activity: act });

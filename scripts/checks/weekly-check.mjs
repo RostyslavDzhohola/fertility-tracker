@@ -130,7 +130,10 @@ async function main() {
       try {
         const collected = await gh.collectActivity(activityCandidates(issues, { since, labels }), assessActivity);
         activity = collected.activity;
-        if (!collected.editsKnown) result.errors.push("could not read issue edit times (GraphQL); only comments count as new activity this week");
+        if (!collected.editsKnown) {
+          const list = collected.unknownEdits.map((n) => `#${n}`).join(", ");
+          result.errors.push(`could not read body-edit history (GraphQL) for ${list}; recently updated ones are listed as needing attention`);
+        }
       } catch (err) {
         result.errors.push(`could not read issue comments; every recent feedback issue is listed as needing attention: ${err.message}`);
       }

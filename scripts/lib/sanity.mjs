@@ -97,15 +97,45 @@ export function coverage(d) {
   for (const k of HEADLINE_KEYS) out[k] = d[k]?.value != null ? 1 : 0;
   for (const k of BLOCK_KEYS) out[k] = d[k] ? 1 : 0;
   for (const k of ["births", "deaths", "naturalChange", "netMigration", "populationChange"]) out[`components.${k}`] = d.components?.[k] != null ? 1 : 0;
+  // Each corridor direction separately: a breakdown that existed must not vanish (BES/VAT never had origins: fine).
+  out["migrationCorridors.topOrigins"] = d.migrationCorridors?.topOrigins?.length ? 1 : 0;
+  out["migrationCorridors.topDestinations"] = d.migrationCorridors?.topDestinations?.length ? 1 : 0;
   out["risk.score"] = d.risk?.score != null ? 1 : 0;
   out.ranked = d.ranked ? 1 : 0;
   return out;
 }
 
 /**
+ * Provenance regressions for one country: a published year must never move backwards, and a World Bank value must
+ * not be replaced by another source for the same year (that means the WB value vanished and an older fallback won).
+ * Catches successful-but-partial responses that a presence check cannot see (e.g. WB tfr 2024 -> UN tfr 2023).
+ */
+export function provenanceRegressions(prev, cur) {
+  const out = [];
+  const point = (label, a, b) => {
+    if (a?.year == null || b?.year == null) return; // presence is covered by coverage()
+    if (b.year < a.year || (b.year === a.year && a.source === "WB" && b.source !== "WB")) {
+      out.push(`${label} ${a.year} ${a.source ?? ""} -> ${b.year} ${b.source ?? ""}`.replace(/\s+/g, " ").trim());
+    }
+  };
+  for (const k of HEADLINE_KEYS) point(k, prev[k], cur[k]);
+  point("migrantStock", prev.migrantStock, cur.migrantStock);
+  point("components", prev.components, cur.components);
+  point("migrationCorridors", prev.migrationCorridors, cur.migrationCorridors);
+  if (prev.projection?.baseYear != null && cur.projection?.baseYear != null && cur.projection.baseYear < prev.projection.baseYear) {
+    out.push(`projection.baseYear ${prev.projection.baseYear} -> ${cur.projection.baseYear}`);
+  }
+  if (prev.migrantStock?.source === "UN-DESA" && cur.migrantStock?.source && cur.migrantStock.source !== "UN-DESA" && cur.migrantStock.year <= prev.migrantStock.year) {
+    out.push(`migrantStock source UN-DESA -> ${cur.migrantStock.source}`);
+  }
+  return [...new Set(out)];
+}
+
+/**
  * Compare every country and metric against the previous published build. Any loss (a country gone, fewer years of a
- * series, a field or block that was present and is now null, dropping out of the risk ranking) is an error: a
- * partial upstream outage must never overwrite good data. Intentional changes need --force.
+ * series, a field, block or corridor direction that was present and is now empty, dropping out of the risk ranking,
+ * a headline year moving backwards or a World Bank value replaced by a same-year fallback) is an error: a partial
+ * upstream response must never overwrite good data. Intentional changes need --force.
  */
 export function coverageRegressions(previousDetails, details, { max = 60 } = {}) {
   const out = [];
@@ -116,6 +146,8 @@ export function coverageRegressions(previousDetails, details, { max = 60 } = {})
       out.push(`${iso3}: record missing (was published before)`);
       continue;
     }
+    const older = provenanceRegressions(prev, cur);
+    if (older.length) out.push(`${iso3} (${cur.name}): older data would replace newer: ${older.join(", ")}`);
     const a = coverage(prev);
     const b = coverage(cur);
     const lost = Object.keys(a).filter((k) => b[k] < a[k]);

@@ -233,6 +233,19 @@ export async function fetchCorridors({ codes, entities, previous, log = () => {}
       };
     });
     const failures = results.map((r, i) => (r.ok ? null : `${todo[i].code}: ${r.error?.message ?? r.error}`)).filter(Boolean);
+    // A direction whose partner breakdown was published before must not come back empty (an HTTP-200 CSV with only
+    // the World total). Places that never had a breakdown (BES, VAT origins) stay valid.
+    if (prevOk) {
+      for (const r of results) {
+        if (!r.ok) continue;
+        const old = previous.data.get(r.value.code);
+        for (const dir of ["topOrigins", "topDestinations"]) {
+          if (old?.[dir]?.length && !r.value.corridor[dir].length) {
+            failures.push(`${r.value.code}: ${dir} breakdown vanished (previously ${old[dir].length} partners)`);
+          }
+        }
+      }
+    }
     // With published corridors to protect, a refresh is all-or-nothing: any failure keeps the last published set
     // (one consistent vintage) instead of silently dropping countries. Only a first build tolerates a few gaps.
     if (failures.length && prevOk) throw new Error(`${failures.length} of ${todo.length} countries failed (${failures.slice(0, 3).join("; ")})`);

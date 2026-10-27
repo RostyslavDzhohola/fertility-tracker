@@ -126,3 +126,27 @@ test("structurally empty corridor CSVs are rejected, and count as a failure", as
   const first = await fetchCorridors({ codes: ["KOR", "CHN"], entities, previous: null });
   assert.equal(first.entry.status, "unavailable", "first build: 1 of 2 failing exceeds the 10% tolerance");
 });
+
+test("HTTP-200 corridor CSV with only the World total cannot wipe a previously published direction", async () => {
+  const base = handler("2027-03-01");
+  const totalOnly = "entity,code,year,migrants__x\nWorld,OWID_WRL,2024,100\n";
+  respond((url) => (url.includes("country_select=south_korea&metric=immigrants") ? { body: totalOnly } : base(url)));
+  const prev = previous("2025-03-18");
+  prev.data.get("KOR").topOrigins = [{ iso3: "CHN", name: "China", people: 756_684 }];
+  const logs = [];
+  const r = await fetchCorridors({ codes: ["KOR", "CHN"], entities, previous: prev, log: (l) => logs.push(l) });
+  assert.equal(r.entry.vintage.lastUpdated, "2025-03-18", "the whole previous vintage is kept");
+  assert.deepEqual(r.data.get("KOR").topOrigins, [{ iso3: "CHN", name: "China", people: 756_684 }]);
+  assert.ok(logs.some((l) => /KOR: topOrigins breakdown vanished \(previously 1 partners\)/.test(l)), logs.join("\n"));
+});
+
+test("a direction that never had a breakdown (like BES/VAT origins) may stay empty under a new vintage", async () => {
+  const base = handler("2027-03-01");
+  const totalOnly = "entity,code,year,migrants__x\nWorld,OWID_WRL,2024,100\n";
+  respond((url) => (url.includes("country_select=south_korea&metric=immigrants") ? { body: totalOnly } : base(url)));
+  const prev = previous("2025-03-18"); // KOR topOrigins already [] in the previous build
+  const r = await fetchCorridors({ codes: ["KOR", "CHN"], entities, previous: prev });
+  assert.equal(r.entry.vintage.lastUpdated, "2027-03-01", "new vintage accepted");
+  assert.deepEqual(r.data.get("KOR").topOrigins, []);
+  assert.equal(r.data.get("KOR").topDestinations.length, 2);
+});
