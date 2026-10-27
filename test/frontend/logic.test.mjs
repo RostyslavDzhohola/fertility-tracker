@@ -262,10 +262,10 @@ test("takeaway copy: waterfall cases, generations, summary, X post", () => {
   const kor = { iso3: "KOR", name: "South Korea", tfr: { value: 0.748, year: 2024 }, projection: { change2100Pct: -57.8, population2100: 21848795 } };
   assert.equal(
     L.summarySentence(kor),
-    "South Korea has 0.75 births per woman, far below the 2.1 needed to keep a population steady. The UN projects 21.8 million people by 2100, 58% fewer than today.",
+    "South Korea has 0.75 births per woman, far below the 2.1 needed to keep a population steady. The UN projects 21.8 million people by 2100, 58% fewer than in 2023.",
   );
   const post = L.xPostText(kor);
-  assert.equal(post, "South Korea: 0.75 births per woman. Start with 100 people → 36 children → 13 grandchildren. The UN projects a 58% population drop by 2100.");
+  assert.equal(post, "South Korea: 0.75 births per woman. Start with 100 people → 36 children → 13 grandchildren. The UN projects a 58% population drop from 2023 to 2100.");
   assert.ok(post.length < 250);
   assert.equal(L.possessive("Philippines"), "Philippines'");
   assert.equal(L.documentTitle(kor), "South Korea: 0.75 births per woman · Fertility Tracker");
@@ -278,4 +278,50 @@ test("direct labels are spread at least 14px apart and kept in bounds", () => {
   for (let i = 1; i < sorted.length; i++) assert.ok(sorted[i] - sorted[i - 1] >= 14 - 1e-9);
   const top = L.spreadLabels([195, 198], 14, 0, 200);
   assert.ok(Math.max(...top) <= 200);
+});
+
+test("projected % is always shown against its UN base year and base population", () => {
+  // Nigeria: World Bank 2025 population 237.5M, UN 2023 base 227.9M; +109.2% is measured from the UN base.
+  const nga = {
+    iso3: "NGA",
+    name: "Nigeria",
+    tfr: { value: 4.38, year: 2024 },
+    population: { value: 237527782, year: 2025 },
+    projection: { baseYear: 2023, basePopulation: 227882949, population2100: 476747779, change2100Pct: 109.2, peakYear: 2100 },
+    risk: { tier: "Low", rank: 190 },
+    flags: [],
+  };
+  assert.deepEqual(L.projectionBase(nga), { year: 2023, population: 227882949 });
+  assert.equal(L.tooltipLines(nga, 200)[3], "Population 228M (2023) → 477M (2100), +109%");
+  // Without the backend fields: the series value for the base year, then the value implied by the 2100 figure.
+  const bare = { projection: { population2100: 150, change2100Pct: 50 } };
+  assert.deepEqual(L.projectionBase(bare, { series: [{ year: 2023, population: 101 }] }), { year: 2023, population: 101 });
+  assert.equal(Math.round(L.projectionBase(bare).population), 100);
+  assert.equal(L.projectionBase({ projection: { baseYear: 2024, population2100: 1, change2100Pct: null } }).year, 2024);
+  assert.match(L.summarySentence(nga), /The UN projects 477 million people by 2100 \(\+109% vs 2023\)\.$/);
+  assert.match(L.populationTakeaway({ ...nga, projection: { ...nga.projection, peakYear: 2100 } }, 2023), /up 109% from 2023\.$/);
+  assert.match(L.xPostText(nga), /a 109% population rise from 2023 to 2100\.$/);
+});
+
+test("below-replacement growth: momentum is described, immigration only when it is a real share", () => {
+  const rec = (B, D, M) => ({
+    iso3: "TST",
+    name: "Testland",
+    tfr: { value: 1.9, year: 2024 },
+    components: { year: 2023, births: B, deaths: D, netMigration: M, populationChange: B - D + M },
+    projection: { baseYear: 2023, change2100Pct: 4.7, population2100: 1 },
+  });
+  // India-like: births > deaths, net emigration. No immigration claim.
+  const india = L.summarySentence(rec(23219488, 9507013, -979179));
+  assert.equal(india, "Testland has 1.90 births per woman, below replacement, but a young population means births still outnumber deaths for now. The UN projects +5% between 2023 and 2100.");
+  assert.ok(!/immigra/.test(india));
+  // Small positive net migration (under a quarter of growth) is not named.
+  assert.ok(!/immigra/.test(L.summarySentence(rec(1000, 400, 50))));
+  // Material immigration is named alongside momentum.
+  assert.match(L.summarySentence(rec(1000, 800, 300)), /births still outnumber deaths for now, and immigration adds to the growth\./);
+  // More deaths than births, growth from immigration.
+  assert.match(L.summarySentence(rec(800, 1000, 500)), /but immigration more than makes up for more deaths than births\./);
+  // Neither: no cause is claimed.
+  assert.match(L.summarySentence(rec(800, 1000, -10)), /below replacement\. The UN still projects \+5% between 2023 and 2100\.$/);
+  assert.equal(L.growthReason({ components: null }), null);
 });

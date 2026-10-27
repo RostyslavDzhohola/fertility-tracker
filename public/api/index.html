@@ -25,6 +25,14 @@
   code { padding: 1px 4px; } pre { padding: 12px 14px; overflow-x: auto; }
   table { width: 100%; border-collapse: collapse; font-size: 0.93rem; } th, td { text-align: left; vertical-align: top; padding: 7px 8px; border-bottom: 1px solid var(--line); }
   th { font-weight: 600; } td:first-child { white-space: nowrap; }
+  /* Tables never widen the page: they wrap on phones and, if still too wide, scroll inside their own box. */
+  .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; max-width: 100%; }
+  .table-scroll:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+  @media (max-width: 599px) {
+    td:first-child { white-space: normal; overflow-wrap: anywhere; min-width: 7.5em; }
+    th, td { padding: 6px 6px; }
+    pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+  }
   .pill { display: inline-block; font-size: 0.8rem; padding: 1px 8px; border: 1px solid var(--line); border-radius: 99px; margin-right: 4px; color: var(--muted); }
   #live { color: var(--muted); font-size: 0.92rem; min-height: 1.5em; }
   ol#top { padding-left: 1.4em; } ol#top li { margin: 2px 0; }
@@ -43,6 +51,7 @@
   <p>GitHub Pages serves every file with <code>Access-Control-Allow-Origin: *</code>, so browsers, servers and AI agents can fetch it directly. Codes are ISO 3166-1 alpha-3 (<code>WLD</code> = world, <code>XKX</code> = Kosovo). Numbers are numbers, missing values are <code>null</code>, and every record includes <code>iso3</code>, <code>name</code> and <code>region</code>.</p>
 
   <h2>Endpoints</h2>
+  <div class="table-scroll" role="region" tabindex="0" aria-label="Endpoints table">
   <table>
     <tr><th>File</th><th>What it contains</th></tr>
     <tr><td><a href="v1/index.json">index.json</a></td><td>Manifest: exact source URLs, data vintages, endpoints, known data gaps, <code>generatedAt</code> and <code>contentHash</code>. Both change only when a number changes.</td></tr>
@@ -54,6 +63,7 @@
     <tr><td><a href="v1/status.json">status.json</a></td><td>When the weekly refresh last ran and whether it succeeded.</td></tr>
     <tr><td><a href="v1/openapi.json">openapi.json</a></td><td>OpenAPI 3.1. JSON Schemas with field descriptions: <a href="v1/schema/countries.schema.json">countries</a>, <a href="v1/schema/country.schema.json">country</a>, <a href="v1/schema/risk.schema.json">risk</a>, <a href="v1/schema/index.schema.json">index</a>, <a href="v1/schema/status.schema.json">status</a>.</td></tr>
   </table>
+  </div>
 
   <h2>Try it</h2>
 <pre># The 10 countries at highest risk of population decline
@@ -72,19 +82,22 @@ console.log(korea.tfr.value, korea.risk.tier, korea.risk.factors[0]);</pre>
   <ol id="top"><li>Open <a href="v1/risk.json">risk.json</a> for the live ranking.</li></ol>
 
   <h2>Key fields</h2>
+  <div class="table-scroll" role="region" tabindex="0" aria-label="Key fields table">
   <table>
     <tr><th>Field</th><th>Meaning</th></tr>
     <tr><td><code>tfr</code></td><td>Fertility rate: births per woman. 2.1 keeps each generation the same size.</td></tr>
     <tr><td><code>{value, year, source}</code></td><td>Headline figures take the newest year across sources. <code>source</code> is <code>WB</code> (World Bank), <code>UN-WPP</code> or <code>UN-DESA</code>.</td></tr>
     <tr><td><code>components</code></td><td>Latest UN estimate year: population change = births − deaths + net migration, also per 1,000 people. <code>migrationOffsetPct</code>: how much of the natural decline immigration replaces.</td></tr>
-    <tr><td><code>migrantStock</code></td><td><code>immigrants</code>: people living here who were born abroad (inflow). <code>emigrants</code>: people born here who live abroad (outflow). No global source publishes gross yearly inflows and outflows, so use <code>netMigration</code> for the yearly flow.</td></tr>
-    <tr><td><code>projection</code></td><td>UN WPP 2024 medium variant: population in 2050 and 2100, % change, peak year, the year the population halves, when deaths overtake births.</td></tr>
+    <tr><td><code>migrantStock</code></td><td><code>immigrants</code>: people living here who were born abroad (inflow). <code>emigrants</code>: people born here who live abroad (outflow). <code>emigrantsPct</code> divides by today's residents (UN definition); <code>livingAbroadPct</code> is the share of everyone born in the country who lives abroad. No global source publishes gross yearly inflows and outflows, so use <code>netMigration</code> for the yearly flow.</td></tr>
+    <tr><td><code>projection</code></td><td>UN WPP 2024 medium variant: population in 2050 and 2100, % change from <code>basePopulation</code> in <code>baseYear</code> (latest UN estimate, 2023), peak year, the year the population halves, when deaths overtake births.</td></tr>
     <tr><td><code>generations</code></td><td><code>ratio = tfr / 2.1</code>: each ~30-year generation is this share of the last. At 1.14, 100 people → 54 → 29 → 16 → 9.</td></tr>
     <tr><td><code>risk</code></td><td>Score 0-100 with tiers Critical (≥ 70), High (≥ 55), Elevated (≥ 40), Moderate (≥ 20) and Low, a rank (1 = highest) and plain-English reasons.</td></tr>
   </table>
+  </div>
 
   <h2>How the risk score works</h2>
   <p>Five parts, each scaled from 0 (no risk) to 1 (maximum), weighted and added up to 100:</p>
+  <div class="table-scroll" role="region" tabindex="0" aria-label="Risk score parts table">
   <table>
     <tr><th>Weight</th><th>Part</th><th>From 0 → 1</th></tr>
     <tr><td>35</td><td>Fertility below replacement</td><td>fertility 2.1 → 0.8</td></tr>
@@ -93,6 +106,7 @@ console.log(korea.tfr.value, korea.risk.tier, korea.risk.factors[0]);</pre>
     <tr><td>10</td><td>Aging</td><td>65+ share 7% → 30%; median age 25 → 50</td></tr>
     <tr><td>10</td><td>Migration not filling the gap</td><td>share of the natural decline not covered by net immigration</td></tr>
   </table>
+  </div>
   <p>Places under 100,000 people are scored but not ranked. Full method: <a href="https://github.com/RostyslavDzhohola/fertility-tracker/blob/main/docs/METHODOLOGY.md">METHODOLOGY.md</a>. Field reference: <a href="https://github.com/RostyslavDzhohola/fertility-tracker/blob/main/docs/API.md">API.md</a>.</p>
 
   <h2>Sources and licence</h2>

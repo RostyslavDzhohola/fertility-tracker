@@ -31,8 +31,9 @@ transparent 0-100 **population-decline risk score** with tiers and plain-English
 carries its year and source. How it works: [docs/METHODOLOGY.md](docs/METHODOLOGY.md).
 
 `.github/workflows/refresh-and-deploy.yml` runs every Monday at 06:17 UTC, on demand, and on pushes to `main`. It
-runs the tests, refetches everything, refuses to publish if a source that worked before is down or a sanity or
-schema check fails, commits only when a number actually changed (unchanged data gives byte-identical files), and
+runs the tests, refetches everything, and refuses to publish in three cases: a source that worked before is down,
+any country or metric has less data than in the last build, or a sanity or schema check fails. It commits only when
+a number actually changed (unchanged data gives byte-identical files), never deploys if the branch moved mid-run, and
 deploys `public/` to GitHub Pages. Each deploy also writes `api/v1/status.json` with the time of the last check.
 
 ## API (for people and agents)

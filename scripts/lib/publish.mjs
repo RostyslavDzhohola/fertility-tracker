@@ -20,7 +20,7 @@ export const SOURCE_NAMES = {
 };
 
 const SERIES_METRICS = ["population", "births", "deaths", "naturalChange", "netMigration", "populationChange", "tfr", "medianAge", "share65"];
-const STOCK_METRICS = ["immigrants", "immigrantsPct", "emigrants", "emigrantsPct"];
+const STOCK_METRICS = ["immigrants", "immigrantsPct", "emigrants", "emigrantsPct", "livingAbroadPct"];
 
 const pretty = (o) => JSON.stringify(o, null, 2) + "\n";
 const compact = (o) => JSON.stringify(o) + "\n";
@@ -92,7 +92,11 @@ function dataGaps(ds, manifest) {
     "Headline fields (population, tfr, birthRate, deathRate, netMigration, populationGrowthPct, share65) take the newest year across World Bank and UN; " +
       "each carries its own year and source. World Bank's latest net migration (and, for many countries, population) are themselves UN WPP estimates or projections.",
     "populationChange = births - deaths + netMigration for the calendar year (UN WPP). It can differ slightly from the difference between successive 1 July population figures.",
-    "Migrant stocks are available for 1990-2020 every 5 years plus 2024; there is no annual series.",
+    "Migrant stocks are available for 1990-2020 every 5 years plus 2024; there is no annual series. migrantStock.emigrantsPct follows UN DESA / OWID: " +
+      "emigrants as % of the country's CURRENT RESIDENT population. livingAbroadPct is the share of everyone born in the country who lives abroad: " +
+      "emigrants / (residents - immigrants + emigrants).",
+    "projection.change2050Pct / change2100Pct are relative to projection.basePopulation in projection.baseYear (UN WPP, latest estimate year), " +
+      "not to the headline population (often a newer World Bank figure).",
     "Taiwan and 20 small territories are not in the World Bank database: their figures come from UN sources only, their region is borrowed from a neighbour, and incomeGroup is null.",
     `Places with fewer than ${RISK_MODEL.minPopulation.toLocaleString("en-US")} people are scored where possible but not ranked: small numbers make rates noisy.`,
   ];
@@ -155,7 +159,7 @@ function flatRow(rec) {
     ...p(rec.netMigration), ...p(rec.populationGrowthPct), ...p(rec.medianAge), ...p(rec.share65),
     c.year, c.births, c.deaths, c.naturalChange, c.netMigration, c.populationChange,
     pt.births, pt.deaths, pt.naturalChange, pt.netMigration, pt.populationChange, c.migrationOffsetPct,
-    m.year, m.immigrants, m.immigrantsPct, m.emigrants, m.emigrantsPct,
+    m.year, m.immigrants, m.immigrantsPct, m.emigrants, m.emigrantsPct, m.livingAbroadPct,
     pr.baseYear, pr.basePopulation, pr.population2050, pr.population2100, pr.change2050Pct, pr.change2100Pct,
     pr.peakYear, pr.halfPopulationYear, pr.naturalDeclineSince, pr.tfr2050, pr.tfr2100,
     g.ratio, g.halvingYears, rec.flags.join(" "), rec.risk.factors.join(" | "),
@@ -169,6 +173,7 @@ const COUNTRY_CSV_HEADER = [
   "components_perThousand_births", "components_perThousand_deaths", "components_perThousand_naturalChange", "components_perThousand_netMigration",
   "components_perThousand_populationChange", "components_migrationOffsetPct",
   "migrantStock_year", "migrantStock_immigrants", "migrantStock_immigrantsPct", "migrantStock_emigrants", "migrantStock_emigrantsPct",
+  "migrantStock_livingAbroadPct",
   "projection_baseYear", "projection_basePopulation", "projection_population2050", "projection_population2100",
   "projection_change2050Pct", "projection_change2100Pct", "projection_peakYear", "projection_halfPopulationYear",
   "projection_naturalDeclineSince", "projection_tfr2050", "projection_tfr2100",

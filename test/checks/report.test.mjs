@@ -37,7 +37,7 @@ function sampleResult({ targets, feedback = true } = {}) {
       body: "### Which country?\n\nJapan\n\n### Page link (optional)\n\nhttps://rostyslavdzhohola.github.io/fertility-tracker/#JPN",
     },
     { number: 13, title: "Love it", html_url: "u", state: "closed", labels: [{ name: "feedback" }], created_at: "2026-10-01T00:00:00Z", updated_at: "2026-10-25T00:00:00Z", comments: 0, body: "" },
-  ].map((i) => summarizeIssue(i, { since, index }));
+  ].map((i, n) => summarizeIssue(i, { since, index, reason: n === 0 ? "new" : "new human activity since last handled", activity: n === 0 ? null : { handledAt: "2026-10-20T00:00:00.000Z" } }));
   return {
     date: "2026-10-26T08:03:00.000Z",
     repo: "o/r",
@@ -58,7 +58,8 @@ function sampleResult({ targets, feedback = true } = {}) {
       topRisk: [{ iso3: "KOR", name: "South Korea", score: 92 }],
     },
     workflow: { level: "pass", note: "last run succeeded", latest: { conclusion: "success", createdAt: "2026-10-26T06:17:00Z", event: "schedule", url: "u" }, lastSuccessAt: "2026-10-26T06:17:00Z" },
-    feedback: feedback ? { since, items, grouped: groupFeedback(items), backlog: [], other: [] } : undefined,
+    workflowStates: { level: "warn", states: { "refresh-and-deploy.yml": "disabled_inactivity", "weekly-check.yml": "active" }, note: "refresh-and-deploy.yml was disabled by GitHub after 60 days without repo activity: re-enable with gh workflow enable refresh-and-deploy.yml and dispatch a run" },
+    feedback: feedback ? { since, items, grouped: groupFeedback(items), handled: [{ number: 4 }, { number: 5 }], other: [] } : undefined,
   };
 }
 
@@ -73,6 +74,8 @@ test("overallStatus: any fail → FAIL, any warn → WARN, checker errors → WA
   assert.equal(overallStatus(sampleResult()), "FAIL");
   assert.equal(overallStatus(sampleResult({ targets: [target("", "pass"), target("llms.txt", "warn")] })), "WARN");
   const clean = sampleResult({ targets: [target("", "pass")] });
+  assert.equal(overallStatus(clean), "WARN", "a disabled schedule is a warning");
+  clean.workflowStates = { level: "pass", states: {}, note: "" };
   assert.equal(overallStatus(clean), "PASS");
   clean.errors.push("could not read feedback");
   assert.equal(overallStatus(clean), "WARN");
@@ -96,7 +99,10 @@ test("renderReport: headline, failing rows first, grouped feedback, sanitised ti
   const passIdx = body.indexOf("| PASS |");
   assert.ok(failIdx > 0 && failIdx < passIdx, "failures listed before passes");
   assert.match(body, /\*\*Japan \(JPN\)\*\* \(1\)/);
-  assert.match(body, /- #12 `[^`]*@everyone[^`]*` · data-problem/);
+  assert.match(body, /- #12 `[^`]*@everyone[^`]*` · data-problem · new · open/);
+  assert.match(body, /- #13 ` Love it ` · feedback · new human activity since last handled · closed/);
+  assert.match(body, /Handled, nothing new from people since the agent's last reply: #4, #5\./);
+  assert.match(body, /WARN Workflow schedules: refresh-and-deploy\.yml was disabled by GitHub/);
   assert.match(body, /\[page\]\(https:\/\/rostyslavdzhohola\.github\.io\/fertility-tracker\/#JPN\)/);
   const parsed = outsideCodeSpans(body);
   assert.ok(!parsed.includes("@everyone"), "mention only inside a code span");
@@ -111,7 +117,10 @@ test("renderReport: headline, failing rows first, grouped feedback, sanitised ti
   const json = body.match(/```json\n([\s\S]+?)\n```/)[1];
   const summary = JSON.parse(json);
   assert.equal(summary.overall, "FAIL");
-  assert.deepEqual(summary.feedbackIssues.map((i) => i.number), [12, 13]);
+  assert.deepEqual(summary.feedbackIssues.map((i) => [i.number, i.reason]), [[12, "new"], [13, "new human activity since last handled"]]);
+  assert.equal(summary.feedbackIssues[1].lastHandledAt, "2026-10-20T00:00:00.000Z");
+  assert.deepEqual(summary.handledIssues, [4, 5]);
+  assert.deepEqual(summary.workflowStates, { "refresh-and-deploy.yml": "disabled_inactivity", "weekly-check.yml": "active" });
   assert.equal(summary.feedbackIssues[0].country, "JPN");
   assert.equal(summary.failing[0].url, SITE + "api/v1/countries/KOR.json");
   assert.ok(!json.includes("evil"), "machine summary carries no user text");

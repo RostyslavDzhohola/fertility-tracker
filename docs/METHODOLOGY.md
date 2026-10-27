@@ -72,8 +72,11 @@ publish:
 - **Annual net migration** (UN WPP): immigrants minus emigrants per year, estimates and projections.
 - **Immigrant stock** (UN DESA), the inflow proxy: people living in the country who were born in another country,
   as a number and as a % of the population.
-- **Emigrant stock** (UN DESA), the outflow proxy: people born in the country who now live abroad, as a number and as
-  a % of the population of origin.
+- **Emigrant stock** (UN DESA), the outflow proxy: people born in the country who now live abroad. `emigrantsPct`
+  follows UN DESA / Our World in Data and divides by the country's **current resident population**, so for Guyana it is
+  56%. `livingAbroadPct` answers "what share of people born here live abroad": emigrants ÷ (residents − immigrants +
+  emigrants), where residents − immigrants = native-born residents. For Guyana that is 37.7%. The plain-English factor
+  uses `livingAbroadPct`.
 - **Migration corridors** (UN DESA): the top 10 countries of birth of immigrants and the top 10 countries where
   emigrants live.
 
@@ -83,8 +86,12 @@ reports them as "Channel Islands"), Kosovo, Saint Barthélemy and Saint Martin.
 ## Projections
 
 The UN WPP 2024 **medium variant** is the UN's central projection: fertility, mortality and migration follow its
-median assumptions. `projection` reports the 2050 and 2100 populations and the % change from the latest estimate year,
-the peak year (1950-2100), the first year the population is half of today's (`halfPopulationYear`), and
+median assumptions. `projection` reports the 2050 and 2100 populations and the % change from `basePopulation`, the UN
+population in `baseYear` (the latest estimate year, 2023). Both are published, because the headline `population` is
+often a newer World Bank figure. Nigeria: 238 million (World Bank 2025) is the headline, but +109% by 2100 is measured
+from 228 million (UN 2023).
+The summary also gives
+the peak year (1950-2100), the first year the population is half of the baseline (`halfPopulationYear`), and
 `naturalDeclineSince`: the start of the current run of years with more deaths than births, or, if births still lead,
 the first projected year with more deaths.
 
@@ -154,13 +161,23 @@ rank 6.
    - sanity checks fail: at least 200 records and 150 ranked; value ranges; `naturalChange = births − deaths` and the
      balance identity hold; world population and record count within 5% of the previous build; spot checks such as
      "South Korea TFR < 1.3", "Niger TFR > 4", "Nigeria projected to grow";
+   - **coverage regresses vs the previous published build**. The check runs per country and per metric: years with
+     data in each series metric (births, deaths, net migration, …), migrant stock years, every headline field and block
+     (`components`, `migrantStock`, `projection`, corridors), the risk score, and membership of the ranking. Any loss
+     is refused, so a partial upstream outage (for example one country's births and deaths missing from a CSV) cannot
+     erase good data. Intentional changes need `--force`;
    - any JSON file fails its JSON Schema.
 3. Output is idempotent. Unchanged numbers give byte-identical files. `generatedAt` and `contentHash` in `index.json`
    move only when some published value changes, so the workflow commits only real changes.
 4. The migration corridors (about 460 small CSVs) are reused from the previous build while their source vintage is
-   unchanged, and kept if that source is temporarily unreachable.
-5. The workflow verifies the files, commits changes, writes a deploy-time `api/v1/status.json` (`checkedAt`, refresh
-   outcome, run URL; not committed), and deploys `public/` to GitHub Pages.
+   unchanged. When the vintage changes, the refresh is all-or-nothing: if any country fails (network error or a
+   structurally empty CSV with no data year or World total, or no partner country in either direction), the last
+   published corridors are kept as one consistent set. Countries are never silently dropped.
+5. The workflow verifies the files, then checks that the branch has not moved since checkout. If it moved, the run
+   stops without committing or deploying, and the run triggered by the newer commit refreshes, tests and deploys it
+   (no rebase, so untested code is never deployed). Otherwise it commits changes with a plain fast-forward push and
+   writes a deploy-time `api/v1/status.json` (not committed). That file holds `checkedAt`, the refresh outcome, the run
+   URL, the deployed `commit` and the `triggerCommit`. Then it deploys `public/` to GitHub Pages.
 
 ## Limitations
 

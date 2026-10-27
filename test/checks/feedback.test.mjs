@@ -9,6 +9,9 @@ import {
   parseIssueForm,
   safeInline,
   selectIssues,
+  activityCandidates,
+  assessActivity,
+  handledMarker,
   summarizeIssue,
 } from "../../scripts/checks/lib/feedback.mjs";
 import { outsideCodeSpans } from "./helpers.mjs";
@@ -85,22 +88,67 @@ test("normalizeCountry matches codes, names, aliases and embedded codes", () => 
   assert.equal(normalizeCountry("XYZ", buildCountryIndex()).iso3, "XYZ"); // no index: trust 3-letter codes
 });
 
-test("selectIssues splits window, backlog and other; drops PRs and weekly-check issues", () => {
+const OWNER = { author_association: "OWNER", user: { login: "RostyslavDzhohola", type: "User" } };
+const STRANGER = { author_association: "NONE", user: { login: "someone", type: "User" } };
+const BOT = { author_association: "NONE", user: { login: "github-actions[bot]", type: "Bot" } };
+const comment = (who, at, body = "thanks") => ({ ...who, body, created_at: at, updated_at: at });
+const handledReply = (at) => comment(OWNER, at, `Fixed in #3.\n\n${handledMarker(at)}`);
+
+test("handledMarker produces the line the agent prompt asks for", () => {
+  assert.equal(handledMarker("2026-11-02T09:00:00Z"), "<!-- fertility-tracker:handled 2026-11-02 -->");
+});
+
+test("assessActivity: trusted marker replies set handledAt; only human comments and edits after it count", () => {
+  const base = issue(1, ["feedback"], { created_at: "2026-10-20T00:00:00Z", user: { login: "reporter", type: "User" } });
+  const quiet = assessActivity(base, [comment(STRANGER, "2026-10-21T00:00:00Z"), handledReply("2026-10-27T09:00:00Z"), comment(BOT, "2026-10-28T00:00:00Z")]);
+  assert.equal(quiet.handledAt, "2026-10-27T09:00:00.000Z");
+  assert.equal(quiet.lastHumanAt, "2026-10-21T00:00:00.000Z");
+  assert.equal(quiet.newSinceHandled, false, "bot comments after handling are maintenance");
+
+  const replied = assessActivity(base, [handledReply("2026-10-27T09:00:00Z"), comment(STRANGER, "2026-10-29T00:00:00Z")]);
+  assert.equal(replied.newSinceHandled, true);
+  const ownerFollowUp = assessActivity(base, [handledReply("2026-10-27T09:00:00Z"), comment(OWNER, "2026-10-29T00:00:00Z", "Can you also check 2022?")]);
+  assert.equal(ownerFollowUp.newSinceHandled, true, "a maintainer comment without the marker is human activity");
+
+  const edited = assessActivity(base, [handledReply("2026-10-27T09:00:00Z")], { lastEditedAt: "2026-10-30T00:00:00Z" });
+  assert.equal(edited.newSinceHandled, true);
+  const botEdit = assessActivity(base, [handledReply("2026-10-27T09:00:00Z")], { lastEditedAt: "2026-10-30T00:00:00Z", editedByBot: true });
+  assert.equal(botEdit.newSinceHandled, false);
+
+  const forged = assessActivity(base, [comment(STRANGER, "2026-10-27T09:00:00Z", handledMarker("2026-10-27"))]);
+  assert.equal(forged.handledAt, null, "a stranger cannot mark an issue handled");
+  assert.equal(assessActivity(base, []).newSinceHandled, null);
+});
+
+test("selectIssues: unhandled feedback needs attention; handled issues return only on new human activity", () => {
   const since = "2026-10-19T08:00:00Z";
+  const old = { created_at: "2026-09-01T00:00:00Z", updated_at: "2026-09-01T00:00:00Z" };
   const all = [
-    issue(1, ["data-problem"]),
-    issue(2, ["feedback"], { updated_at: "2026-09-01T00:00:00Z", created_at: "2026-09-01T00:00:00Z" }),
-    issue(3, ["feedback", "triaged"], { updated_at: "2026-09-01T00:00:00Z" }),
+    issue(1, ["data-problem"]), // new this week, never handled
+    issue(2, ["feedback"], old), // open, untriaged, older
+    issue(3, ["feedback", "triaged"], old), // open, triaged, old: nothing to do
     issue(4, ["weekly-check"]),
     issue(5, ["feedback"], { pull_request: {} }),
     issue(6, ["bug"]),
-    issue(7, ["feature-request"], { state: "closed" }),
+    issue(7, ["feature-request", "triaged"], { state: "closed", created_at: "2026-10-01T00:00:00Z" }), // closed + handled, agent's own reply bumped updated_at
+    issue(8, ["feedback", "triaged"], { state: "closed", ...old }), // handled long ago, then someone replied
+    issue(9, ["feedback", "triaged"], { state: "closed", created_at: "2026-10-01T00:00:00Z" }), // triaged by hand, no marker, updated this week
     issue(1, ["data-problem"]), // duplicate from the second listing
   ];
-  const { inWindow, backlog, other } = selectIssues(all, { since });
-  assert.deepEqual(inWindow.map((i) => i.number), [1, 7]);
-  assert.deepEqual(backlog.map((i) => i.number), [2]);
+  const activity = new Map([
+    [7, { handledAt: "2026-10-24T00:00:00.000Z", lastHumanAt: "2026-10-01T00:00:00.000Z", newSinceHandled: false }],
+    [8, { handledAt: "2026-09-02T00:00:00.000Z", lastHumanAt: "2026-09-20T00:00:00.000Z", newSinceHandled: true }],
+  ]);
+  const { attention, handled, other } = selectIssues(all, { since, activity });
+  assert.deepEqual(attention.map((a) => [a.issue.number, a.reason]), [
+    [1, "new"],
+    [2, "open, not yet handled"],
+    [8, "new human activity since last handled"],
+    [9, "updated, not yet handled"],
+  ]);
+  assert.deepEqual(handled.map((h) => h.issue.number), [7]);
   assert.deepEqual(other.map((i) => i.number), [6]);
+  assert.deepEqual(activityCandidates(all, { since }).map((i) => i.number).sort((a, b) => a - b), [1, 1, 2, 3, 7, 9]);
 });
 
 test("summarizeIssue extracts type, country, page and flags", () => {

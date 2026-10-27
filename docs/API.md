@@ -13,14 +13,15 @@ refreshed weekly.
   missing values are `null`; every record carries `iso3`, `name` and `region`, so no join is needed. Field names are
   stable within v1. Breaking changes would ship as `/api/v2/`.
 - **Freshness:** `index.json` `generatedAt` changes only when a published number changes. `status.json` shows when the
-  weekly job last ran. `contentHash` gives a cheap change check.
+  weekly job last ran (`checkedAt`) and which commit is deployed (`commit`; `triggerCommit` is the commit that started
+  the run). `contentHash` gives a cheap change check.
 
 ## Endpoints
 
 | Path | What |
 | --- | --- |
 | `index.json` | Manifest: sources with exact URLs and vintages, endpoints, data gaps, links, `generatedAt`, `contentHash`. |
-| `countries.json` | One summary record per country + `WLD` (238), sorted by iso3. About 290 KB raw, 40 KB gzipped. |
+| `countries.json` | One summary record per country + `WLD` (238), sorted by iso3. About 310 KB raw, 42 KB gzipped. |
 | `countries/{ISO3}.json` | Everything for one country: all headline fields, yearly series 1950-2100, migrant stock history, migration corridors, full risk breakdown. About 35 KB. |
 | `risk.json` | Ranked countries (highest risk first) with component points and inputs, unranked records with reasons, and the full methodology. |
 | `countries.csv` | One row per country, nested fields flattened with `_` (`components_births`, `projection_change2100Pct`, …). |
@@ -51,9 +52,10 @@ Each record (South Korea, October 2026):
     "perThousand": { "births": 4.6, "deaths": 6.7, "naturalChange": -2.1, "netMigration": 1.7, "populationChange": -0.4 },
     "migrationOffsetPct": 80
   },
-  "migrantStock": { "year": 2024, "immigrants": 1811507, "immigrantsPct": 3.5, "emigrants": 2030473, "emigrantsPct": 3.9 },
+  "migrantStock": { "year": 2024, "immigrants": 1811507, "immigrantsPct": 3.5, "emigrants": 2030473, "emigrantsPct": 3.9,
+    "livingAbroadPct": 3.9 },
   "projection": {
-    "population2050": 45143134, "population2100": 21848795, "change2050Pct": -12.8, "change2100Pct": -57.8,
+    "baseYear": 2023, "basePopulation": 51748744, "population2050": 45143134, "population2100": 21848795, "change2050Pct": -12.8, "change2100Pct": -57.8,
     "peakYear": 2020, "halfPopulationYear": 2089, "naturalDeclineSince": 2019
   },
   "generations": { "ratio": 0.356, "halvingYears": 20 },
@@ -75,8 +77,8 @@ Each record (South Korea, October 2026):
 | `ranked`, `flags` | `ranked: false` for `WLD` and places under 100,000 people or with incomplete inputs. Flags: `aggregate`, `small-population`, `no-world-bank-data`, `incomplete-risk-inputs`. |
 | `population`, `tfr`, `medianAge`, `share65` | Newest value across sources, with `year` and `source` (`WB`, `UN-WPP`, `UN-DESA`). `tfr` = births per woman; 2.1 = replacement. `share65` = % aged 65+. |
 | `components` | Demographic balance for the latest UN estimate year: `populationChange = births − deaths + netMigration`, plus rates per 1,000 people. `migrationOffsetPct` = net migration as % of the natural decline (null when births ≥ deaths). |
-| `migrantStock` | UN DESA stocks. `immigrants` = people living here born abroad (inflow proxy). `emigrants` = people born here living abroad (outflow proxy). |
-| `projection` | UN WPP 2024 medium variant: populations in 2050 and 2100, % change vs the latest estimate year, peak year, first year at half of today's population, start of more-deaths-than-births. |
+| `migrantStock` | UN DESA stocks. `immigrants` = people living here born abroad (inflow proxy); `immigrantsPct` = % of residents. `emigrants` = people born here living abroad (outflow proxy). `emigrantsPct` = emigrants as % of the current RESIDENT population (UN DESA/OWID definition, so it can exceed the share of people born here). `livingAbroadPct` = share of everyone born here who lives abroad: emigrants ÷ (residents − immigrants + emigrants). |
+| `projection` | UN WPP 2024 medium variant: populations in 2050 and 2100 and the % change from `basePopulation` in `baseYear` (the latest UN estimate year, not the headline population year), peak year, first year at half of the baseline population, start of more-deaths-than-births. Label the baseline when showing the % change next to the headline `population`. |
 | `generations` | `ratio = tfr / 2.1`: each ~30-year generation is this fraction of the last. `halvingYears` = years for generation size to halve (null if ratio ≥ 1). |
 | `risk` | Score 0-100, tier (`Critical` ≥ 70, `High` ≥ 55, `Elevated` ≥ 40, `Moderate` ≥ 20, `Low`), rank (1 = highest risk; null if unranked), top 3 plain-English factors. |
 
@@ -87,14 +89,13 @@ Everything in the summary, plus:
 - `iso2`, `birthRate`, `deathRate`, `naturalChangeRate` (per 1,000), `netMigration` (people/year),
   `populationGrowthPct`. Each carries `{value, year, source}`.
 - `components.source`, `components.population` (the 1 July denominator); `migrantStock.netStock`, `migrantStock.source`.
-- `projection` extras: `baseYear`, `basePopulation`, `peakPopulation`, `tfr2050`, `tfr2100`, `share65in2050`,
-  `medianAge2050`.
+- `projection` extras: `source`, `variant`, `peakPopulation`, `tfr2050`, `tfr2100`, `share65in2050`, `medianAge2050`.
 - `generations.hundredPeople`: 100 people → children → grandchildren → … (5 values).
 - `risk.factors` (all of them), `risk.components` (`{value 0..1, points, weight}` per component), `risk.inputs`.
 - `series`: one row per year 1950-2100, `{year, variant, population, births, deaths, naturalChange, netMigration,
   populationChange, tfr, medianAge, share65}`. `variant` is `estimate` up to the latest estimate year and
   `projection` (UN medium) after.
-- `migrantStockSeries`: `{year, immigrants, immigrantsPct, emigrants, emigrantsPct, netStock}` for 1990-2024.
+- `migrantStockSeries`: `{year, immigrants, immigrantsPct, emigrants, emigrantsPct, livingAbroadPct, netStock}` for 1990-2024.
 - `migrationCorridors`: `{year, source, immigrantsTotal, emigrantsTotal, topOrigins[], topDestinations[]}`. Each
   partner is `{iso3, name, people}`: top 10 countries of birth of immigrants, and top 10 countries where emigrants live.
   `null` where UN DESA has no corridor data.
@@ -112,7 +113,7 @@ reason`). The method is described in [METHODOLOGY.md](METHODOLOGY.md).
   `components_births`, `components_perThousand_netMigration`, `migrantStock_emigrants`, `projection_change2100Pct`,
   `risk_rank`, `risk_score`, `risk_tier`, `flags` (space-separated), `risk_factors` (joined with ` | `).
 - `timeseries.csv`: metrics are `population, births, deaths, naturalChange, netMigration, populationChange, tfr,
-  medianAge, share65` (yearly, UN WPP) and `immigrants, immigrantsPct, emigrants, emigrantsPct` (UN DESA, 1990-2024,
+  medianAge, share65` (yearly, UN WPP) and `immigrants, immigrantsPct, emigrants, emigrantsPct, livingAbroadPct` (UN DESA, 1990-2024,
   `variant` = `estimate`). About 11 MB.
 
 ## Examples

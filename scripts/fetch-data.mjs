@@ -4,7 +4,7 @@
 //
 //   node scripts/fetch-data.mjs                 fetch + build + validate + write (only changed files)
 //   node scripts/fetch-data.mjs --verify        validate the published files only (no network)
-//   node scripts/fetch-data.mjs --write-status --outcome <success|failure|skipped>
+//   node scripts/fetch-data.mjs --write-status --outcome <success|failure|skipped> --commit <deployed sha>
 //                                               write api/v1/status.json (CI, after committing; never committed)
 //   options: --out <publicDir>  --cache <dir> (cache raw downloads, for development)
 //            --force (publish despite failed sanity checks or newly missing sources; use with care)
@@ -34,17 +34,25 @@ const readJson = (p) => readFile(p, "utf8").then(JSON.parse, () => null);
 
 async function readPrevious() {
   const [index, countries] = await Promise.all([readJson(join(API, "index.json")), readJson(join(API, "countries.json"))]);
+  // Previous detail files: the baseline for per-country coverage checks and the migration-corridor cache.
+  const details = new Map();
+  const names = await readdir(join(API, "countries")).catch(() => []);
+  for (const n of names.filter((x) => /^[A-Z]{3}\.json$/.test(x)).sort()) {
+    const d = await readJson(join(API, "countries", n));
+    if (d?.iso3) details.set(d.iso3, d);
+  }
   const corridorEntry = index?.sources?.flatMap((s) => s.datasets).find((d) => d.id === "migrationCorridors") ?? null;
   let corridors = null;
   if (corridorEntry?.status === "ok") {
     corridors = new Map();
-    const names = await readdir(join(API, "countries")).catch(() => []);
-    for (const n of names.filter((x) => x.endsWith(".json")).sort()) {
-      const d = await readJson(join(API, "countries", n));
-      if (d?.migrationCorridors) corridors.set(d.iso3, d.migrationCorridors);
-    }
+    for (const [iso3, d] of details) if (d.migrationCorridors) corridors.set(iso3, d.migrationCorridors);
   }
-  return { index, countries: countries?.countries ?? null, corridors: corridors && { entry: corridorEntry, data: corridors } };
+  return {
+    index,
+    countries: countries?.countries ?? null,
+    details,
+    corridors: corridors && { entry: corridorEntry, data: corridors },
+  };
 }
 
 /** Schema-validate every JSON file in a file map. */
@@ -111,7 +119,8 @@ async function writeStatus() {
     refresh: opt("--outcome", "unknown"),
     trigger: env.GITHUB_EVENT_NAME ?? "local",
     run: env.GITHUB_RUN_ID ? `${env.GITHUB_SERVER_URL}/${env.GITHUB_REPOSITORY}/actions/runs/${env.GITHUB_RUN_ID}` : null,
-    commit: env.GITHUB_SHA ?? null,
+    commit: opt("--commit", null),
+    triggerCommit: env.GITHUB_SHA ?? null,
     dataChangedAt: index.generatedAt,
     contentHash: index.contentHash,
     latestEstimateYear: index.latestEstimateYear,

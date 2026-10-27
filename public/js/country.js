@@ -29,12 +29,13 @@ import {
   generationsTakeaway,
   tfrTakeaway,
   possessive,
+  projectionBase,
   lastEstimateYear,
   peakOf,
 } from "./logic.js";
 import { lineChart, waterfallChart, chartSkeleton, chartError } from "./charts.js";
 
-const GEN_LABELS = ["Today", "Children", "Grandchildren", "Great-grand­children", "4th generation"];
+const GEN_LABELS = ["Today", "Children", "Grandchildren", "Great-grandchildren", "4th generation"];
 
 export function createCountryView(opts) {
   const { getRecord, rankedCount, loadDetail, cachedDetail, onSelect, issueUrl, xIntentUrl, onShare, latestEstimateYear } = opts;
@@ -126,7 +127,7 @@ export function createCountryView(opts) {
     const year = h("span");
     const count = h("b");
     const extra = h("span", { class: "gen-extra", hidden: true });
-    const nameEl = h("strong", null, label); // the soft hyphen in "Great-grand\u00adchildren" lets it wrap
+    const nameEl = h("strong", null, label); // wraps only at the hyphen in "Great-grandchildren"
     const li = h(
       "li",
       { class: "gen" },
@@ -171,7 +172,7 @@ export function createCountryView(opts) {
       setText(el.tierText, tierLabel(tier));
     }
     setText(el.rank, rankLabel(rec, rankedCount()));
-    setText(el.summary, summarySentence(rec, detail));
+    setText(el.summary, summarySentence(rec, detail, { fallbackYear: latestEstimateYear() }));
     setAttr(el.postX, "href", xIntentUrl(rec));
   }
 
@@ -180,11 +181,14 @@ export function createCountryView(opts) {
     setText(el.kpiTfr, fmtTfr(tfr));
     setText(el.kpiTfrSub, tfr != null ? `in ${rec.tfr.year} · 2.1 keeps a population steady` : "no recent figure");
     const p = rec.projection ?? {};
-    setText(el.kpiPop, p.change2100Pct != null ? fmtPct(p.change2100Pct) : "–");
+    // The % is measured against the UN base year, so show that pair (not the newer World Bank population).
+    const base = projectionBase(rec, { fallbackYear: latestEstimateYear() });
+    if (p.change2100Pct != null) el.kpiPop.replaceChildren(fmtPct(p.change2100Pct), h("small", null, ` vs ${base.year}`));
+    else setText(el.kpiPop, "–");
     setText(
       el.kpiPopSub,
-      rec.population?.value != null && p.population2100 != null
-        ? `${fmtCompact(rec.population.value)} now → ${fmtCompact(p.population2100)} (UN projection)`
+      base.population != null && p.population2100 != null
+        ? `${fmtCompact(base.population)} in ${base.year} → ${fmtCompact(p.population2100)} in 2100 (UN projection)`
         : "no UN projection",
     );
     const g = nextGeneration(tfr);
@@ -405,7 +409,7 @@ export function createCountryView(opts) {
           row.dots[k].style.setProperty("--f", f);
         }
       }
-      setAttr(row.li, "aria-label", `${GEN_LABELS[i].replace("­", "")}: ${txt} people`);
+      setAttr(row.li, "aria-label", `${GEN_LABELS[i]}: ${txt} people`);
     });
   }
 
@@ -414,30 +418,33 @@ export function createCountryView(opts) {
     const min = Number(el.range.min);
     const max = Number(el.range.max);
     const trackW = el.range.getBoundingClientRect().width || 300;
-    const pos = (v) => 10 + (trackW - 20) * ((v - min) / (max - min));
+    const pos = (v) => 10 + (trackW - 20) * ((Math.min(Math.max(v, min), max) - min) / (max - min));
+    // Centre a caption on its tick (pinned inside the track at the ends) and return its real box.
     const place = (node, v, text) => {
+      node.hidden = false;
       node.textContent = text;
+      node.classList.remove("edge-left", "edge-right");
       const px = pos(v);
       node.style.left = `${px}px`;
-      const w = text.length * 6.6;
-      node.classList.toggle("edge-left", px - w / 2 < 0);
-      node.classList.toggle("edge-right", px + w / 2 > trackW);
-      return { px, w };
+      const w = node.getBoundingClientRect().width;
+      if (px - w / 2 < 0) node.classList.add("edge-left");
+      else if (px + w / 2 > trackW) node.classList.add("edge-right");
+      return node.getBoundingClientRect();
     };
-    const r = place(el.tickRepl, REPLACEMENT, "Replacement 2.1");
+    const clash = (a, b) => a.right + 8 > b.left && b.right + 8 > a.left;
+    const repl = place(el.tickRepl, REPLACEMENT, "Replacement 2.1");
     if (base == null || Math.abs(base - REPLACEMENT) < 0.15) {
       el.tickCountry.hidden = true;
       return;
     }
-    el.tickCountry.hidden = false;
     const name = isWorld(rec) ? "World" : rec.name;
-    let text = `${name} ${fmtTfr(base)}`;
-    const v = Math.min(base, max);
-    let c = { px: pos(v), w: text.length * 6.6 };
-    if (Math.abs(c.px - r.px) < c.w / 2 + r.w / 2 + 8) text = fmtTfr(base);
-    c = place(el.tickCountry, v, text);
-    if (Math.abs(c.px - r.px) < c.w / 2 + r.w / 2 + 4) el.tickCountry.hidden = true;
+    // Full caption, then the number alone, then nothing (the output above the slider still shows the rate).
+    for (const text of [`${name} ${fmtTfr(base)}`, fmtTfr(base)]) {
+      if (!clash(place(el.tickCountry, base, text), repl)) return;
+    }
+    el.tickCountry.hidden = true;
   }
+
 
   function resetSlider(rec) {
     whatIf = null;
@@ -558,7 +565,7 @@ export function createCountryView(opts) {
     renderTfr(rec, detail, world, fade);
     renderCorridors(rec, "done", detail);
     renderFactors(rec, detail);
-    if (isWorld(rec)) setText(el.summary, summarySentence(rec, detail));
+    if (isWorld(rec)) setText(el.summary, summarySentence(rec, detail, { fallbackYear: latestEstimateYear() }));
   }
 
   function renderLoading(rec) {

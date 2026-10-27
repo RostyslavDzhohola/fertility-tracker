@@ -12,12 +12,13 @@ import { appendFile, mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
-import { buildCountryIndex, groupFeedback, selectIssues, summarizeIssue, CHECK_LABEL, FEEDBACK_TYPES } from "./lib/feedback.mjs";
+import { activityCandidates, assessActivity, buildCountryIndex, groupFeedback, selectIssues, summarizeIssue, CHECK_LABEL, FEEDBACK_TYPES } from "./lib/feedback.mjs";
 import { createGitHub } from "./lib/github.mjs";
 import { overallStatus, renderReport, reportTitle, machineSummary, TITLE_RE } from "./lib/report.mjs";
-import { assessWorkflowRuns, findCountryRecords, runSiteChecks } from "./lib/site.mjs";
+import { assessWorkflowRuns, assessWorkflowStates, findCountryRecords, runSiteChecks } from "./lib/site.mjs";
 
-const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+// CHECK_REPO_ROOT points the checker at another checkout (tests use an empty one).
+const REPO_ROOT = path.resolve(process.env.CHECK_REPO_ROOT || path.join(path.dirname(fileURLToPath(import.meta.url)), "../.."));
 const DEFAULTS = {
   site: "https://rostyslavdzhohola.github.io/fertility-tracker/",
   repo: "RostyslavDzhohola/fertility-tracker",
@@ -37,7 +38,7 @@ const HELP = `Usage: node scripts/checks/weekly-check.mjs [options]
   --help
 
 Env: GITHUB_TOKEN or GH_TOKEN (writes need it), CHECK_SITE_URL, CHECK_EXPECT_DEPLOYED=true, CHECK_DRY_RUN=true,
-GITHUB_STEP_SUMMARY (appends the report when set).`;
+CHECK_REPO_ROOT (another checkout), GITHUB_STEP_SUMMARY (appends the report when set).`;
 
 async function readJson(file) {
   try {
@@ -94,6 +95,11 @@ async function main() {
     } catch (err) {
       result.errors.push(`could not read ${DEFAULTS.refreshWorkflow} runs: ${err.message}`);
     }
+    try {
+      result.workflowStates = assessWorkflowStates(await gh.listWorkflows(), [DEFAULTS.refreshWorkflow, "weekly-check.yml"]);
+    } catch (err) {
+      result.errors.push(`could not read workflow states: ${err.message}`);
+    }
   }
 
   let previous = null;
@@ -120,13 +126,21 @@ async function main() {
       const index = buildCountryIndex(records);
       const issues = await gh.listIssuesForReport(since);
       if (issues.truncated) result.errors.push("issue listing hit the page limit; some feedback may be missing from this report");
-      const { inWindow, backlog, other } = selectIssues(issues, { since, labels });
-      const items = inWindow.map((i) => summarizeIssue(i, { since, index }));
+      let activity = new Map();
+      try {
+        const collected = await gh.collectActivity(activityCandidates(issues, { since, labels }), assessActivity);
+        activity = collected.activity;
+        if (!collected.editsKnown) result.errors.push("could not read issue edit times (GraphQL); only comments count as new activity this week");
+      } catch (err) {
+        result.errors.push(`could not read issue comments; every recent feedback issue is listed as needing attention: ${err.message}`);
+      }
+      const { attention, handled, other } = selectIssues(issues, { since, labels, activity });
+      const items = attention.map((a) => summarizeIssue(a.issue, { since, index, reason: a.reason, activity: a.activity }));
       result.feedback = {
         since,
         items,
         grouped: groupFeedback(items),
-        backlog: backlog.map((i) => summarizeIssue(i, { since, index })),
+        handled: handled.map((h) => summarizeIssue(h.issue, { since, index, activity: h.activity })),
         other: other.map((i) => summarizeIssue(i, { since, index })),
       };
     } catch (err) {

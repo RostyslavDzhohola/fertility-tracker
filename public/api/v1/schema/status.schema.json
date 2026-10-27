@@ -11,6 +11,7 @@
     "trigger",
     "run",
     "commit",
+    "triggerCommit",
     "dataChangedAt",
     "contentHash",
     "latestEstimateYear",
@@ -55,7 +56,14 @@
         "string",
         "null"
       ],
-      "description": "Deployed commit SHA."
+      "description": "Commit SHA actually deployed (after any data commit made by this run)."
+    },
+    "triggerCommit": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Commit SHA that triggered the run (GITHUB_SHA)."
     },
     "dataChangedAt": {
       "type": "string",

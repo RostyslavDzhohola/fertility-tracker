@@ -73,14 +73,17 @@ const stockCore = {
   immigrants: intN("Immigrant stock: people living in the country who were born in another country (inflow proxy)."),
   immigrantsPct: numN("Immigrant stock as % of the population."),
   emigrants: intN("Emigrant stock: people born in the country who now live abroad (outflow proxy)."),
-  emigrantsPct: numN("Emigrant stock as % of the population of origin."),
+  emigrantsPct: numN("Emigrant stock as % of the country's CURRENT RESIDENT population (UN DESA / OWID definition; can exceed the share of people born here)."),
+  livingAbroadPct: numN("Share of all living people born in the country who live abroad: emigrants / (native-born residents + emigrants) x 100."),
 };
 
 const projectionCore = {
+  baseYear: int("Baseline year for the % changes: the latest UN WPP estimate year (not the headline population year)."),
+  basePopulation: int("UN WPP population in baseYear, the denominator of change2050Pct / change2100Pct."),
   population2050: int("UN medium-variant population in 2050."),
   population2100: int("UN medium-variant population in 2100."),
-  change2050Pct: T("number", "% change from the latest estimate year to 2050."),
-  change2100Pct: T("number", "% change from the latest estimate year to 2100."),
+  change2050Pct: T("number", "% change from basePopulation (baseYear) to 2050."),
+  change2100Pct: T("number", "% change from basePopulation (baseYear) to 2100."),
   peakYear: int("Year of the highest population, 1950-2100 (estimates + projection)."),
   halfPopulationYear: intN("First projected year with half (or less) of the latest-estimate population; null if not before 2100."),
   naturalDeclineSince: intN("Start year of the current run of years with more deaths than births; if births still exceed deaths, the first projected year with more deaths. Null if never by 2100."),
@@ -101,7 +104,7 @@ const summary = obj("Country summary.", {
   share65: { ...point, description: "% of the population aged 65+ (latest of World Bank / UN)." },
   components: objN("Demographic balance for the latest UN estimate year: population change = births - deaths + net migration.", componentsCore),
   migrantStock: objN("UN DESA migrant stock (latest year).", stockCore),
-  projection: objN("UN WPP 2024 medium-variant outlook vs the latest estimate year.", projectionCore),
+  projection: objN("UN WPP 2024 medium-variant outlook vs the latest estimate year (baseYear / basePopulation).", projectionCore),
   generations: objN("The '100 people' view: each ~30-year generation is (tfr / 2.1) the size of the previous one.", {
     ratio: T("number", "tfr / 2.1."),
     halvingYears: intN("Years for each generation's size to halve at this ratio (30-year generations); null if ratio >= 1."),
@@ -177,8 +180,6 @@ const detail = obj("Everything about one country.", {
   projection: objN("UN WPP 2024 medium-variant outlook.", {
     source: T("string", "Source id.", { const: "UN-WPP" }),
     variant: T("string", "UN projection variant.", { const: "medium" }),
-    baseYear: int("Latest estimate year used as the baseline."),
-    basePopulation: int("Population in baseYear."),
     ...projectionCore,
     peakPopulation: int("Population in peakYear."),
     tfr2050: numN("Projected fertility rate in 2050."),
@@ -285,7 +286,8 @@ export function schemas() {
         refresh: T("string", "Outcome of the source refresh in that run.", { enum: ["success", "failure", "skipped", "cancelled", "unknown"] }),
         trigger: T("string", "What started the run (schedule, workflow_dispatch, push, local)."),
         run: T(nul("string"), "GitHub Actions run URL."),
-        commit: T(nul("string"), "Deployed commit SHA."),
+        commit: T(nul("string"), "Commit SHA actually deployed (after any data commit made by this run)."),
+        triggerCommit: T(nul("string"), "Commit SHA that triggered the run (GITHUB_SHA)."),
         dataChangedAt: T("string", "generatedAt of the published data: when a number last changed.", { format: "date-time" }),
         contentHash: T("string", "contentHash from index.json.", { pattern: "^[0-9a-f]{64}$" }),
         latestEstimateYear: int("Latest UN WPP estimate year."),

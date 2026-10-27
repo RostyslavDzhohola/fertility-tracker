@@ -124,10 +124,27 @@ export function createSearch({ wrap, input, list, clearBtn, status, getPlaces, g
     wrap.classList.toggle("has-text", has);
   }
 
+  // Typing must never move the page (DESIGN R1). The input sits in the sticky top bar, so the browser has nothing to
+  // reveal; if it scrolls anyway (caret reveal, IME, extensions), put the page back. Only ever restores.
+  let typingY = null;
+  function holdScroll() {
+    const y = typingY;
+    if (y == null) return;
+    const fix = () => {
+      if (document.activeElement === input && window.scrollY !== y) window.scrollTo({ top: y, behavior: "instant" });
+    };
+    fix();
+    requestAnimationFrame(fix);
+  }
+  input.addEventListener("keydown", (e) => (typingY = /^Page(Up|Down)$/.test(e.key) ? null : window.scrollY), true);
+  input.addEventListener("beforeinput", () => (typingY ??= window.scrollY));
+
   input.addEventListener("focus", () => {
     if (media.coarse()) savedScrollY = window.scrollY;
+    typingY = window.scrollY;
     input.select();
     show();
+    if (!media.coarse()) holdScroll(); // touch: the on-screen keyboard owns the focus scroll (G7 restores after selection)
   });
   input.addEventListener("blur", () => {
     // Let a click on an option land first (mousedown is prevented, so this is a real blur).
@@ -138,7 +155,9 @@ export function createSearch({ wrap, input, list, clearBtn, status, getPlaces, g
   input.addEventListener("input", () => {
     syncClear();
     show();
+    holdScroll();
   });
+  input.addEventListener("keyup", holdScroll);
   input.addEventListener("keydown", (e) => {
     switch (e.key) {
       case "ArrowDown":

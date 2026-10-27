@@ -22,6 +22,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    outputs:
+      deploy: ${{ steps.head.outputs.current }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -33,16 +35,31 @@ jobs:
 
       - name: Fetch latest sources and rebuild the API
         id: refresh
-        # Refuses to overwrite good data (sanity checks, schema validation, sources that worked last time).
-        # On pushes a source outage must not block deploying code changes; scheduled and manual runs fail loudly.
+        # Refuses to overwrite good data (per-country coverage vs the last build, sanity checks, schema validation,
+        # sources that worked last time). On pushes a source outage must not block deploying code changes;
+        # scheduled and manual runs fail loudly.
         continue-on-error: ${{ github.event_name == 'push' }}
         run: node scripts/fetch-data.mjs
 
       - name: Verify the API files about to be deployed
         run: node scripts/fetch-data.mjs --verify
 
+      # Only the revision tested above may be committed and deployed. If the branch moved during this run, stop
+      # here without committing or deploying: every push to main starts its own run of this workflow (queued behind
+      # this one by the concurrency group), which refreshes, tests and deploys the newer revision. No rebase.
+      - name: Check the branch has not moved during this run
+        id: head
+        run: |
+          git fetch --quiet --depth=1 origin "$GITHUB_REF_NAME"
+          if [ "$(git rev-parse FETCH_HEAD)" = "$(git rev-parse HEAD)" ]; then
+            echo "current=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "current=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::$GITHUB_REF_NAME moved during this run ($(git rev-parse --short HEAD) -> $(git rev-parse --short FETCH_HEAD)); not committing or deploying. The run for the newer commit does both."
+          fi
+
       - name: Commit data if changed
-        if: steps.refresh.outcome == 'success'
+        if: steps.refresh.outcome == 'success' && steps.head.outputs.current == 'true'
         run: |
           git add -A public/api
           if git diff --cached --quiet; then
@@ -51,20 +68,24 @@ jobs:
             git config user.name "github-actions[bot]"
             git config user.email "41898333+github-actions[bot]@users.noreply.github.com"
             git commit -m "data: refresh $(date -u +%F)"
-            git pull --rebase origin "$GITHUB_REF_NAME"
+            # Plain fast-forward push: if the branch moved since the check above, this is rejected and nothing deploys.
             git push origin "HEAD:$GITHUB_REF_NAME"
           fi
 
       - name: Write deploy status (not committed)
-        run: node scripts/fetch-data.mjs --write-status --outcome "${{ steps.refresh.outcome || 'unknown' }}"
+        if: steps.head.outputs.current == 'true'
+        run: node scripts/fetch-data.mjs --write-status --outcome "${{ steps.refresh.outcome || 'unknown' }}" --commit "$(git rev-parse HEAD)"
 
       - uses: actions/configure-pages@v5
+        if: steps.head.outputs.current == 'true'
       - uses: actions/upload-pages-artifact@v3
+        if: steps.head.outputs.current == 'true'
         with:
           path: public
 
   deploy:
     needs: build
+    if: needs.build.outputs.deploy == 'true'
     runs-on: ubuntu-latest
     environment:
       name: github-pages

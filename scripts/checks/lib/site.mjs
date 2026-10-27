@@ -2,6 +2,7 @@
 // Pure helpers are exported for tests; runSiteChecks() does the network work.
 import { access, readFile } from "node:fs/promises";
 import path from "node:path";
+import { validateSchema } from "./json-schema.mjs";
 
 // Checked even when the live manifest is missing. `planned` = part of the v2 contract (docs/brief/BRIEF.md);
 // a planned target that is not live yet is a warning, not a failure, unless the repo says it should be live.
@@ -19,6 +20,8 @@ export const BUILTIN_TARGETS = [
   { path: "api/", kind: "html", name: "API docs", planned: true },
   { path: "llms.txt", kind: "text", planned: true },
   { path: "feedback.json", kind: "feedback", planned: true },
+  { path: "geo/countries-110m.json", kind: "topojson", name: "Map outlines", planned: true },
+  { path: "geo/world-points.json", kind: "json", name: "Map points", planned: true },
   { path: "data/fertility.json", kind: "json", legacy: true },
 ];
 
@@ -229,7 +232,7 @@ export function validateResponse(kind, { status, contentType = "", text = "" }, 
     return { ok: false, problems, warnings, info, data };
   }
   const ct = contentType.toLowerCase();
-  if (["json", "manifest", "openapi", "feedback", "status"].includes(kind)) {
+  if (["json", "manifest", "openapi", "feedback", "status", "topojson"].includes(kind)) {
     try {
       data = JSON.parse(text);
     } catch (err) {
@@ -254,6 +257,9 @@ export function validateResponse(kind, { status, contentType = "", text = "" }, 
       const version = data?.openapi ?? data?.swagger;
       if (typeof version !== "string" || !data?.paths || typeof data.paths !== "object") problems.push("not an OpenAPI document (needs openapi + paths)");
       else info.paths = Object.keys(data.paths).length;
+    }
+    if (kind === "topojson" && (data?.type !== "Topology" || !data?.objects || !Object.keys(data.objects).length)) {
+      problems.push("not a TopoJSON Topology with objects");
     }
     if (kind === "status") {
       if (!data || typeof data !== "object" || Array.isArray(data)) problems.push("status.json is not a JSON object");
@@ -282,6 +288,15 @@ export function validateResponse(kind, { status, contentType = "", text = "" }, 
     info.rows = Math.max(rows.length - 1, 0);
     info.columns = header.length;
     if (ct && !ct.includes("csv") && !ct.includes("text/plain")) warnings.push(`content-type is ${contentType}`);
+  } else if (kind === "js" || kind === "module") {
+    if (!text.trim()) problems.push("empty script");
+    else if (/^\s*<(!doctype|html)/i.test(text)) problems.push("got an HTML page instead of JavaScript");
+    if (ct && !/javascript|ecmascript/.test(ct)) warnings.push(`content-type is ${contentType}`);
+  } else if (kind === "css") {
+    if (!text.trim()) problems.push("empty stylesheet");
+    if (ct && !ct.includes("css")) warnings.push(`content-type is ${contentType}`);
+  } else if (kind === "binary") {
+    if (!text.length) problems.push("empty file");
   } else if (kind === "html") {
     if (!/<html[\s>]|<!doctype html/i.test(text)) problems.push("response is not an HTML page");
     const title = text.match(/<title[^>]*>([^<]*)<\/title>/i)?.[1]?.trim();
@@ -375,6 +390,21 @@ export function assessWorkflowRuns(runs, now = new Date(), maxAgeDays = 8) {
   return { level, note: notes.join("; ") || "last run succeeded", latest: pick(lastCompleted ?? runs[0]), newest: latest, lastSuccessAt, inProgress };
 }
 
+// Scheduled workflows GitHub may have switched off. "disabled_inactivity" happens after 60 days without repo
+// activity; "disabled_manually" is a deliberate choice by Ros. Either is a warning, with different advice.
+export function assessWorkflowStates(workflows, files = ["refresh-and-deploy.yml", "weekly-check.yml"]) {
+  const states = {};
+  const notes = [];
+  for (const file of files) {
+    const wf = (workflows ?? []).find((w) => String(w.path ?? "").endsWith(`/${file}`) || w.path === file);
+    states[file] = wf?.state ?? "missing";
+    if (states[file] === "disabled_inactivity") notes.push(`${file} was disabled by GitHub after 60 days without repo activity: re-enable with gh workflow enable ${file} and dispatch a run`);
+    else if (states[file] === "disabled_manually") notes.push(`${file} is disabled manually (leave it unless Ros asks)`);
+    else if (states[file] !== "active") notes.push(`${file} is ${states[file]}`);
+  }
+  return { level: notes.length ? "warn" : "pass", states, note: notes.join("; ") || Object.entries(states).map(([f, st]) => `${f} ${st}`).join(", ") };
+}
+
 // Countries ranked by risk, best effort across plausible shapes.
 export function extractTopRisk(data, n = 5) {
   const recs = findCountryRecords(data).filter((r) => r.iso3 !== "WLD");
@@ -449,12 +479,14 @@ async function mapLimit(items, limit, fn) {
 // Decide whether a target must be up. Reasons, strongest first:
 //  - the home page always must;
 //  - anything the live manifest advertises must;
+//  - anything the home page loads (scripts, styles, modules and the data they fetch) must;
 //  - anything the site serves with HTTP 200 must be valid (deployed but broken is broken);
 //  - the API manifest must, once a previous weekly check saw the API live (catches deploy-time files vanishing);
 //  - anything present in the repo's public/ must, when the checked-out ref is the deployed branch.
-export function requirement({ always, advertised, inRepo, expectDeployed, wasLive, served }) {
+export function requirement({ always, advertised, loadedBy, inRepo, expectDeployed, wasLive, served }) {
   if (always) return { required: true, reason: "site root" };
   if (advertised) return { required: true, reason: "listed in live API manifest" };
+  if (loadedBy) return { required: true, reason: loadedBy };
   if (served) return { required: true, reason: "deployed (HTTP 200) but invalid" };
   if (wasLive) return { required: true, reason: "was live in the previous weekly check" };
   if (inRepo && expectDeployed) return { required: true, reason: "in repo public/ on the deployed branch" };
@@ -464,6 +496,169 @@ export function requirement({ always, advertised, inRepo, expectDeployed, wasLiv
 export function levelFor(target) {
   if (target.ok) return target.warnings.length ? "warn" : "pass";
   return target.required ? "fail" : "warn";
+}
+
+// ---------- Page assets ----------
+
+const ASSET_RELS = new Set(["stylesheet", "modulepreload", "preload", "icon", "apple-touch-icon", "manifest"]);
+
+function attrs(tag) {
+  const out = {};
+  for (const m of tag.matchAll(/([\w:-]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+))/g)) out[m[1].toLowerCase()] = m[2] ?? m[3] ?? m[4];
+  return out;
+}
+
+function assetKind(p, hint) {
+  const clean = p.split(/[?#]/)[0].toLowerCase();
+  if (hint === "module") return "module";
+  if (clean.endsWith(".css")) return "css";
+  if (clean.endsWith(".mjs") || clean.endsWith(".js")) return hint === "script" ? "js" : "module";
+  if (/countries-\d+m\.json$|\.topojson$/.test(clean)) return "topojson";
+  if (clean.endsWith(".json") || clean.endsWith(".geojson") || clean.endsWith(".webmanifest")) return "json";
+  if (/\.(png|jpe?g|gif|webp|avif|svg|ico|woff2?|ttf|otf)$/.test(clean)) return "binary";
+  return "text";
+}
+
+// Same-site resources an HTML page loads: script src, and link rel=stylesheet/modulepreload/preload/icon/manifest.
+// Returns [{ path, kind }] with paths relative to the site base; external and data: URLs are skipped.
+export function extractPageAssets(html, pageUrl, siteUrl) {
+  const found = new Map();
+  const base = new URL(pageUrl);
+  for (const m of String(html ?? "").matchAll(/<(script|link)\b([^>]*)>/gi)) {
+    const tag = m[1].toLowerCase();
+    const a = attrs(m[2]);
+    let ref;
+    let hint;
+    if (tag === "script" && a.src) {
+      ref = a.src;
+      hint = (a.type ?? "").toLowerCase() === "module" ? "module" : "script";
+    } else if (tag === "link" && a.href) {
+      const rels = (a.rel ?? "").toLowerCase().split(/\s+/);
+      if (!rels.some((r) => ASSET_RELS.has(r))) continue;
+      ref = a.href;
+      hint = rels.includes("modulepreload") ? "module" : rels.includes("stylesheet") ? "css" : null;
+    } else continue;
+    const p = sitePathOf(ref, base, siteUrl);
+    if (p !== null && !found.has(p)) found.set(p, { path: p, kind: assetKind(p, hint) });
+  }
+  return [...found.values()];
+}
+
+// Relative imports of an ES module (static, re-exports, dynamic) resolved against the module URL, and
+// relative .json paths in string literals (fetched data) resolved against the page.
+export function extractModuleRefs(js, moduleUrl, pageUrl, siteUrl) {
+  const text = String(js ?? "");
+  const imports = new Set();
+  const data = new Set();
+  const specRe = /\b(?:import|export)\s+(?:[\w*{}\s,$]+?\s+from\s+)?["']([^"']+)["']|\bimport\s*\(\s*["']([^"']+)["']\s*\)/g;
+  for (const m of text.matchAll(specRe)) {
+    const spec = m[1] ?? m[2];
+    if (!/^(\.{1,2}\/|\/)/.test(spec)) continue; // bare specifiers cannot load in a browser without an import map
+    const p = sitePathOf(spec, new URL(moduleUrl), siteUrl);
+    if (p !== null) imports.add(p);
+  }
+  for (const m of text.matchAll(/["'`]((?:\.{1,2}\/)?(?:[\w-]+\/)*[\w.-]+\.(?:json|geojson|topojson))["'`]/g)) {
+    if (m[1].includes("${") || /(^|\/)package\.json$/.test(m[1])) continue;
+    const p = sitePathOf(m[1], new URL(pageUrl), siteUrl);
+    if (p !== null) data.add(p);
+  }
+  return { imports: [...imports], data: [...data] };
+}
+
+function sitePathOf(ref, baseUrl, siteUrl) {
+  if (!ref || /^(data|blob|javascript|mailto):/i.test(ref)) return null;
+  let u;
+  try {
+    u = new URL(ref, baseUrl);
+  } catch {
+    return null;
+  }
+  const site = new URL(siteUrl);
+  if (u.origin !== site.origin) return null;
+  const pathname = safeDecode(u.pathname);
+  if (!pathname.startsWith(site.pathname)) return null;
+  return pathname.slice(site.pathname.length);
+}
+
+// ---------- Structural checks ----------
+
+const DEFAULT_SCHEMAS = [
+  [/^api\/v1\/index\.json$/, "api/v1/schema/index.schema.json"],
+  [/^api\/v1\/countries\.json$/, "api/v1/schema/countries.schema.json"],
+  [/^api\/v1\/countries\/[^/]+\.json$/, "api/v1/schema/country.schema.json"],
+  [/^api\/v1\/risk\.json$/, "api/v1/schema/risk.schema.json"],
+  [/^api\/v1\/status\.json$/, "api/v1/schema/status.schema.json"],
+];
+
+// endpoint path (may be templated) → schema path, from the manifest's per-endpoint `schema` fields.
+export function buildSchemaMap(manifest, siteUrl) {
+  const map = new Map();
+  const list = Array.isArray(manifest?.endpoints) ? manifest.endpoints : manifest?.endpoints && typeof manifest.endpoints === "object" ? Object.values(manifest.endpoints) : [];
+  for (const e of list) {
+    if (!e || typeof e !== "object" || typeof e.schema !== "string") continue;
+    const target = toSitePath(e.url ?? e.path ?? e.href ?? "", siteUrl);
+    const schema = toSitePath(e.schema, siteUrl);
+    if (target !== null && schema !== null) map.set(target, schema);
+  }
+  return map;
+}
+
+export function schemaPathFor(targetPath, templatePath, schemaMap = new Map()) {
+  return schemaMap.get(templatePath ?? targetPath) ?? schemaMap.get(targetPath) ?? DEFAULT_SCHEMAS.find(([re]) => re.test(targetPath))?.[1] ?? null;
+}
+
+// Shape checks that hold with or without a schema: catch payloads that parse but are useless.
+export function shapeProblems(targetPath, data) {
+  const problems = [];
+  const detail = targetPath.match(/^api\/v1\/countries\/([^/]+)\.json$/);
+  if (detail) {
+    if (!data || typeof data !== "object" || Array.isArray(data)) problems.push("country file is not a JSON object");
+    else if (String(data.iso3 ?? "").toUpperCase() !== detail[1].toUpperCase()) problems.push(`iso3 is ${JSON.stringify(data.iso3 ?? null)}, file is for ${detail[1]}`);
+    else if (typeof data.name !== "string" || !data.name) problems.push("country file has no name");
+  } else if (/^api\/v1\/countries\.json$/.test(targetPath)) {
+    if (!findCountryRecords(data).length) problems.push("no country records (expected objects with iso3)");
+  } else if (/^api\/v1\/risk\.json$/.test(targetPath)) {
+    const ranked = data?.ranking ?? data?.ranked;
+    if (!Array.isArray(ranked) || !ranked.length) problems.push("no ranked countries");
+  }
+  return problems;
+}
+
+/**
+ * Cross-file consistency: counts agree, ranks are sane, and every country summary matches its detail file.
+ * @returns {{path: string, problem: string}[]}
+ */
+export function crossCheck({ countries, index, risk, details = new Map(), countriesCsvRows, minCountries = 150 }) {
+  const out = [];
+  const records = findCountryRecords(countries);
+  const n = records.length;
+  if (countries && n) {
+    if (typeof countries.count === "number" && countries.count !== n) out.push({ path: "api/v1/countries.json", problem: `count says ${countries.count} but there are ${n} records` });
+    if (n < minCountries) out.push({ path: "api/v1/countries.json", problem: `only ${n} country records (expected at least ${minCountries})` });
+    const dupes = records.map((r) => r.iso3).filter((c, i, all) => all.indexOf(c) !== i);
+    if (dupes.length) out.push({ path: "api/v1/countries.json", problem: `duplicate iso3: ${[...new Set(dupes)].slice(0, 5).join(", ")}` });
+    if (typeof index?.counts?.records === "number" && index.counts.records !== n) out.push({ path: "api/v1/index.json", problem: `counts.records is ${index.counts.records}, countries.json has ${n}` });
+    if (typeof countriesCsvRows === "number" && countriesCsvRows !== n) out.push({ path: "api/v1/countries.csv", problem: `${countriesCsvRows} rows, countries.json has ${n} records` });
+    for (const r of records) {
+      const d = details.get(r.iso3);
+      if (!d) continue;
+      if (d.iso3 !== r.iso3 || d.name !== r.name) out.push({ path: `api/v1/countries/${r.iso3}.json`, problem: `summary says ${r.iso3} "${r.name}", detail says ${d.iso3} "${d.name}"` });
+    }
+  }
+  const ranked = risk?.ranking ?? risk?.ranked;
+  if (Array.isArray(ranked)) {
+    const unranked = Array.isArray(risk.unranked) ? risk.unranked : [];
+    if (n && ranked.length + unranked.length !== n) out.push({ path: "api/v1/risk.json", problem: `${ranked.length} ranked + ${unranked.length} unranked != ${n} countries` });
+    const badRank = ranked.findIndex((r, i) => r?.rank !== i + 1);
+    if (badRank >= 0) out.push({ path: "api/v1/risk.json", problem: `ranking[${badRank}].rank is ${ranked[badRank]?.rank}, expected ${badRank + 1}` });
+    if (n) {
+      const known = new Set(records.map((r) => r.iso3));
+      const unknown = [...ranked, ...unranked].map((r) => r?.iso3).filter((c) => !known.has(c));
+      if (unknown.length) out.push({ path: "api/v1/risk.json", problem: `iso3 not in countries.json: ${unknown.slice(0, 5).join(", ")}` });
+    }
+    if (typeof index?.counts?.ranked === "number" && index.counts.ranked !== ranked.length) out.push({ path: "api/v1/index.json", problem: `counts.ranked is ${index.counts.ranked}, risk.json ranks ${ranked.length}` });
+  }
+  return out;
 }
 
 /**
@@ -478,17 +673,21 @@ export function levelFor(target) {
  *   Defaults to true for localhost / 127.0.0.1 site URLs.
  * @param {"all"|number} [o.countrySample] how many per-country files to fetch per template
  */
-export async function runSiteChecks({ siteUrl, repoRoot, expectDeployed = false, deployInProgress = false, apiWasLive = false, localBuild, countrySample = "all", fetchImpl = fetch, concurrency = 8, timeoutMs = 20000, retries = 2 }) {
+export async function runSiteChecks({ siteUrl, repoRoot, expectDeployed = false, deployInProgress = false, apiWasLive = false, localBuild, countrySample = "all", fetchImpl = fetch, concurrency = 8, timeoutMs = 20000, retries = 2, maxAssets = 200 }) {
   siteUrl = normalizeSiteUrl(siteUrl);
   if (localBuild === undefined) localBuild = isLocalSite(siteUrl);
   const publicDir = path.join(repoRoot, "public");
   const urlFor = (p) => new URL(p, siteUrl).toString();
   const fetchOpts = { fetchImpl, timeoutMs, retries };
-  const results = [];
+  const cache = new Map();
+  const get = async (p) => {
+    if (!cache.has(p)) cache.set(p, fetchTarget(urlFor(p), fetchOpts));
+    return cache.get(p);
+  };
   const docs = {};
 
   // 1. Manifest first: it decides the endpoint list.
-  const manifestRes = await fetchTarget(urlFor(MANIFEST_PATH), fetchOpts);
+  const manifestRes = await get(MANIFEST_PATH);
   const manifestVal = validateResponse("manifest", manifestRes, { siteUrl });
   // A live manifest only replaces the fallback list when it is valid and lists endpoints we can find;
   // otherwise the repo copy, then the built-in contract list, keep every endpoint under check.
@@ -507,6 +706,7 @@ export async function runSiteChecks({ siteUrl, repoRoot, expectDeployed = false,
     endpointPaths = repoEndpoints;
   }
   const advertised = new Set(liveEndpoints);
+  const schemaMap = buildSchemaMap(liveEndpoints.length ? liveManifest : repoManifest, siteUrl);
 
   // 2. Assemble the target list (deduplicated by path).
   const targets = new Map();
@@ -519,10 +719,31 @@ export async function runSiteChecks({ siteUrl, repoRoot, expectDeployed = false,
   if (!endpointPaths.includes(MANIFEST_PATH)) add(MANIFEST_PATH, { kind: "manifest", name: "API manifest", planned: true });
   if (!endpointPaths.includes(STATUS_PATH)) add(STATUS_PATH, { kind: "status", name: "Deploy status", planned: true });
 
-  // 3. Country codes for templated endpoints: live countries.json, else the repo copy, else a fixed sample.
+  // 3. Page assets: what the home page loads, the modules those import, and the data files they fetch.
+  const home = await get("");
+  const assetQueue = home.status === 200 ? extractPageAssets(home.text, siteUrl, siteUrl) : [];
+  const assets = new Map();
+  while (assetQueue.length && assets.size < maxAssets) {
+    const a = assetQueue.shift();
+    if (assets.has(a.path) || a.path === "") continue;
+    assets.set(a.path, a);
+    if (a.kind !== "module") continue;
+    const res = await get(a.path);
+    if (res.status !== 200) continue;
+    const refs = extractModuleRefs(res.text, urlFor(a.path), siteUrl, siteUrl);
+    for (const p of refs.imports) assetQueue.push({ path: p, kind: "module" });
+    for (const p of refs.data) assetQueue.push({ path: p, kind: assetKind(p), fetched: true });
+  }
+  for (const a of assets.values()) {
+    const existing = targets.get(a.path);
+    const loadedBy = a.fetched ? "fetched by the site's JavaScript" : "loaded by the home page";
+    if (existing) existing.loadedBy ??= loadedBy;
+    else add(a.path, { kind: a.kind, loadedBy, group: "home page assets (scripts, styles, modules, data)" });
+  }
+
+  // 4. Country codes for templated endpoints: live countries.json, else the repo copy, else a fixed sample.
   const countriesPath = endpointPaths.find((p) => /countries\.json$/i.test(p)) ?? "api/v1/countries.json";
-  const countriesRes = await fetchTarget(urlFor(countriesPath), fetchOpts);
-  const countriesVal = validateResponse("json", countriesRes);
+  const countriesVal = validateResponse("json", await get(countriesPath));
   if (countriesVal.ok) docs.countries = countriesVal.data;
   const countriesFromRepo = await readJson(path.join(publicDir, countriesPath));
   let codes = findCountryRecords(docs.countries ?? countriesFromRepo).map((r) => r.iso3);
@@ -533,31 +754,66 @@ export async function runSiteChecks({ siteUrl, repoRoot, expectDeployed = false,
     codes = [...new Set([...preferred, ...codes])].slice(0, n);
   }
 
-  // 4. Fetch everything (the manifest and countries responses are reused).
+  // 5. Schemas: the live copy (the published contract), else the repo copy.
+  const schemas = new Map();
+  const schemaFor = async (schemaPath) => {
+    if (!schemaPath) return null;
+    if (!schemas.has(schemaPath)) {
+      schemas.set(
+        schemaPath,
+        (async () => {
+          const res = await get(schemaPath);
+          if (res.status === 200) {
+            try {
+              return JSON.parse(res.text);
+            } catch {}
+          }
+          return readJson(path.join(publicDir, schemaPath));
+        })(),
+      );
+    }
+    return schemas.get(schemaPath);
+  };
+
+  // 6. Fetch and validate everything.
   const jobs = [];
   for (const t of targets.values()) {
-    const inRepoTemplate = isTemplated(t.path);
-    const paths = inRepoTemplate ? expandTemplate(t.path, codes) : [t.path];
-    for (const p of paths) {
-      jobs.push({ target: t, path: p, template: inRepoTemplate ? t.path : null });
-    }
+    const templated = isTemplated(t.path);
+    for (const p of templated ? expandTemplate(t.path, codes) : [t.path]) jobs.push({ target: t, path: p, template: templated ? t.path : null });
   }
-  const cache = new Map([
-    [MANIFEST_PATH, manifestRes],
-    [countriesPath, countriesRes],
-  ]);
+  const payloads = new Map(); // api/v1 JSON kept for cross-file checks
   const checked = await mapLimit(jobs, concurrency, async (job) => {
     const repoFile = path.join(publicDir, job.path === "" || job.path.endsWith("/") ? path.join(job.path, "index.html") : job.path);
     const inRepo = await exists(repoFile);
     const t = job.target;
     if (t.legacy && !inRepo) return null; // legacy file removed from the repo: stop checking it
-    const res = cache.get(job.path) ?? (await fetchTarget(urlFor(job.path), fetchOpts));
+    const res = await get(job.path);
     const val = validateResponse(t.kind, res, { siteUrl });
     if (res.error) val.problems.unshift(res.error);
-    const req = requirement({ always: t.always, advertised: advertised.has(t.path), inRepo, expectDeployed, wasLive: apiWasLive && job.path === MANIFEST_PATH, served: res.status === 200 && !val.ok });
+    if (val.ok && val.data !== undefined && job.path.startsWith("api/v1/")) {
+      val.problems.push(...shapeProblems(job.path, val.data));
+      const schema = await schemaFor(schemaPathFor(job.path, job.template, schemaMap));
+      if (schema) {
+        const errors = validateSchema(schema, val.data, { max: 3 });
+        val.problems.push(...errors.map((e) => `schema: ${e}`));
+        val.info.schema = errors.length ? "invalid" : "valid";
+      }
+      val.ok = val.problems.length === 0;
+      payloads.set(job.path, val.data);
+    }
+    const req = requirement({
+      always: t.always,
+      advertised: advertised.has(t.path),
+      loadedBy: t.loadedBy,
+      inRepo,
+      expectDeployed,
+      wasLive: apiWasLive && job.path === MANIFEST_PATH,
+      served: res.status === 200 && !val.ok,
+    });
     const result = {
       path: job.path,
       template: job.template,
+      group: t.group ?? null,
       url: urlFor(job.path),
       kind: t.kind,
       name: t.name,
@@ -589,11 +845,34 @@ export async function runSiteChecks({ siteUrl, repoRoot, expectDeployed = false,
       result.warnings = [];
     }
     if (job.path === STATUS_PATH && val.ok) docs.status = val.data;
-    if (t.kind === "json" && /risk\.json$/i.test(job.path) && val.data) docs.risk = val.data;
+    if (/^api\/v1\/risk\.json$/i.test(job.path) && val.data) docs.risk = val.data;
     if (job.path === "data/fertility.json" && val.data) docs.legacy = val.data;
     return result;
   });
-  for (const r of checked) if (r) results.push(r);
+  const results = checked.filter(Boolean);
+
+  // 7. Cross-file consistency, attached to the file that is wrong.
+  const byPath = new Map(results.map((r) => [r.path, r]));
+  const details = new Map();
+  for (const [p, data] of payloads) {
+    const m = p.match(/^api\/v1\/countries\/([^/]+)\.json$/);
+    if (m && data && typeof data === "object") details.set(m[1].toUpperCase(), data);
+  }
+  const csv = byPath.get("api/v1/countries.csv");
+  for (const { path: p, problem } of crossCheck({
+    countries: payloads.get("api/v1/countries.json"),
+    index: payloads.get(MANIFEST_PATH),
+    risk: payloads.get("api/v1/risk.json"),
+    details,
+    countriesCsvRows: csv?.ok ? csv.info.rows : undefined,
+  })) {
+    const r = byPath.get(p);
+    if (!r) continue;
+    r.problems.push(`consistency: ${problem}`);
+    r.ok = false;
+    if (!r.required) Object.assign(r, { required: true, reason: "deployed (HTTP 200) but inconsistent" });
+    r.level = levelFor(r);
+  }
 
   const apiLive = !!liveManifest;
   if (localBuild && !docs.status) docs.statusLocal = true;
@@ -603,6 +882,7 @@ export async function runSiteChecks({ siteUrl, repoRoot, expectDeployed = false,
     manifestSource,
     apiLive,
     countryCodesChecked: codes.length,
+    assetsChecked: assets.size,
     targets: results,
     freshness: assessFreshness(docs),
     topRisk: extractTopRisk(docs.risk ?? docs.countries),

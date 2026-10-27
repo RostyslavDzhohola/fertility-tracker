@@ -2,6 +2,13 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   assessFreshness,
+  assessWorkflowStates,
+  buildSchemaMap,
+  crossCheck,
+  extractModuleRefs,
+  extractPageAssets,
+  schemaPathFor,
+  shapeProblems,
   isLocalSite,
   assessWorkflowRuns,
   expandTemplate,
@@ -205,4 +212,101 @@ test("extractTopRisk ranks by rank, else by score", () => {
   const byScore = { countries: [{ iso3: "JPN", riskScore: 70 }, { iso3: "KOR", riskScore: 95 }] };
   assert.deepEqual(extractTopRisk(byScore).map((r) => r.iso3), ["KOR", "JPN"]);
   assert.deepEqual(extractTopRisk({ countries: [{ iso3: "JPN" }] }), []);
+});
+
+test("extractPageAssets finds scripts, stylesheets, module preloads and preloads; skips data:, external and non-asset links", () => {
+  const html = `<link rel="canonical" href="https://elsewhere.example/"><link rel="icon" href="data:image/svg+xml,x">
+<link rel="alternate" href="api/v1/index.json"><link rel="help" href="api/"><link rel="preload" href="api/v1/countries.json" as="fetch">
+<link rel="modulepreload" href="js/logic.js"><link rel=stylesheet href='style.css'><script type="application/ld+json">{}</script>
+<script defer src="vendor/d3.min.js"></script><script type="module" src="./js/main.js"></script><script src="https://cdn.example/x.js"></script>`;
+  assert.deepEqual(extractPageAssets(html, SITE, SITE), [
+    { path: "api/v1/countries.json", kind: "json" },
+    { path: "js/logic.js", kind: "module" },
+    { path: "style.css", kind: "css" },
+    { path: "vendor/d3.min.js", kind: "js" },
+    { path: "js/main.js", kind: "module" },
+  ]);
+});
+
+test("extractModuleRefs follows relative static, multi-line, re-export and dynamic imports, and fetched JSON", () => {
+  const js = `import { a } from "./logic.js";
+import {
+  b,
+  c,
+} from "./country.js";
+import * as L from '../shared/util.js';
+import "./side-effect.js";
+export * from "./dom.js";
+export { x } from "./x.js";
+const lazy = () => import("./lazy.js");
+import fs from "node:fs"; // bare: ignored
+const topo = await fetchJson("geo/countries-110m.json");
+const pts = fetch(\`geo/world-points.json\`);
+const dyn = fetch(\`api/v1/countries/\${iso}.json\`);`;
+  const refs = extractModuleRefs(js, `${SITE}js/main.js`, SITE, SITE);
+  assert.deepEqual(refs.imports.sort(), ["js/country.js", "js/dom.js", "js/lazy.js", "js/logic.js", "js/side-effect.js", "js/x.js", "shared/util.js"]);
+  assert.deepEqual(refs.data.sort(), ["geo/countries-110m.json", "geo/world-points.json"]);
+});
+
+test("buildSchemaMap and schemaPathFor use the manifest's schema links, then defaults", () => {
+  const manifest = { endpoints: [{ path: "countries/{iso3}.json", url: `${SITE}api/v1/countries/{iso3}.json`, schema: `${SITE}api/v1/schema/country.schema.json` }, { url: "risk.json" }] };
+  const map = buildSchemaMap(manifest, SITE);
+  assert.equal(map.get("api/v1/countries/{iso3}.json"), "api/v1/schema/country.schema.json");
+  assert.equal(schemaPathFor("api/v1/countries/JPN.json", "api/v1/countries/{iso3}.json", map), "api/v1/schema/country.schema.json");
+  assert.equal(schemaPathFor("api/v1/risk.json", null, map), "api/v1/schema/risk.schema.json");
+  assert.equal(schemaPathFor("api/v1/status.json", null), "api/v1/schema/status.schema.json");
+  assert.equal(schemaPathFor("api/v1/countries.csv", null), null);
+});
+
+test("shapeProblems catches payloads that parse but are useless", () => {
+  assert.deepEqual(shapeProblems("api/v1/countries.json", { oops: true }), ["no country records (expected objects with iso3)"]);
+  assert.deepEqual(shapeProblems("api/v1/countries.json", { countries: [{ iso3: "JPN", name: "Japan" }] }), []);
+  assert.deepEqual(shapeProblems("api/v1/countries/JPN.json", { oops: true }), ['iso3 is null, file is for JPN']);
+  assert.deepEqual(shapeProblems("api/v1/countries/JPN.json", { iso3: "JPN" }), ["country file has no name"]);
+  assert.deepEqual(shapeProblems("api/v1/countries/JPN.json", { iso3: "JPN", name: "Japan" }), []);
+  assert.deepEqual(shapeProblems("api/v1/risk.json", { ranking: [] }), ["no ranked countries"]);
+  assert.deepEqual(shapeProblems("api/v1/openapi.json", { oops: true }), []);
+});
+
+test("crossCheck: counts, ranks, unknown codes, CSV rows and summary/detail agreement", () => {
+  const recs = Array.from({ length: 3 }, (_, i) => ({ iso3: ["JPN", "KOR", "WLD"][i], name: ["Japan", "South Korea", "World"][i] }));
+  const ok = {
+    countries: { count: 3, countries: recs },
+    index: { counts: { records: 3, ranked: 2 } },
+    risk: { ranking: [{ rank: 1, iso3: "KOR" }, { rank: 2, iso3: "JPN" }], unranked: [{ iso3: "WLD" }] },
+    details: new Map([["JPN", { iso3: "JPN", name: "Japan" }]]),
+    countriesCsvRows: 3,
+    minCountries: 3,
+  };
+  assert.deepEqual(crossCheck(ok), []);
+  const bad = crossCheck({
+    ...ok,
+    countries: { count: 4, countries: [...recs, { iso3: "JPN", name: "Japan again" }] },
+    index: { counts: { records: 3, ranked: 5 } },
+    risk: { ranking: [{ rank: 1, iso3: "KOR" }, { rank: 3, iso3: "ZZZ" }], unranked: [] },
+    details: new Map([["KOR", { iso3: "KOR", name: "Korea" }]]),
+    countriesCsvRows: 2,
+    minCountries: 150,
+  });
+  const text = bad.map((x) => `${x.path}: ${x.problem}`);
+  assert.ok(text.includes("api/v1/countries.json: only 4 country records (expected at least 150)"));
+  assert.ok(text.includes("api/v1/countries.json: duplicate iso3: JPN"));
+  assert.ok(text.includes("api/v1/index.json: counts.records is 3, countries.json has 4"));
+  assert.ok(text.includes("api/v1/countries.csv: 2 rows, countries.json has 4 records"));
+  assert.ok(text.includes('api/v1/countries/KOR.json: summary says KOR "South Korea", detail says KOR "Korea"'));
+  assert.ok(text.includes("api/v1/risk.json: 2 ranked + 0 unranked != 4 countries"));
+  assert.ok(text.includes("api/v1/risk.json: ranking[1].rank is 3, expected 2"));
+  assert.ok(text.includes("api/v1/risk.json: iso3 not in countries.json: ZZZ"));
+  assert.ok(text.includes("api/v1/index.json: counts.ranked is 5, risk.json ranks 2"));
+});
+
+test("assessWorkflowStates warns on disabled schedules with the right advice", () => {
+  const wf = (file, state) => ({ path: `.github/workflows/${file}`, state });
+  assert.equal(assessWorkflowStates([wf("refresh-and-deploy.yml", "active"), wf("weekly-check.yml", "active")]).level, "pass");
+  const idle = assessWorkflowStates([wf("refresh-and-deploy.yml", "disabled_inactivity"), wf("weekly-check.yml", "active")]);
+  assert.equal(idle.level, "warn");
+  assert.match(idle.note, /60 days without repo activity: re-enable with gh workflow enable refresh-and-deploy\.yml/);
+  const manual = assessWorkflowStates([wf("refresh-and-deploy.yml", "active"), wf("weekly-check.yml", "disabled_manually")]);
+  assert.match(manual.note, /disabled manually \(leave it unless Ros asks\)/);
+  assert.deepEqual(assessWorkflowStates([]).states, { "refresh-and-deploy.yml": "missing", "weekly-check.yml": "missing" });
 });

@@ -487,11 +487,39 @@ export function tierLabel(tier) {
   return tier ? `${tier} decline risk` : "Not scored";
 }
 
-export function summarySentence(rec, detail) {
+// The baseline every projected % is measured against: UN population in the latest estimate year (projection.baseYear).
+// Falls back to the yearly series, then to the value implied by the 2100 figure and its % change.
+export function projectionBase(rec, { series = null, fallbackYear = 2023 } = {}) {
+  const p = rec?.projection ?? {};
+  const year = Number.isInteger(p.baseYear) ? p.baseYear : fallbackYear;
+  let population = typeof p.basePopulation === "number" ? p.basePopulation : null;
+  if (population == null && series) population = series.find((r) => r.year === year)?.population ?? null;
+  if (population == null && p.population2100 != null && p.change2100Pct != null && p.change2100Pct > -100)
+    population = p.population2100 / (1 + p.change2100Pct / 100);
+  return { year, population };
+}
+
+// Why a below-replacement population still grows, from the latest births, deaths and net migration only.
+// Momentum is described, never inferred from the projection; immigration is named only when it is a real share.
+export function growthReason(rec) {
+  const c = rec?.components;
+  if (!c || c.births == null || c.deaths == null) return null;
+  const natural = c.births - c.deaths;
+  const M = c.netMigration ?? 0;
+  const change = c.populationChange ?? natural + M;
+  const migrationMatters = M > 0 && M >= 0.25 * Math.max(change, 1);
+  if (natural > 0 && migrationMatters) return "a young population means births still outnumber deaths for now, and immigration adds to the growth";
+  if (natural > 0) return "a young population means births still outnumber deaths for now";
+  if (M > 0 && M > -natural) return "immigration more than makes up for more deaths than births";
+  return null;
+}
+
+export function summarySentence(rec, detail, { fallbackYear = 2023 } = {}) {
   const tfr = tfrValue(rec);
   const t = fmtTfr(tfr);
   const pct = rec.projection?.change2100Pct;
   const pop2100 = rec.projection?.population2100;
+  const by = projectionBase(rec, { series: detail?.series, fallbackYear }).year;
   if (rec.iso3 === "WLD") {
     const peak = detail?.projection?.peakPopulation;
     const peakYear = rec.projection?.peakYear;
@@ -503,15 +531,18 @@ export function summarySentence(rec, detail) {
   if (tfr < REPLACEMENT) {
     if (pct != null && pct < 0) {
       const how = tfr < 1.5 ? "far below" : "below";
-      return `${rec.name} has ${t} births per woman, ${how} the 2.1 needed to keep a population steady. The UN projects ${fmtWords(pop2100)} people by 2100, ${fmtPct(Math.abs(pct), { plus: false })} fewer than today.`;
+      return `${rec.name} has ${t} births per woman, ${how} the 2.1 needed to keep a population steady. The UN projects ${fmtWords(pop2100)} people by 2100, ${fmtPct(Math.abs(pct), { plus: false })} fewer than in ${by}.`;
     }
     if (pct != null) {
-      return `${rec.name} has ${t} births per woman, below replacement, but immigration and a young population keep it growing for now. The UN projects ${fmtPct(pct)} by 2100.`;
+      const reason = growthReason(rec);
+      return reason
+        ? `${rec.name} has ${t} births per woman, below replacement, but ${reason}. The UN projects ${fmtPct(pct)} between ${by} and 2100.`
+        : `${rec.name} has ${t} births per woman, below replacement. The UN still projects ${fmtPct(pct)} between ${by} and 2100.`;
     }
     return `${rec.name} has ${t} births per woman, below the 2.1 needed to keep a population steady.`;
   }
   const how = tfr < 2.4 ? "close to" : "above";
-  const proj = pop2100 != null && pct != null ? ` The UN projects ${fmtWords(pop2100)} people by 2100 (${fmtPct(pct)}).` : "";
+  const proj = pop2100 != null && pct != null ? ` The UN projects ${fmtWords(pop2100)} people by 2100 (${fmtPct(pct)} vs ${by}).` : "";
   return `${rec.name} has ${t} births per woman, ${how} the 2.1 replacement level.${proj}`;
 }
 
@@ -519,13 +550,14 @@ export function populationTakeaway(rec, lastEstimateYear) {
   const p = rec.projection ?? {};
   const pct = p.change2100Pct;
   const peak = p.peakYear;
+  const by = projectionBase(rec, { fallbackYear: lastEstimateYear }).year;
   if (pct == null) return `UN population estimates and projection for ${subject(rec)}.`;
   if (peak != null && peak <= lastEstimateYear && pct < 0)
-    return `${subject(rec, { start: true, own: true })} population peaked in ${peak} and is projected to fall ${fmtPct(Math.abs(pct), { plus: false })} by 2100.`;
+    return `${subject(rec, { start: true, own: true })} population peaked in ${peak} and is projected to fall ${fmtPct(Math.abs(pct), { plus: false })} between ${by} and 2100.`;
   if (peak != null && peak > lastEstimateYear && peak < 2100)
     return `${subject(rec, { start: true })} keeps growing until about ${peak}, then the UN expects a slow decline.`;
-  if (pct >= 0) return `${subject(rec, { start: true, own: true })} population keeps growing through 2100, up ${fmtPct(pct, { plus: false })} from today.`;
-  return `${subject(rec, { start: true, own: true })} population is projected to change ${fmtPct(pct)} by 2100.`;
+  if (pct >= 0) return `${subject(rec, { start: true, own: true })} population keeps growing through 2100, up ${fmtPct(pct, { plus: false })} from ${by}.`;
+  return `${subject(rec, { start: true, own: true })} population is projected to change ${fmtPct(pct)} between ${by} and 2100.`;
 }
 
 export function waterfallTakeaway(rec) {
@@ -597,7 +629,8 @@ export function xPostText(rec) {
   const who = rec.iso3 === "WLD" ? "The world" : rec.name;
   let text = `${who}: ${fmtTfr(tfr)} births per woman.`;
   if (g.length) text += ` Start with 100 people → ${fmtCount(g[1])} children → ${fmtCount(g[2])} grandchildren.`;
-  if (pct != null) text += ` The UN projects a ${fmtPct(Math.abs(pct), { plus: false })} population ${pct < 0 ? "drop" : "rise"} by 2100.`;
+  if (pct != null)
+    text += ` The UN projects a ${fmtPct(Math.abs(pct), { plus: false })} population ${pct < 0 ? "drop" : "rise"} from ${projectionBase(rec).year} to 2100.`;
   return text;
 }
 
@@ -629,11 +662,12 @@ export function tooltipLines(rec, n) {
   const line3 = tfr != null ? `${fmtTfr(tfr)} births per woman (${rec.tfr.year})` : "No births-per-woman figure";
   const p = rec.projection;
   const pop = rec.population?.value;
+  const base = projectionBase(rec);
   const line4 =
-    pop != null && p?.population2100 != null
-      ? `Population ${fmtCompact(pop)} → ${fmtCompact(p.population2100)} by 2100 (${fmtPct(p.change2100Pct)})`
+    base.population != null && p?.population2100 != null && p.change2100Pct != null
+      ? `Population ${fmtCompact(base.population)} (${base.year}) → ${fmtCompact(p.population2100)} (2100), ${fmtPct(p.change2100Pct)}`
       : pop != null
-        ? `Population ${fmtCompact(pop)}`
+        ? `Population ${fmtCompact(pop)} (${rec.population.year})`
         : "";
   return [rec.name, line2, line3, line4].filter(Boolean);
 }

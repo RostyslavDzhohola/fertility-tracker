@@ -250,7 +250,8 @@ function updateMinibar(rec, flash) {
   const sync = () => {
     const on = headerAbove && countryInView;
     el.minibar.classList.toggle("visible", on);
-    el.minibarMap.tabIndex = -1;
+    // Reachable by Tab only while visible (the hidden bar is also visibility:hidden, so it can't take focus).
+    el.minibarMap.tabIndex = on ? 0 : -1;
   };
   new IntersectionObserver(
     ([e]) => {
@@ -571,6 +572,8 @@ function applyCountries(data) {
   state.searchPlaces = data.countries.map((c) => ({ iso3: c.iso3, name: c.name, population: c.population?.value ?? 0 }));
   state.generatedAt = data.generatedAt ?? state.generatedAt;
   state.latestEstimateYear = data.latestEstimateYear ?? state.latestEstimateYear;
+  // The % change column is measured from the UN base year, so its header names both ends.
+  for (const node of document.querySelectorAll(".ranking-cols .col-2100")) node.textContent = `${state.latestEstimateYear}→2100`;
   const ranked = state.list.filter((c) => Number.isInteger(c.risk?.rank)).sort((a, b) => a.risk.rank - b.risk.rank);
   state.rankedN = state.risk?.ranking?.length ?? ranked.length;
   state.firstRanked = ranked[0]?.iso3 ?? state.list[0]?.iso3 ?? null;
@@ -669,7 +672,12 @@ el.retry.addEventListener("click", async () => {
   el.retry.disabled = false;
   if (!data) return;
   applyCountries(data);
-  if (topology) map.setRecords(state.records);
+  // Rebuild the joins from scratch: after a failed first load every polygon was keyed "nodata-*" and the dots were
+  // skipped, so setRecords() alone would match almost nothing.
+  if (topology) {
+    map.setTopology(topology, points, state.records);
+    if (state.view === "globe") map.setView("globe");
+  }
   afterData();
 });
 

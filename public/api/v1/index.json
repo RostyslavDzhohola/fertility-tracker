@@ -3,8 +3,8 @@
   "description": "Fertility, births, deaths, net migration, migrant stocks, UN projections to 2100 and a population-decline risk score for every country. Static files, no key, CORS open, refreshed weekly.",
   "apiVersion": "v1",
   "schemaVersion": "1.0.0",
-  "generatedAt": "2026-10-26T23:32:59Z",
-  "contentHash": "baa3daec4e398919662b109ce7dbbe91ea454c065dac1d7560d44f34cd3c6a59",
+  "generatedAt": "2026-10-27T00:35:59Z",
+  "contentHash": "74dd7f4825f4bff6d395b770ba46f626c86c5fd662d53237887bf9754704b571",
   "baseUrl": "https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/",
   "latestEstimateYear": 2023,
   "replacementTfr": 2.1,
@@ -308,7 +308,7 @@
       "path": "timeseries.csv",
       "url": "https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/timeseries.csv",
       "format": "csv",
-      "description": "Long format iso3,year,variant,metric,value. Metrics: population, births, deaths, naturalChange, netMigration, populationChange, tfr, medianAge, share65, immigrants, immigrantsPct, emigrants, emigrantsPct. Rows with no data are omitted."
+      "description": "Long format iso3,year,variant,metric,value. Metrics: population, births, deaths, naturalChange, netMigration, populationChange, tfr, medianAge, share65, immigrants, immigrantsPct, emigrants, emigrantsPct, livingAbroadPct. Rows with no data are omitted."
     },
     {
       "path": "openapi.json",
@@ -329,7 +329,8 @@
     "UN WPP 2024 estimates end in 2023; later years are the UN medium-variant projection (variant = \"projection\"). The demographic balance (components) and projection baselines use the latest estimate year.",
     "Headline fields (population, tfr, birthRate, deathRate, netMigration, populationGrowthPct, share65) take the newest year across World Bank and UN; each carries its own year and source. World Bank's latest net migration (and, for many countries, population) are themselves UN WPP estimates or projections.",
     "populationChange = births - deaths + netMigration for the calendar year (UN WPP). It can differ slightly from the difference between successive 1 July population figures.",
-    "Migrant stocks are available for 1990-2020 every 5 years plus 2024; there is no annual series.",
+    "Migrant stocks are available for 1990-2020 every 5 years plus 2024; there is no annual series. migrantStock.emigrantsPct follows UN DESA / OWID: emigrants as % of the country's CURRENT RESIDENT population. livingAbroadPct is the share of everyone born in the country who lives abroad: emigrants / (residents - immigrants + emigrants).",
+    "projection.change2050Pct / change2100Pct are relative to projection.basePopulation in projection.baseYear (UN WPP, latest estimate year), not to the headline population (often a newer World Bank figure).",
     "Taiwan and 20 small territories are not in the World Bank database: their figures come from UN sources only, their region is borrowed from a neighbour, and incomeGroup is null.",
     "Places with fewer than 100,000 people are scored where possible but not ranked: small numbers make rates noisy."
   ],

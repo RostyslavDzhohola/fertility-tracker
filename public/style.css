@@ -82,8 +82,12 @@ html {
   color: var(--text);
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
-  scroll-padding-top: calc(var(--topbar) + 16px);
+  /* No scroll-padding here: Chrome applies it when revealing the caret of the sticky search input, which scrolled the
+     page ~53px per keystroke. Anchor targets get scroll-margin instead (below). */
 }
+
+/* Native anchor jumps (#data, #feedback, #methodology from other pages) land below the sticky top bar. */
+.page-section, main [id]:target, .country-name { scroll-margin-top: calc(var(--topbar) + 16px); }
 
 body {
   margin: 0;
@@ -545,8 +549,8 @@ a:hover { text-decoration: underline; text-underline-offset: 2px; }
   flex: none; display: flex; justify-content: flex-end; gap: 0;
   padding: 6px 12px 4px 0; font-size: 12px; line-height: 16px; color: var(--text-muted);
 }
-.ranking-cols .col-tfr { width: 88px; text-align: right; }
-.ranking-cols .col-2100 { width: 60px; text-align: right; }
+.ranking-cols .col-tfr { width: 84px; text-align: right; }
+.ranking-cols .col-2100 { width: 64px; text-align: right; white-space: nowrap; }
 .mode-tfr .ranking-cols .col-2100 { display: none; }
 .ranking-list {
   flex: 1 1 auto; min-height: 120px;
@@ -603,6 +607,10 @@ a:hover { text-decoration: underline; text-underline-offset: 2px; }
 .minibar-tfr { color: var(--text); flex: none; }
 .minibar-tier { color: var(--text-muted); flex: none; }
 .minibar-map { margin-left: auto; flex: none; min-height: 32px; }
+@media (pointer: coarse) {
+  .minibar { height: 52px; }
+  .minibar-map { min-height: 44px; }
+}
 @media (min-width: 1100px) { .minibar-map { display: none; } }
 @media (max-width: 420px) { .minibar-tier { display: none; } }
 
@@ -807,14 +815,24 @@ a:hover { text-decoration: underline; text-underline-offset: 2px; }
 .corridor-list .corr-none { color: var(--text-muted); font-size: 13px; }
 .mig-note { margin-top: 12px; }
 #mig-note { margin-top: 12px; min-height: 54px; }
-@media (pointer: coarse) {
-  .corridor-list button.corr-name { min-height: 24px; }
-}
 @media (max-width: 599px) {
   .c6 { min-height: 590px; }
   .corridors { grid-template-columns: 1fr; height: 192px; gap: 0; }
   .corridor { height: 96px; }
   #mig-note { min-height: 72px; }
+}
+/* Touch: each partner country is a full-width 44px target (3 rows × 44 + title = 156px per list). */
+@media (pointer: coarse) {
+  .corridor-list li { height: 44px; }
+  .corridor-list .corr-name { flex: 1 1 auto; line-height: 44px; }
+  .corridor-list button.corr-name { display: block; min-height: 44px; }
+  .corridors { height: 156px; }
+  .c6 { min-height: 516px; }
+}
+@media (pointer: coarse) and (max-width: 599px) {
+  .corridors { height: 312px; }
+  .corridor { height: 156px; }
+  .c6 { min-height: 710px; }
 }
 
 /* C7 start with 100 people */
@@ -867,11 +885,12 @@ a:hover { text-decoration: underline; text-underline-offset: 2px; }
 
 .gens { margin-top: 12px; }
 .gen {
-  display: grid; grid-template-columns: 88px auto minmax(52px, 1fr); align-items: center; gap: 12px;
+  display: grid; grid-template-columns: 116px auto minmax(52px, 1fr); align-items: center; gap: 12px;
   height: 64px;
 }
-.gen-label { font-size: 13px; line-height: 17px; }
-.gen-label strong { display: block; font-weight: 650; overflow-wrap: anywhere; hyphens: auto; }
+.gen-label { font-size: 13px; line-height: 17px; min-width: 0; }
+/* Wide enough for "Grandchildren"; "Great-grandchildren" wraps only at its hyphen. Never break inside a word. */
+.gen-label strong { display: block; font-weight: 650; overflow-wrap: normal; word-break: normal; hyphens: manual; }
 .gen-label span { color: var(--text-muted); font-size: 12px; line-height: 16px; }
 .dots { --dot: 10px; --dgap: 3px; display: grid; grid-template-columns: repeat(20, var(--dot)); gap: var(--dgap); }
 .dot {
@@ -891,8 +910,10 @@ a:hover { text-decoration: underline; text-underline-offset: 2px; }
 .c7 > .note { margin-top: 12px; min-height: 54px; }
 @media (max-width: 599px) {
   .c7 { min-height: 672px; }
-  .gen { grid-template-columns: 84px auto minmax(48px, 1fr); gap: 8px; }
-  .dots { --dot: 8px; --dgap: 2px; }
+  .gen { grid-template-columns: 104px auto minmax(44px, 1fr); gap: 8px; }
+  .gen-label { font-size: 12px; line-height: 16px; }
+  /* Dots shrink a little on narrow phones so the label column keeps its width: 7.8px at 390, 6px at 360. */
+  .dots { --dot: clamp(6px, calc((100vw - 234px) / 20), 8px); --dgap: 2px; }
   .gen-count b { font-size: 20px; }
   .c7 > .note { min-height: 90px; }
 }

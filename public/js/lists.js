@@ -1,7 +1,7 @@
 // Ranking listbox (desktop column and the All countries dialog), chips, and the dialog (DESIGN §3.7, §4.3).
 
 import { h, setText, focusNoScroll, keepInView, media } from "./dom.js";
-import { orderPlaces, colorFor, fmtTfr, fmtPct, tfrValue, normalizeText } from "./logic.js";
+import { orderPlaces, colorFor, fmtTfr, fmtPct, tfrValue, normalizeText, projectionBase } from "./logic.js";
 
 function swatch(rec, mode) {
   const sw = h("span", { class: "swatch", "aria-hidden": "true" });
@@ -39,7 +39,7 @@ export function createListbox(container, { prefix, onSelect, label }) {
           "aria-selected": "false",
           "data-iso3": rec.iso3,
           title: rec.name,
-          "aria-label": `${num != null ? `${num}. ` : ""}${rec.name}, ${fmtTfr(tfr)} births per woman${mode === "risk" && pct != null ? `, ${fmtPct(pct)} by 2100` : ""}`,
+          "aria-label": `${num != null ? `${num}. ` : ""}${rec.name}, ${fmtTfr(tfr)} births per woman${mode === "risk" && pct != null ? `, population ${fmtPct(pct)} from ${projectionBase(rec).year} to 2100` : ""}`,
         },
         h("span", { class: "rank-num", "aria-hidden": "true" }, num != null ? String(num) : ""),
         swatch(rec, mode),

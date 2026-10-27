@@ -74,7 +74,57 @@ export function sanityCheck(ds, previous = null) {
     const pw = previous.countries.find((r) => r.iso3 === "WLD")?.population?.value;
     if (pw && w?.population?.value && Math.abs(w.population.value / pw - 1) > 0.05) err(`world population moved >5% (${pw} -> ${w.population.value})`);
   }
+  if (previous?.details?.size) for (const e of coverageRegressions(previous.details, ds.details)) err(e);
   return errors;
+}
+
+// ---------- coverage regression vs the previous published build ----------
+
+const SERIES_KEYS = ["population", "births", "deaths", "naturalChange", "netMigration", "populationChange", "tfr", "medianAge", "share65"];
+const STOCK_KEYS = ["immigrants", "immigrantsPct", "emigrants", "emigrantsPct"];
+const HEADLINE_KEYS = ["population", "tfr", "birthRate", "deathRate", "naturalChangeRate", "netMigration", "populationGrowthPct", "medianAge", "share65"];
+const BLOCK_KEYS = ["components", "migrantStock", "projection", "generations", "migrationCorridors"];
+
+/**
+ * What one country record covers: years with data per series metric, which headline fields and blocks are present,
+ * whether it is scored and ranked. Works on detail-shaped records (published countries/{ISO3}.json or ds.details).
+ */
+export function coverage(d) {
+  const count = (rows, k) => (rows ?? []).reduce((n, r) => n + (r[k] != null ? 1 : 0), 0);
+  const out = {};
+  for (const k of SERIES_KEYS) out[`series.${k}`] = count(d.series, k);
+  for (const k of STOCK_KEYS) out[`migrantStockSeries.${k}`] = count(d.migrantStockSeries, k);
+  for (const k of HEADLINE_KEYS) out[k] = d[k]?.value != null ? 1 : 0;
+  for (const k of BLOCK_KEYS) out[k] = d[k] ? 1 : 0;
+  for (const k of ["births", "deaths", "naturalChange", "netMigration", "populationChange"]) out[`components.${k}`] = d.components?.[k] != null ? 1 : 0;
+  out["risk.score"] = d.risk?.score != null ? 1 : 0;
+  out.ranked = d.ranked ? 1 : 0;
+  return out;
+}
+
+/**
+ * Compare every country and metric against the previous published build. Any loss (a country gone, fewer years of a
+ * series, a field or block that was present and is now null, dropping out of the risk ranking) is an error: a
+ * partial upstream outage must never overwrite good data. Intentional changes need --force.
+ */
+export function coverageRegressions(previousDetails, details, { max = 60 } = {}) {
+  const out = [];
+  for (const [iso3, prev] of previousDetails) {
+    if (out.length >= max) break;
+    const cur = details.get(iso3);
+    if (!cur) {
+      out.push(`${iso3}: record missing (was published before)`);
+      continue;
+    }
+    const a = coverage(prev);
+    const b = coverage(cur);
+    const lost = Object.keys(a).filter((k) => b[k] < a[k]);
+    if (!lost.length) continue;
+    if (lost.includes("ranked")) out.push(`${iso3} (${cur.name}): dropped out of the risk ranking (was rank ${prev.risk?.rank ?? "?"})`);
+    const rest = lost.filter((k) => k !== "ranked");
+    if (rest.length) out.push(`${iso3} (${cur.name}): lost data vs the previous build: ${rest.map((k) => (a[k] > 1 ? `${k} ${a[k]} -> ${b[k]} years` : k)).join(", ")}`);
+  }
+  return out.slice(0, max);
 }
 
 /**

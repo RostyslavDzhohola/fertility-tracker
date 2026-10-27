@@ -82,15 +82,53 @@ export function normalizeCountry(raw, index = buildCountryIndex()) {
   return { key: `?${simple.slice(0, 40)}`, iso3: null, name: null, raw: text };
 }
 
+// ---------- Activity since the weekly agent last handled an issue ----------
+
+// The weekly agent ends every reply with this line; see docs/weekly-agent-prompt.md step 8.
+export const HANDLED_MARKER_RE = /<!--\s*fertility-tracker:handled(?:\s+\d{4}-\d{2}-\d{2})?\s*-->/;
+export const handledMarker = (date) => `<!-- fertility-tracker:handled ${new Date(date).toISOString().slice(0, 10)} -->`;
+// Only these can mark an issue handled, so a stranger's comment cannot hide feedback from the agent.
+export const TRUSTED_ASSOCIATIONS = new Set(["OWNER", "MEMBER", "COLLABORATOR"]);
+
+export function isBotUser(user) {
+  return user?.type === "Bot" || /\[bot\]$/i.test(user?.login ?? "");
+}
+
+const latest = (...dates) => dates.filter(Boolean).map((d) => new Date(d).toISOString()).sort().at(-1) ?? null;
+
 /**
- * Pick the issues the weekly report covers: feedback issues updated within the window, plus open ones
- * nobody has triaged yet (the backlog). Pull requests and weekly-check issues are dropped.
+ * When was the issue last handled (newest trusted comment carrying the marker), and when did a human last do
+ * something that deserves a reply (opened it, commented without the marker, edited the body)? Bot activity,
+ * label changes and closing are maintenance and never count.
+ * @param {object} issue GitHub issue
+ * @param {object[]} comments its comments (GitHub REST shape)
+ * @param {{lastEditedAt?: string|null, editedByBot?: boolean}} [edit] body edit time from GraphQL
  */
-export function selectIssues(issues, { since, labels = FEEDBACK_TYPES } = {}) {
+export function assessActivity(issue, comments = [], { lastEditedAt = null, editedByBot = false } = {}) {
+  let handledAt = null;
+  const human = [isBotUser(issue.user) ? null : issue.created_at];
+  for (const c of comments) {
+    const at = latest(c.created_at, c.updated_at);
+    if (HANDLED_MARKER_RE.test(c.body ?? "") && (TRUSTED_ASSOCIATIONS.has(c.author_association) || isBotUser(c.user))) handledAt = latest(handledAt, at);
+    else if (!isBotUser(c.user)) human.push(at);
+  }
+  if (lastEditedAt && !editedByBot) human.push(lastEditedAt);
+  const lastHumanAt = latest(...human);
+  return { handledAt, lastHumanAt, newSinceHandled: handledAt ? !!lastHumanAt && lastHumanAt > handledAt : null };
+}
+
+/**
+ * Pick the issues the weekly report covers. A feedback issue needs attention when
+ *  - it was never handled (no marker reply) and is new, recently updated, or still open without `triaged`; or
+ *  - a human commented or edited after the last handled reply, whatever its age, state or labels.
+ * Handled issues with no human activity since are listed separately so the agent leaves them alone.
+ * @param {Map<number, {handledAt: string|null, lastHumanAt: string|null}>} [activity] from assessActivity()
+ */
+export function selectIssues(issues, { since, labels = FEEDBACK_TYPES, activity = new Map() } = {}) {
   const sinceMs = new Date(since).getTime();
   const seen = new Set();
-  const inWindow = [];
-  const backlog = [];
+  const attention = [];
+  const handled = [];
   const other = [];
   for (const issue of issues) {
     if (!issue || issue.pull_request || seen.has(issue.number)) continue;
@@ -99,14 +137,31 @@ export function selectIssues(issues, { since, labels = FEEDBACK_TYPES } = {}) {
     if (names.includes(CHECK_LABEL)) continue;
     const isFeedback = names.some((n) => labels.includes(n));
     const recent = new Date(issue.updated_at).getTime() >= sinceMs;
-    if (isFeedback && recent) inWindow.push(issue);
-    else if (isFeedback && issue.state === "open" && !names.includes("triaged")) backlog.push(issue);
-    else if (!isFeedback && recent) other.push(issue);
+    if (!isFeedback) {
+      if (recent) other.push(issue);
+      continue;
+    }
+    const act = activity.get(issue.number);
+    if (act?.handledAt) {
+      if (act.newSinceHandled) attention.push({ issue, reason: "new human activity since last handled", activity: act });
+      else handled.push({ issue, activity: act });
+    } else if (new Date(issue.created_at).getTime() >= sinceMs) attention.push({ issue, reason: "new", activity: act });
+    else if (recent) attention.push({ issue, reason: "updated, not yet handled", activity: act });
+    else if (issue.state === "open" && !names.includes("triaged")) attention.push({ issue, reason: "open, not yet handled", activity: act });
   }
-  return { inWindow, backlog, other };
+  return { attention, handled, other };
 }
 
-export function summarizeIssue(issue, { since, index } = {}) {
+// Feedback issues whose comments and edits the check must read: recently updated or still open.
+export function activityCandidates(issues, { since, labels = FEEDBACK_TYPES } = {}) {
+  const sinceMs = new Date(since).getTime();
+  return issues.filter((i) => {
+    const names = labelNames(i);
+    return !i.pull_request && !names.includes(CHECK_LABEL) && names.some((n) => labels.includes(n)) && (i.state === "open" || new Date(i.updated_at).getTime() >= sinceMs);
+  });
+}
+
+export function summarizeIssue(issue, { since, index, reason = null, activity = null } = {}) {
   const names = labelNames(issue);
   const sections = parseIssueForm(issue.body);
   const countryRaw = findField(sections, [/countr/]);
@@ -126,6 +181,9 @@ export function summarizeIssue(issue, { since, index } = {}) {
     triaged: names.includes("triaged"),
     needsHuman: names.includes("needs-human"),
     comments: issue.comments ?? 0,
+    reason,
+    lastHandledAt: activity?.handledAt ?? null,
+    lastHumanAt: activity?.lastHumanAt ?? null,
   };
 }
 

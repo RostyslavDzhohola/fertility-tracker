@@ -2,7 +2,8 @@
 import assert from "node:assert/strict";
 import { afterEach, beforeEach, test } from "node:test";
 import { configureHttp, getJson, getText } from "../scripts/lib/http.mjs";
-import { fetchCorridors } from "../scripts/lib/sources.mjs";
+import { parseCorridorCsv } from "../scripts/lib/parse.mjs";
+import { checkCorridor, checkCorridorPair, fetchCorridors } from "../scripts/lib/sources.mjs";
 
 const realFetch = globalThis.fetch;
 let calls;
@@ -96,4 +97,32 @@ test("fetchCorridors keeps the last published corridors when the source is down,
   assert.equal(none.entry.status, "unavailable");
   assert.equal(none.data, null);
   assert.match(none.entry.error, /HTTP 503/);
+});
+
+test("a partly failing corridor refresh after a vintage change keeps ALL previous corridors (no silent deletions)", async () => {
+  const base = handler("2027-03-01");
+  respond((url) => (url.includes("country_select=south_korea") ? { status: 503, body: "down" } : base(url)));
+  const r = await fetchCorridors({ codes: ["KOR", "CHN"], entities, previous: previous("2025-03-18") });
+  assert.equal(r.entry.status, "ok");
+  assert.equal(r.entry.vintage.lastUpdated, "2025-03-18", "previous vintage kept: one consistent set");
+  assert.deepEqual([...r.data.keys()].sort(), ["CHN", "KOR"], "South Korea's corridors are not deleted");
+  assert.deepEqual(r.data.get("CHN").topOrigins, [], "previous records, not a mix of old and new");
+});
+
+test("structurally empty corridor CSVs are rejected, and count as a failure", async () => {
+  const empty = "entity,code,year,migrants__country_select_x__metric_immigrants__gender_all\n";
+  assert.throws(() => checkCorridor(parseCorridorCsv(empty, "KOR"), "KOR", "immigrants"), /empty immigrants corridor CSV for KOR/);
+  const noTotal = "entity,code,year,migrants__x\nAsia,OWID_ASI,2024,500\nChina,CHN,2024,500\n";
+  assert.throws(() => checkCorridor(parseCorridorCsv(noTotal, "KOR"), "KOR", "emigrants"), /empty emigrants/);
+  // A World total with no partner breakdown is legitimate for one direction (UN DESA: immigrants into BES, VAT)...
+  const totalOnly = parseCorridorCsv("entity,code,year,migrants__x\nWorld,OWID_WRL,2024,496\nEurope,OWID_EUR,2024,0\n", "VAT");
+  assert.equal(checkCorridor(totalOnly, "VAT", "immigrants"), totalOnly);
+  // ...but not for both.
+  assert.throws(() => checkCorridorPair(totalOnly, totalOnly, "VAT"), /no partner countries/);
+  const base = handler("2027-03-01");
+  respond((url) => (url.includes("country_select=china&metric=emigrants") ? { body: empty } : base(url)));
+  const r = await fetchCorridors({ codes: ["KOR", "CHN"], entities, previous: previous("2025-03-18") });
+  assert.equal(r.entry.vintage.lastUpdated, "2025-03-18", "refresh refused, previous kept");
+  const first = await fetchCorridors({ codes: ["KOR", "CHN"], entities, previous: null });
+  assert.equal(first.entry.status, "unavailable", "first build: 1 of 2 failing exceeds the 10% tolerance");
 });

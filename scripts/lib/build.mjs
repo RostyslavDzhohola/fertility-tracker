@@ -32,6 +32,20 @@ function regionFor(code, wbCountries) {
   return wbCountries.get(code)?.region ?? wbCountries.get(REGION_PROXY[code])?.region ?? "Other";
 }
 
+/**
+ * Share of all living people born in a country who live abroad: emigrants / (native-born residents + emigrants).
+ * UN DESA's emigrant share (emigrantsPct) divides by the CURRENT RESIDENT population instead, so it can exceed what
+ * "share of people born here" means. Resident population is recovered from the shares (both use the same UN
+ * denominator): native-born residents = resident population - immigrants.
+ */
+export function livingAbroadPct(immigrants, immigrantsPct, emigrants, emigrantsPct) {
+  if (emigrants == null || immigrants == null) return null;
+  const resident = emigrantsPct > 0 ? emigrants / (emigrantsPct / 100) : immigrantsPct > 0 ? immigrants / (immigrantsPct / 100) : null;
+  if (resident == null) return emigrants === 0 ? 0 : null;
+  const bornHere = resident - immigrants + emigrants;
+  return bornHere > 0 ? (emigrants / bornHere) * 100 : null;
+}
+
 /** Latest immigrant/emigrant stock (UN DESA) for a country, plus its 5-yearly history. */
 function migrantStock(code, ims, wb) {
   const ent = (k) => ims[k]?.entities.get(code);
@@ -41,14 +55,19 @@ function migrantStock(code, ims, wb) {
     .sort((a, b) => a - b)
     .map((year) => {
       const v = (k, f) => ent(k)?.years.get(year)?.[f] ?? null;
-      const immigrants = round(v("immigrants", "immigrants"));
-      const emigrants = round(v("emigrants", "emigrants"));
+      const imm = v("immigrants", "immigrants");
+      const emi = v("emigrants", "emigrants");
+      const immPct = v("immigrantsShare", "immigrantsPct");
+      const emiPct = v("emigrantsShare", "emigrantsPct");
+      const immigrants = round(imm);
+      const emigrants = round(emi);
       return {
         year,
         immigrants,
-        immigrantsPct: round(v("immigrantsShare", "immigrantsPct"), 1),
+        immigrantsPct: round(immPct, 1),
         emigrants,
-        emigrantsPct: round(v("emigrantsShare", "emigrantsPct"), 1),
+        emigrantsPct: round(emiPct, 1),
+        livingAbroadPct: round(livingAbroadPct(imm, immPct, emi, emiPct), 1),
         netStock: immigrants != null && emigrants != null ? immigrants - emigrants : null,
       };
     })
@@ -64,6 +83,7 @@ function migrantStock(code, ims, wb) {
       immigrantsPct: round(wb.latest.immigrantsPct?.get(code)?.value, 1),
       emigrants: null,
       emigrantsPct: null,
+      livingAbroadPct: null,
       netStock: null,
     };
     return { latest: { ...latest, source: "WB" }, series };
@@ -218,8 +238,17 @@ export function summaryRecord(rec, maxFactors = SUMMARY_FACTORS) {
       perThousand: c.perThousand,
       migrationOffsetPct: c.migrationOffsetPct,
     },
-    migrantStock: m && { year: m.year, immigrants: m.immigrants, immigrantsPct: m.immigrantsPct, emigrants: m.emigrants, emigrantsPct: m.emigrantsPct },
+    migrantStock: m && {
+      year: m.year,
+      immigrants: m.immigrants,
+      immigrantsPct: m.immigrantsPct,
+      emigrants: m.emigrants,
+      emigrantsPct: m.emigrantsPct,
+      livingAbroadPct: m.livingAbroadPct,
+    },
     projection: p && {
+      baseYear: p.baseYear,
+      basePopulation: p.basePopulation,
       population2050: p.population2050,
       population2100: p.population2100,
       change2050Pct: p.change2050Pct,

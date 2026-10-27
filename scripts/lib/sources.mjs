@@ -160,6 +160,20 @@ export async function fetchSources(log = () => {}) {
 }
 
 /**
+ * Reject a structurally empty corridor parse for one direction: no data year or no World total. A direction may
+ * legitimately have a total but no partner breakdown (UN DESA has only totals for immigrants into e.g. BES, VAT).
+ */
+export function checkCorridor(parsed, code, metric) {
+  if (parsed.year == null || parsed.total == null) throw new Error(`empty ${metric} corridor CSV for ${code}`);
+  return parsed;
+}
+
+/** A country's corridor is rejected when neither direction has any partner country. */
+export function checkCorridorPair(origins, destinations, code) {
+  if (!origins.partners.length && !destinations.partners.length) throw new Error(`no partner countries in either corridor CSV for ${code}`);
+}
+
+/**
  * Migration corridors (top origins of immigrants, top destinations of emigrants) from UN DESA via OWID.
  * One CSV per country and direction (~460 small requests). While the source vintage is unchanged, corridors from the
  * last published output are reused and only missing countries are fetched; if the source is unreachable, the last
@@ -203,8 +217,9 @@ export async function fetchCorridors({ codes, entities, previous, log = () => {}
     if (todo.length) log(`...  ims/migrationCorridors fetching ${todo.length * 2} CSVs${same ? ` (reusing ${data.size}; vintage ${vintage.lastUpdated} unchanged)` : ""}`);
     const results = await mapLimit(todo, 6, async ({ code, slug }) => {
       const [imm, emi] = await Promise.all([getText(corridorUrl(slug, "immigrants")), getText(corridorUrl(slug, "emigrants"))]);
-      const origins = parseCorridorCsv(imm, code);
-      const destinations = parseCorridorCsv(emi, code);
+      const origins = checkCorridor(parseCorridorCsv(imm, code), code, "immigrants");
+      const destinations = checkCorridor(parseCorridorCsv(emi, code), code, "emigrants");
+      checkCorridorPair(origins, destinations, code);
       return {
         code,
         corridor: {
@@ -217,12 +232,13 @@ export async function fetchCorridors({ codes, entities, previous, log = () => {}
         },
       };
     });
-    let failed = 0;
-    for (const r of results) {
-      if (r.ok) data.set(r.value.code, r.value.corridor);
-      else failed++;
-    }
-    if (failed > jobs.length * 0.1) throw new Error(`${failed} of ${todo.length} countries failed`);
+    const failures = results.map((r, i) => (r.ok ? null : `${todo[i].code}: ${r.error?.message ?? r.error}`)).filter(Boolean);
+    // With published corridors to protect, a refresh is all-or-nothing: any failure keeps the last published set
+    // (one consistent vintage) instead of silently dropping countries. Only a first build tolerates a few gaps.
+    if (failures.length && prevOk) throw new Error(`${failures.length} of ${todo.length} countries failed (${failures.slice(0, 3).join("; ")})`);
+    if (failures.length > jobs.length * 0.1) throw new Error(`${failures.length} of ${todo.length} countries failed (${failures.slice(0, 3).join("; ")})`);
+    for (const r of results) if (r.ok) data.set(r.value.code, r.value.corridor);
+    const failed = failures.length;
     log(`ok   ims/migrationCorridors (${data.size} countries${failed ? `, ${failed} failed` : ""}${same && !todo.length ? ", all reused" : ""})`);
     return { entry: { ...base, vintage }, data: new Map([...data].sort(([a], [b]) => a.localeCompare(b))) };
   } catch (err) {

@@ -64,6 +64,56 @@ export function createGitHub({ token, repo, fetchImpl = fetch, apiUrl = "https:/
       return issues;
     },
 
+    async listComments(number) {
+      return paginate(`${r}/issues/${number}/comments?per_page=100`);
+    },
+
+    // Body edit times via GraphQL (REST has no lastEditedAt). Map number -> { lastEditedAt, editedByBot }.
+    async issueEdits(numbers) {
+      const out = new Map();
+      if (!token) throw new GitHubError("GraphQL needs a token", 401);
+      const [owner, name] = repo.split("/");
+      for (let i = 0; i < numbers.length; i += 50) {
+        const batch = numbers.slice(i, i + 50).filter((n) => Number.isInteger(n));
+        if (!batch.length) continue;
+        const fields = batch.map((n) => `i${n}: issue(number: ${n}) { lastEditedAt editor { __typename login } }`).join("\n");
+        const query = `query($owner: String!, $name: String!) { repository(owner: $owner, name: $name) {\n${fields}\n} }`;
+        const { data } = await request("POST", "/graphql", { query, variables: { owner, name } });
+        // One unresolvable number (deleted, transferred, a PR) errors only its own alias; keep the rest.
+        if (!data?.data?.repository) throw new GitHubError(`GraphQL: ${data?.errors?.[0]?.message ?? "no data"}`, 200);
+        for (const n of batch) {
+          const node = data?.data?.repository?.[`i${n}`];
+          if (node) out.set(n, { lastEditedAt: node.lastEditedAt ?? null, editedByBot: node.editor?.__typename === "Bot" || /\[bot\]$/i.test(node.editor?.login ?? "") });
+        }
+      }
+      return out;
+    },
+
+    /**
+     * Comments + body edits for each issue, reduced by `assess` (feedback.assessActivity). Edit times are
+     * best effort: without them only comments count, and `editsKnown` is false.
+     */
+    async collectActivity(issues, assess) {
+      let edits = new Map();
+      let editsKnown = true;
+      try {
+        edits = await this.issueEdits(issues.map((i) => i.number));
+      } catch {
+        editsKnown = false;
+      }
+      const activity = new Map();
+      for (const issue of issues) {
+        const comments = issue.comments ? await this.listComments(issue.number) : [];
+        activity.set(issue.number, assess(issue, comments, edits.get(issue.number)));
+      }
+      return { activity, editsKnown };
+    },
+
+    async listWorkflows() {
+      const { data } = await request("GET", `${r}/actions/workflows?per_page=100`);
+      return data?.workflows ?? [];
+    },
+
     async listWorkflowRuns(workflowFile, perPage = 15) {
       const { data } = await request("GET", `${r}/actions/workflows/${encodeURIComponent(workflowFile)}/runs?per_page=${perPage}`);
       return data?.workflow_runs ?? [];

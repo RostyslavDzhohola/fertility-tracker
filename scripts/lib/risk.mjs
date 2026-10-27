@@ -275,11 +275,19 @@ export function riskFactors(rec, scored) {
     out.push({ id: "aging", points: pts("aging"), text });
   }
 
-  if (ms?.emigrantsPct != null && ms.emigrantsPct >= 10) {
+  // livingAbroadPct = emigrants / everyone born here who is alive (UN DESA's emigrantsPct divides by the current
+  // resident population, which is not "share of people born here").
+  if (ms?.livingAbroadPct != null && ms.livingAbroadPct >= 10) {
     out.push({
       id: "emigrantStock",
       points: 0,
-      text: `${num(ms.emigrantsPct, 0)}% of people born here now live abroad (${people(ms.emigrants)}, ${ms.year})`,
+      text: `${num(ms.livingAbroadPct, 0)}% of people born here now live abroad (${people(ms.emigrants)}, ${ms.year})`,
+    });
+  } else if (ms?.livingAbroadPct == null && ms?.emigrantsPct != null && ms.emigrantsPct >= 10) {
+    out.push({
+      id: "emigrantStock",
+      points: 0,
+      text: `Emigrants living abroad equal ${num(ms.emigrantsPct, 0)}% of the current population (${people(ms.emigrants)}, ${ms.year})`,
     });
   }
 

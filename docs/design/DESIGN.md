@@ -1386,3 +1386,14 @@ the real data; everything else is implemented as written.
     `public/og.png` with the data.
 20. **Extras.** `public/404.html` redirects `/fertility-tracker/KOR` to `/fertility-tracker/#KOR`.
     `public/js/package.json` (`"type": "module"`) lets Node import `logic.js` for `test/frontend/`.
+21. **Review fixes (PR #2).** `html` has no `scroll-padding-top`: Chrome applied it when revealing the caret of the
+    sticky search input and scrolled the page 53px per keystroke. Anchor targets use `scroll-margin-top` instead, and
+    the search box also undoes any window scroll that happens while typing. Every projected % names its baseline
+    ("−58% vs 2023", "51.7M in 2023 → 21.8M in 2100"; the ranking column reads "2023→2100"), using
+    `projection.baseYear`/`basePopulation`. Below-replacement growth is described from the latest births, deaths and
+    net migration (momentum first; immigration only when positive and at least a quarter of the growth), never inferred
+    from the projection. On touch, migration-partner rows are 44px, so C6 reserves 516 / 710px there. Generation
+    labels get 116px (104px on phones, where the dots shrink to 6–8px) and wrap only at spaces or hyphens.
+22. **Headless-Chrome regression checks:** `FT_BROWSER_TESTS=1 node --test test/frontend/browser.test.mjs` types into
+    search at depth, toggles Globe → Flat on a phone, retries a failed data load and checks caption overlap, touch
+    targets, label wrapping and page-height stability. Skipped by default so CI and `node --test` stay browser-free.

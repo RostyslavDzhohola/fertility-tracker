@@ -204,8 +204,11 @@ export function createMap(opts) {
   }
 
   // ------------------------------------------------------------ layout
-  function frameWidth() {
-    return Math.max(260, Math.round(frame.getBoundingClientRect().width || frame.clientWidth || 320));
+  // Width from the column, never from the frame itself: the frame's CSS aspect-ratio plus an inline height (left over
+  // from the globe) would otherwise derive a wider width from that height. On phones the frame bleeds into the gutters.
+  function flatWidth() {
+    const colW = frame.parentElement.getBoundingClientRect().width || 320;
+    return Math.max(260, Math.round(colW + (media.mobile() ? 2 * gutter() : 0)));
   }
 
   function globeSide() {
@@ -213,7 +216,7 @@ export function createMap(opts) {
     const colW = Math.round(col.getBoundingClientRect().width);
     if (media.desktop()) return Math.max(260, Math.round(Math.min(colW, 560, window.innerHeight - 368)));
     // Mobile: the full-bleed frame width. Tablet: the column width, capped so the globe fits a screen.
-    if (media.mobile()) return Math.max(260, Math.round(frame.parentElement.getBoundingClientRect().width + 2 * gutter()));
+    if (media.mobile()) return flatWidth();
     return Math.max(260, Math.round(Math.min(colW, 600)));
   }
 
@@ -223,13 +226,15 @@ export function createMap(opts) {
 
   function layout() {
     cancelAnimationFrame(turnRaf);
+    // From here on the script owns the frame's size; the CSS aspect-ratio only reserves space before first paint.
+    frame.style.aspectRatio = "auto";
     if (view === "globe") {
       const side = globeSide();
       frame.classList.add("globe");
       frame.style.width = media.mobile() ? "" : `${side}px`;
       frame.style.marginLeft = media.mobile() ? "" : "auto";
       frame.style.marginRight = media.mobile() ? "" : "auto";
-      W = media.mobile() ? frameWidth() : side;
+      W = media.mobile() ? flatWidth() : side;
       H = side;
       proj = D3.geoOrthographic()
         .clipAngle(90)
@@ -247,7 +252,7 @@ export function createMap(opts) {
       frame.style.width = "";
       frame.style.marginLeft = "";
       frame.style.marginRight = "";
-      W = frameWidth();
+      W = flatWidth();
       proj = D3.geoEqualEarth().rotate([0, 0]);
       if (fc.features.length) {
         proj.fitWidth(W, fc);
@@ -260,7 +265,7 @@ export function createMap(opts) {
     path = D3.geoPath(proj);
     // Flat metrics drive the dot set and chooser areas in both views.
     const flat = D3.geoEqualEarth();
-    if (fc.features.length) flat.fitWidth(view === "flat" ? W : frameWidth(), fc);
+    if (fc.features.length) flat.fitWidth(flatWidth(), fc);
     flatPath = D3.geoPath(flat);
     for (const p of places.values()) {
       if (p.kind === "poly") {
@@ -454,7 +459,7 @@ export function createMap(opts) {
   }
 
   // ------------------------------------------------------------ tooltip
-  function tipContent(p) {
+  function tipContent(p, keyboard = false) {
     tooltip.replaceChildren();
     if (!p.rec) {
       tooltip.append(h("div", { class: "tt-name" }, h("span", { class: "swatch", "data-nodata": "" }), p.name));
@@ -468,12 +473,12 @@ export function createMap(opts) {
     else sw.setAttribute("data-nodata", "");
     tooltip.append(h("div", { class: "tt-name" }, sw, lines[0]));
     for (const l of lines.slice(1)) tooltip.append(h("div", { class: "tt-line" }, l));
-    tooltip.append(h("div", { class: "tt-hint" }, media.finePointer() ? "Click for details" : "Press Enter to select"));
+    tooltip.append(h("div", { class: "tt-hint" }, keyboard ? "Press Enter for details" : "Click for details"));
   }
 
   function showTip(p, x, y, anchored = false) {
     clearTimeout(hideTipTimer);
-    tipContent(p);
+    tipContent(p, anchored);
     tooltip.hidden = false;
     const fw = frame.clientWidth;
     const fh = frame.clientHeight;
@@ -859,7 +864,7 @@ export function createMap(opts) {
     applyColors();
     if (!tooltip.hidden) {
       const p = places.get(cursor ?? hover);
-      if (p) tipContent(p);
+      if (p) tipContent(p, cursor != null);
     }
   }
 

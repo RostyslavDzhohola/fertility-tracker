@@ -62,11 +62,25 @@ Verified 2026-10-26 on a live issue form.
 | --- | --- |
 | `feedback`, `data-problem`, `feature-request` | Set by the issue forms; the weekly check collects these |
 | `weekly-check` | The automated weekly report issue |
-| `triaged` | The weekly agent (or a maintainer) has replied; drops the issue out of the untriaged backlog |
+| `triaged` | Reviewed by the weekly agent or a maintainer. Informational: what stops the agent from re-handling an issue is its handled marker (below), not this label |
 | `needs-human` | Waiting on a decision from Ros; the weekly agent will not act on it alone |
 
 Label names, colors and descriptions live in `public/feedback.json`. The weekly check recreates any missing
 label, because issue forms silently skip labels that don't exist.
+
+### When an issue counts as handled
+
+The weekly agent ends every reply with a hidden line, `<!-- fertility-tracker:handled YYYY-MM-DD -->`. The weekly
+check reads each feedback issue's comments and body edits and lists an issue under "needs attention" when:
+
+- it has no marker reply yet and is new, was updated in the last 7 days, or is still open without `triaged`; or
+- a person commented or edited the issue after the newest marker reply, however old the issue is.
+
+Labels, closing, bot comments and the agent's own marker replies never bring an issue back, so the agent doesn't
+keep answering itself. Markers count only from the repo owner, members, collaborators and bots, so a stranger
+can't hide an issue by pasting the marker. A maintainer who answers by hand can add the same line to stop the
+agent from replying too. Body edit times come from GraphQL; if that call fails, the report says so and only
+comments count that week.
 
 ## The weekly check
 
@@ -76,9 +90,23 @@ without one it only prints it.
 **What it checks**
 
 - The home page, `feedback.json`, `llms.txt`, `api/` docs, and the API manifest `api/v1/index.json`.
+- Everything the home page loads: `<script src>`, `<link rel=stylesheet|modulepreload|preload|icon>`, every
+  relative ES module those import (static, re-export and dynamic `import()`, followed recursively), and the
+  relative `.json` files the scripts fetch (`geo/countries-110m.json`, `geo/world-points.json`). Each must
+  answer 200 with the right kind of content (JavaScript, not an HTML fallback page; TopoJSON for the map), so a
+  broken map fails even though the HTML loads.
 - Every endpoint the manifest lists. Templated paths such as `countries/{ISO3}.json` expand to every country in
-  `countries.json`. JSON must parse and be non-empty, CSV must have a header and rectangular rows, `openapi.json`
-  must have `openapi` + `paths`.
+  `countries.json`. JSON must parse; CSV must have a header and rectangular rows with properly placed quotes;
+  `openapi.json` must have `openapi` + `paths`.
+- API structure, not just syntax. Each JSON endpoint is validated against its published JSON Schema (the
+  manifest's per-endpoint `schema` link, else `api/v1/schema/<name>.schema.json`; the live copy first, then the
+  repo copy) with a zero-dependency validator for the subset those schemas use
+  (`scripts/checks/lib/json-schema.mjs`). Shape checks hold even without a schema: `countries.json` must contain
+  country records, each `countries/{ISO3}.json` must be for that ISO3 and have a name, `risk.json` must rank
+  something. Cross-file checks: `count` matches the records, at least 150 countries, no duplicate ISO3,
+  `index.json` counts match `countries.json` and `risk.json`, ranks run 1..n, every ranked code exists,
+  `countries.csv` has one row per country, and every summary record has the same `iso3` and `name` as its
+  detail file. A failure is attached to the file that is wrong and counts as broken.
 - Refresh loop health, from `api/v1/status.json` (written by CI on every deploy, never committed): a warning if
   it is missing on the live site, if `checkedAt` is more than 9 days old, or if `refresh` is not `success`.
   `generatedAt` / `dataChangedAt` are reported only as "numbers last changed": they move only when a published
@@ -86,8 +114,11 @@ without one it only prints it.
   vintages and any unavailable datasets are listed for information.
 - The last runs of `refresh-and-deploy.yml`: a warning if the last completed run failed or nothing has
   succeeded in 8 days.
-- Feedback issues opened or updated in the last 7 days, grouped by country and type, plus older open issues
-  not yet `triaged`. Titles are sanitized (no mentions, live links or HTML) and marked as untrusted.
+- Whether both scheduled workflows are still enabled (`gh api repos/{owner}/{repo}/actions/workflows` → `state`):
+  a warning for `disabled_inactivity` (GitHub's 60-day rule) or `disabled_manually`.
+- Feedback issues that need attention (see "When an issue counts as handled"), grouped by country and type,
+  plus the numbers of handled issues with nothing new. Titles are shown only as inline code (no mentions, links
+  or HTML) and marked as untrusted.
 
 **What counts as broken.** A URL is *required* when it is the home page, when the live manifest advertises it,
 when the site serves it (HTTP 200) but it is invalid, when it is the manifest itself and last week's report saw
@@ -139,13 +170,18 @@ set and does not start with `TODO_`. Optionally add a matching `contact_links` e
 | Email digest | Ask Grok Bot to stop forwarding the fertility digest | Ask it to resume |
 | Feedback via GitHub | Remove the forms from `.github/ISSUE_TEMPLATE/`, or turn Issues off in repo settings | Restore them |
 
-Disabling a workflow stops new runs only; the site stays up with its last deployed data.
+Disabling a workflow stops new runs only; the site stays up with its last deployed data. A workflow you disable
+by hand stays off: the weekly agent re-enables only workflows GitHub disabled for inactivity.
 
 ## Gotchas
 
 - **Inactive repos lose their schedules.** GitHub disables scheduled workflows in a public repo after 60 days
   without repository activity. The data refresh commits only when its output changes, so a quiet stretch can
-  switch both schedules off. If the weekly-check issue stops appearing, check the Actions tab and re-enable.
+  switch both schedules off (state `disabled_inactivity`). Two guards: the weekly check warns when either
+  workflow is disabled, and the weekly agent checks both states at the start of every run, re-enables a
+  `disabled_inactivity` workflow with `gh workflow enable`, dispatches the missed run, and reports it. If the
+  weekly check itself was switched off, the agent notices the missing weekly-check issue and does the same.
+  Workflows Ros disabled by hand (`disabled_manually`) stay off.
 - **Templates are read from `main`.** Issue forms, `config.yml` and prefill links work only after the files are
   merged into the default branch.
 - **Scheduled runs drift.** GitHub may start cron runs several minutes late under load; the 08:00 check
