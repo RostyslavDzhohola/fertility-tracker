@@ -85,6 +85,12 @@ jobs:
           vercel pull --yes --environment=production --token "$VERCEL_TOKEN"
           # Static build: copies public/ (including the status.json written above) and applies vercel.json headers.
           vercel build --prod --token "$VERCEL_TOKEN"
+          # Last guard: if main moved while the CLI installed or built, the newer commit's run deploys instead.
+          git fetch --quiet --depth=1 origin "$GITHUB_REF_NAME"
+          if [ "$(git rev-parse FETCH_HEAD)" != "$(git rev-parse HEAD)" ]; then
+            echo "::warning::$GITHUB_REF_NAME moved before deploy ($(git rev-parse --short HEAD) -> $(git rev-parse --short FETCH_HEAD)); not deploying."
+            exit 0
+          fi
           url=$(vercel deploy --prebuilt --prod --yes --token "$VERCEL_TOKEN")
           echo "Deployed $url (production alias https://fertility-tracker-live.vercel.app/)"
           echo "### Deployed to Vercel: $url" >> "$GITHUB_STEP_SUMMARY"

@@ -17,10 +17,10 @@
   .dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: #FFCB52; margin-right: 8px; }
 </style>
 <script>
-  // Vercel serves this file for any missing path (vercel.json). "/KOR" → "/#KOR"; the old "/fertility-tracker/KOR" form still works.
+  // Vercel serves this file for any missing path. "/KOR" and the old GitHub Pages form "/fertility-tracker/KOR" → "/#KOR".
   (function () {
-    var m = /^(\/fertility-tracker)?\/([A-Za-z]{3})\/?$/.exec(location.pathname);
-    if (m) location.replace((m[1] || "") + "/#" + m[2].toUpperCase());
+    var m = /^(?:\/fertility-tracker)?\/([A-Za-z]{3})\/?$/.exec(location.pathname);
+    if (m) location.replace("/#" + m[1].toUpperCase());
   })();
 </script>
 </head>

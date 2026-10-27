@@ -1384,7 +1384,7 @@ the real data; everything else is implemented as written.
     (zero dependencies: local server + headless Chrome) writes `public/og.png`. The deploy workflow is ops-owned and
     not changed: to refresh the card weekly, run `node scripts/og/render-og.mjs` after the data step and commit
     `public/og.png` with the data.
-20. **Extras.** `public/404.html` redirects `/fertility-tracker/KOR` to `/fertility-tracker/#KOR`.
+20. **Extras.** `public/404.html` redirects `/KOR` (and the old GitHub Pages form `/fertility-tracker/KOR`) to `/#KOR`.
     `public/js/package.json` (`"type": "module"`) lets Node import `logic.js` for `test/frontend/`.
 21. **Review fixes (PR #2).** `html` has no `scroll-padding-top`: Chrome applied it when revealing the caret of the
     sticky search input and scrolled the page 53px per keystroke. Anchor targets use `scroll-margin-top` instead, and
