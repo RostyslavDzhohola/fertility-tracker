@@ -1,0 +1,1356 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/schema/country.schema.json",
+  "title": "Fertility Tracker: countries/{ISO3}.json",
+  "description": "Everything about one country.",
+  "type": "object",
+  "required": [
+    "apiVersion",
+    "iso3",
+    "isoNumeric",
+    "name",
+    "region",
+    "incomeGroup",
+    "ranked",
+    "flags",
+    "iso2",
+    "population",
+    "tfr",
+    "birthRate",
+    "deathRate",
+    "naturalChangeRate",
+    "netMigration",
+    "populationGrowthPct",
+    "medianAge",
+    "share65",
+    "components",
+    "migrantStock",
+    "projection",
+    "generations",
+    "risk",
+    "series",
+    "migrantStockSeries",
+    "migrationCorridors",
+    "links"
+  ],
+  "properties": {
+    "apiVersion": {
+      "type": "string",
+      "description": "API version.",
+      "const": "v1"
+    },
+    "iso3": {
+      "type": "string",
+      "description": "ISO 3166-1 alpha-3 code (WLD = world, XKX = Kosovo).",
+      "pattern": "^[A-Z]{3}$"
+    },
+    "isoNumeric": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "ISO 3166-1 numeric code (3 digits), the id used by common world map files. Null for WLD and XKX.",
+      "pattern": "^[0-9]{3}$"
+    },
+    "name": {
+      "type": "string",
+      "description": "Short English name."
+    },
+    "region": {
+      "type": "string",
+      "description": "World Bank region (\"World\" for WLD)."
+    },
+    "incomeGroup": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "World Bank income group, null if not classified."
+    },
+    "ranked": {
+      "type": "boolean",
+      "description": "True if the country is included in the risk ranking (population >= 100,000 and complete inputs)."
+    },
+    "flags": {
+      "type": "array",
+      "description": "Data-quality flags.",
+      "items": {
+        "type": "string",
+        "description": "Flag.",
+        "enum": [
+          "aggregate",
+          "no-world-bank-data",
+          "small-population",
+          "incomplete-risk-inputs"
+        ]
+      }
+    },
+    "iso2": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "ISO 3166-1 alpha-2 code."
+    },
+    "population": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "Population (latest of World Bank / UN).",
+      "required": [
+        "value",
+        "year",
+        "source"
+      ],
+      "properties": {
+        "value": {
+          "type": "number",
+          "description": "The value."
+        },
+        "year": {
+          "type": "integer",
+          "description": "Year the value refers to."
+        },
+        "source": {
+          "type": "string",
+          "description": "WB = World Bank WDI, UN-WPP = UN World Population Prospects 2024, UN-DESA = UN International Migrant Stock 2024.",
+          "enum": [
+            "WB",
+            "UN-WPP",
+            "UN-DESA"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "tfr": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "Total fertility rate, births per woman.",
+      "required": [
+        "value",
+        "year",
+        "source"
+      ],
+      "properties": {
+        "value": {
+          "type": "number",
+          "description": "The value."
+        },
+        "year": {
+          "type": "integer",
+          "description": "Year the value refers to."
+        },
+        "source": {
+          "type": "string",
+          "description": "WB = World Bank WDI, UN-WPP = UN World Population Prospects 2024, UN-DESA = UN International Migrant Stock 2024.",
+          "enum": [
+            "WB",
+            "UN-WPP",
+            "UN-DESA"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "birthRate": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "Births per 1,000 people.",
+      "required": [
+        "value",
+        "year",
+        "source"
+      ],
+      "properties": {
+        "value": {
+          "type": "number",
+          "description": "The value."
+        },
+        "year": {
+          "type": "integer",
+          "description": "Year the value refers to."
+        },
+        "source": {
+          "type": "string",
+          "description": "WB = World Bank WDI, UN-WPP = UN World Population Prospects 2024, UN-DESA = UN International Migrant Stock 2024.",
+          "enum": [
+            "WB",
+            "UN-WPP",
+            "UN-DESA"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "deathRate": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "Deaths per 1,000 people.",
+      "required": [
+        "value",
+        "year",
+        "source"
+      ],
+      "properties": {
+        "value": {
+          "type": "number",
+          "description": "The value."
+        },
+        "year": {
+          "type": "integer",
+          "description": "Year the value refers to."
+        },
+        "source": {
+          "type": "string",
+          "description": "WB = World Bank WDI, UN-WPP = UN World Population Prospects 2024, UN-DESA = UN International Migrant Stock 2024.",
+          "enum": [
+            "WB",
+            "UN-WPP",
+            "UN-DESA"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "naturalChangeRate": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "Births minus deaths per 1,000 people.",
+      "required": [
+        "value",
+        "year",
+        "source"
+      ],
+      "properties": {
+        "value": {
+          "type": "number",
+          "description": "The value."
+        },
+        "year": {
+          "type": "integer",
+          "description": "Year the value refers to."
+        },
+        "source": {
+          "type": "string",
+          "description": "WB = World Bank WDI, UN-WPP = UN World Population Prospects 2024, UN-DESA = UN International Migrant Stock 2024.",
+          "enum": [
+            "WB",
+            "UN-WPP",
+            "UN-DESA"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "netMigration": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "Net migration, people per year. World Bank's recent years are UN WPP estimates/projections.",
+      "required": [
+        "value",
+        "year",
+        "source"
+      ],
+      "properties": {
+        "value": {
+          "type": "number",
+          "description": "The value."
+        },
+        "year": {
+          "type": "integer",
+          "description": "Year the value refers to."
+        },
+        "source": {
+          "type": "string",
+          "description": "WB = World Bank WDI, UN-WPP = UN World Population Prospects 2024, UN-DESA = UN International Migrant Stock 2024.",
+          "enum": [
+            "WB",
+            "UN-WPP",
+            "UN-DESA"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "populationGrowthPct": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "Annual population growth, %.",
+      "required": [
+        "value",
+        "year",
+        "source"
+      ],
+      "properties": {
+        "value": {
+          "type": "number",
+          "description": "The value."
+        },
+        "year": {
+          "type": "integer",
+          "description": "Year the value refers to."
+        },
+        "source": {
+          "type": "string",
+          "description": "WB = World Bank WDI, UN-WPP = UN World Population Prospects 2024, UN-DESA = UN International Migrant Stock 2024.",
+          "enum": [
+            "WB",
+            "UN-WPP",
+            "UN-DESA"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "medianAge": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "Median age in years (UN WPP).",
+      "required": [
+        "value",
+        "year",
+        "source"
+      ],
+      "properties": {
+        "value": {
+          "type": "number",
+          "description": "The value."
+        },
+        "year": {
+          "type": "integer",
+          "description": "Year the value refers to."
+        },
+        "source": {
+          "type": "string",
+          "description": "WB = World Bank WDI, UN-WPP = UN World Population Prospects 2024, UN-DESA = UN International Migrant Stock 2024.",
+          "enum": [
+            "WB",
+            "UN-WPP",
+            "UN-DESA"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "share65": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "% of the population aged 65+.",
+      "required": [
+        "value",
+        "year",
+        "source"
+      ],
+      "properties": {
+        "value": {
+          "type": "number",
+          "description": "The value."
+        },
+        "year": {
+          "type": "integer",
+          "description": "Year the value refers to."
+        },
+        "source": {
+          "type": "string",
+          "description": "WB = World Bank WDI, UN-WPP = UN World Population Prospects 2024, UN-DESA = UN International Migrant Stock 2024.",
+          "enum": [
+            "WB",
+            "UN-WPP",
+            "UN-DESA"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "components": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "Demographic balance for the latest UN estimate year.",
+      "required": [
+        "year",
+        "births",
+        "deaths",
+        "naturalChange",
+        "netMigration",
+        "populationChange",
+        "perThousand",
+        "migrationOffsetPct",
+        "source",
+        "population"
+      ],
+      "properties": {
+        "year": {
+          "type": "integer",
+          "description": "Year of the demographic balance (latest UN estimate year)."
+        },
+        "births": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "Live births in the year."
+        },
+        "deaths": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "Deaths in the year."
+        },
+        "naturalChange": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "births - deaths."
+        },
+        "netMigration": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "Immigrants minus emigrants in the year (UN WPP)."
+        },
+        "populationChange": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "births - deaths + netMigration."
+        },
+        "perThousand": {
+          "type": "object",
+          "description": "Rates per 1,000 mid-year population (same year).",
+          "required": [
+            "births",
+            "deaths",
+            "naturalChange",
+            "netMigration",
+            "populationChange"
+          ],
+          "properties": {
+            "births": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "description": "Births per 1,000 people (crude birth rate)."
+            },
+            "deaths": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "description": "Deaths per 1,000 people (crude death rate)."
+            },
+            "naturalChange": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "description": "Births minus deaths per 1,000 people."
+            },
+            "netMigration": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "description": "Net migration per 1,000 people."
+            },
+            "populationChange": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "description": "Population change per 1,000 people."
+            }
+          },
+          "additionalProperties": false
+        },
+        "migrationOffsetPct": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "When deaths exceed births: net migration as % of the natural decline (100+ = fully offset; negative = net emigration). Null when births >= deaths."
+        },
+        "source": {
+          "type": "string",
+          "description": "Source id.",
+          "const": "UN-WPP"
+        },
+        "population": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "Mid-year (1 July) population used as the denominator."
+        }
+      },
+      "additionalProperties": false
+    },
+    "migrantStock": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "UN DESA migrant stock (latest year).",
+      "required": [
+        "year",
+        "immigrants",
+        "immigrantsPct",
+        "emigrants",
+        "emigrantsPct",
+        "livingAbroadPct",
+        "netStock",
+        "source"
+      ],
+      "properties": {
+        "year": {
+          "type": "integer",
+          "description": "Reference year of the migrant stock estimate."
+        },
+        "immigrants": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "Immigrant stock: people living in the country who were born in another country (inflow proxy)."
+        },
+        "immigrantsPct": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Immigrant stock as % of the population."
+        },
+        "emigrants": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "Emigrant stock: people born in the country who now live abroad (outflow proxy)."
+        },
+        "emigrantsPct": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Emigrant stock as % of the country's CURRENT RESIDENT population (UN DESA / OWID definition; can exceed the share of people born here)."
+        },
+        "livingAbroadPct": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Share of all living people born in the country who live abroad: emigrants / (native-born residents + emigrants) x 100."
+        },
+        "netStock": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "immigrants - emigrants."
+        },
+        "source": {
+          "type": "string",
+          "description": "Source id.",
+          "enum": [
+            "WB",
+            "UN-WPP",
+            "UN-DESA"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "projection": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "UN WPP 2024 medium-variant outlook.",
+      "required": [
+        "source",
+        "variant",
+        "baseYear",
+        "basePopulation",
+        "population2050",
+        "population2100",
+        "change2050Pct",
+        "change2100Pct",
+        "peakYear",
+        "halfPopulationYear",
+        "naturalDeclineSince",
+        "peakPopulation",
+        "tfr2050",
+        "tfr2100",
+        "share65in2050",
+        "medianAge2050"
+      ],
+      "properties": {
+        "source": {
+          "type": "string",
+          "description": "Source id.",
+          "const": "UN-WPP"
+        },
+        "variant": {
+          "type": "string",
+          "description": "UN projection variant.",
+          "const": "medium"
+        },
+        "baseYear": {
+          "type": "integer",
+          "description": "Baseline year for the % changes: the latest UN WPP estimate year (not the headline population year)."
+        },
+        "basePopulation": {
+          "type": "integer",
+          "description": "UN WPP population in baseYear, the denominator of change2050Pct / change2100Pct."
+        },
+        "population2050": {
+          "type": "integer",
+          "description": "UN medium-variant population in 2050."
+        },
+        "population2100": {
+          "type": "integer",
+          "description": "UN medium-variant population in 2100."
+        },
+        "change2050Pct": {
+          "type": "number",
+          "description": "% change from basePopulation (baseYear) to 2050."
+        },
+        "change2100Pct": {
+          "type": "number",
+          "description": "% change from basePopulation (baseYear) to 2100."
+        },
+        "peakYear": {
+          "type": "integer",
+          "description": "Year of the highest population, 1950-2100 (estimates + projection)."
+        },
+        "halfPopulationYear": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "First projected year with half (or less) of the latest-estimate population; null if not before 2100."
+        },
+        "naturalDeclineSince": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "Start year of the current run of years with more deaths than births; if births still exceed deaths, the first projected year with more deaths. Null if never by 2100."
+        },
+        "peakPopulation": {
+          "type": "integer",
+          "description": "Population in peakYear."
+        },
+        "tfr2050": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Projected fertility rate in 2050."
+        },
+        "tfr2100": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Projected fertility rate in 2100."
+        },
+        "share65in2050": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Projected % aged 65+ in 2050."
+        },
+        "medianAge2050": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Projected median age in 2050."
+        }
+      },
+      "additionalProperties": false
+    },
+    "generations": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "The '100 people' view.",
+      "required": [
+        "ratio",
+        "halvingYears",
+        "hundredPeople"
+      ],
+      "properties": {
+        "ratio": {
+          "type": "number",
+          "description": "tfr / 2.1."
+        },
+        "halvingYears": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "Years to halve each generation's size; null if ratio >= 1."
+        },
+        "hundredPeople": {
+          "type": "array",
+          "description": "Size of 5 successive generations starting from 100 people (today, children, grandchildren, ...).",
+          "items": {
+            "type": "integer",
+            "description": "People."
+          },
+          "minItems": 5,
+          "maxItems": 5
+        }
+      },
+      "additionalProperties": false
+    },
+    "risk": {
+      "type": "object",
+      "description": "Full risk detail.",
+      "required": [
+        "score",
+        "tier",
+        "rank",
+        "factors",
+        "components",
+        "inputs"
+      ],
+      "properties": {
+        "score": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "Population-decline risk score 0-100 (null if inputs are incomplete).",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "tier": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Risk tier.",
+          "enum": [
+            "Critical",
+            "High",
+            "Elevated",
+            "Moderate",
+            "Low",
+            null
+          ]
+        },
+        "rank": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "Rank among ranked countries, 1 = highest risk. Null if not ranked.",
+          "minimum": 1
+        },
+        "factors": {
+          "type": "array",
+          "description": "Plain-English reasons, most important first.",
+          "items": {
+            "type": "string",
+            "description": "Factor."
+          }
+        },
+        "components": {
+          "type": "object",
+          "description": "Score breakdown by component.",
+          "required": [
+            "fertility",
+            "naturalChange",
+            "aging",
+            "projectedDecline",
+            "migration"
+          ],
+          "properties": {
+            "fertility": {
+              "type": "object",
+              "description": "Fertility below replacement",
+              "required": [
+                "value",
+                "points",
+                "weight"
+              ],
+              "properties": {
+                "value": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "description": "Component value 0..1 (0 = no risk, 1 = maximum).",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "points": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "description": "value * weight: points contributed to the score."
+                },
+                "weight": {
+                  "type": "integer",
+                  "description": "Maximum points for this component."
+                }
+              },
+              "additionalProperties": false
+            },
+            "naturalChange": {
+              "type": "object",
+              "description": "More deaths than births",
+              "required": [
+                "value",
+                "points",
+                "weight"
+              ],
+              "properties": {
+                "value": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "description": "Component value 0..1 (0 = no risk, 1 = maximum).",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "points": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "description": "value * weight: points contributed to the score."
+                },
+                "weight": {
+                  "type": "integer",
+                  "description": "Maximum points for this component."
+                }
+              },
+              "additionalProperties": false
+            },
+            "aging": {
+              "type": "object",
+              "description": "Aging population",
+              "required": [
+                "value",
+                "points",
+                "weight"
+              ],
+              "properties": {
+                "value": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "description": "Component value 0..1 (0 = no risk, 1 = maximum).",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "points": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "description": "value * weight: points contributed to the score."
+                },
+                "weight": {
+                  "type": "integer",
+                  "description": "Maximum points for this component."
+                }
+              },
+              "additionalProperties": false
+            },
+            "projectedDecline": {
+              "type": "object",
+              "description": "UN-projected population decline",
+              "required": [
+                "value",
+                "points",
+                "weight"
+              ],
+              "properties": {
+                "value": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "description": "Component value 0..1 (0 = no risk, 1 = maximum).",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "points": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "description": "value * weight: points contributed to the score."
+                },
+                "weight": {
+                  "type": "integer",
+                  "description": "Maximum points for this component."
+                }
+              },
+              "additionalProperties": false
+            },
+            "migration": {
+              "type": "object",
+              "description": "Migration does not fill the gap",
+              "required": [
+                "value",
+                "points",
+                "weight"
+              ],
+              "properties": {
+                "value": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "description": "Component value 0..1 (0 = no risk, 1 = maximum).",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "points": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "description": "value * weight: points contributed to the score."
+                },
+                "weight": {
+                  "type": "integer",
+                  "description": "Maximum points for this component."
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "inputs": {
+          "type": "object",
+          "description": "Inputs used for the score.",
+          "required": [
+            "tfr",
+            "naturalChangeRate",
+            "share65",
+            "medianAge",
+            "change2050Pct",
+            "change2100Pct",
+            "naturalChange",
+            "netMigration",
+            "populationChangePerThousand",
+            "migrationOffsetPct"
+          ],
+          "properties": {
+            "tfr": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "description": "Total fertility rate."
+            },
+            "naturalChangeRate": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "description": "Births minus deaths per 1,000 people."
+            },
+            "share65": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "description": "% aged 65+."
+            },
+            "medianAge": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "description": "Median age."
+            },
+            "change2050Pct": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "description": "UN projected % change to 2050."
+            },
+            "change2100Pct": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "description": "UN projected % change to 2100."
+            },
+            "naturalChange": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "description": "Births minus deaths (UN, latest estimate year)."
+            },
+            "netMigration": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "description": "Net migration (UN, latest estimate year)."
+            },
+            "populationChangePerThousand": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "description": "Population change per 1,000 (UN, latest estimate year)."
+            },
+            "migrationOffsetPct": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "description": "Net migration as % of the natural decline."
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "series": {
+      "type": "array",
+      "description": "Yearly UN WPP series 1950-2100: estimates then medium-variant projection.",
+      "items": {
+        "type": "object",
+        "description": "One year of the UN WPP series.",
+        "required": [
+          "year",
+          "variant",
+          "population",
+          "births",
+          "deaths",
+          "naturalChange",
+          "netMigration",
+          "populationChange",
+          "tfr",
+          "medianAge",
+          "share65"
+        ],
+        "properties": {
+          "year": {
+            "type": "integer",
+            "description": "Year (1950-2100)."
+          },
+          "variant": {
+            "type": "string",
+            "description": "estimate (UN estimates, up to the latest estimate year) or projection (UN medium variant).",
+            "enum": [
+              "estimate",
+              "projection"
+            ]
+          },
+          "population": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Population on 1 July."
+          },
+          "births": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Live births in the year."
+          },
+          "deaths": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Deaths in the year."
+          },
+          "naturalChange": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "births - deaths."
+          },
+          "netMigration": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Immigrants minus emigrants."
+          },
+          "populationChange": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "births - deaths + netMigration."
+          },
+          "tfr": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Total fertility rate (births per woman)."
+          },
+          "medianAge": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Median age."
+          },
+          "share65": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "% aged 65+."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "migrantStockSeries": {
+      "type": "array",
+      "description": "UN DESA migrant stock history (1990, 1995, ..., 2020, 2024).",
+      "items": {
+        "type": "object",
+        "description": "One migrant stock year.",
+        "required": [
+          "year",
+          "immigrants",
+          "immigrantsPct",
+          "emigrants",
+          "emigrantsPct",
+          "livingAbroadPct",
+          "netStock"
+        ],
+        "properties": {
+          "year": {
+            "type": "integer",
+            "description": "Reference year of the migrant stock estimate."
+          },
+          "immigrants": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Immigrant stock: people living in the country who were born in another country (inflow proxy)."
+          },
+          "immigrantsPct": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Immigrant stock as % of the population."
+          },
+          "emigrants": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Emigrant stock: people born in the country who now live abroad (outflow proxy)."
+          },
+          "emigrantsPct": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Emigrant stock as % of the country's CURRENT RESIDENT population (UN DESA / OWID definition; can exceed the share of people born here)."
+          },
+          "livingAbroadPct": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Share of all living people born in the country who live abroad: emigrants / (native-born residents + emigrants) x 100."
+          },
+          "netStock": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "immigrants - emigrants."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "migrationCorridors": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "Where immigrants come from and where emigrants live (UN DESA migrant stock by origin and destination).",
+      "required": [
+        "year",
+        "source",
+        "immigrantsTotal",
+        "emigrantsTotal",
+        "topOrigins",
+        "topDestinations"
+      ],
+      "properties": {
+        "year": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "Reference year."
+        },
+        "source": {
+          "type": "string",
+          "description": "Source id.",
+          "const": "UN-DESA"
+        },
+        "immigrantsTotal": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "Total immigrant stock in this dataset."
+        },
+        "emigrantsTotal": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "Total emigrant stock in this dataset."
+        },
+        "topOrigins": {
+          "type": "array",
+          "description": "Top 10 countries of birth of people living here who were born abroad.",
+          "items": {
+            "type": "object",
+            "description": "A partner country in a migration corridor.",
+            "required": [
+              "iso3",
+              "name",
+              "people"
+            ],
+            "properties": {
+              "iso3": {
+                "type": "string",
+                "description": "ISO3 code of the partner country.",
+                "pattern": "^[A-Z]{3}$"
+              },
+              "name": {
+                "type": "string",
+                "description": "Partner country name."
+              },
+              "people": {
+                "type": "integer",
+                "description": "Number of migrants."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "topDestinations": {
+          "type": "array",
+          "description": "Top 10 countries where people born here now live.",
+          "items": {
+            "type": "object",
+            "description": "A partner country in a migration corridor.",
+            "required": [
+              "iso3",
+              "name",
+              "people"
+            ],
+            "properties": {
+              "iso3": {
+                "type": "string",
+                "description": "ISO3 code of the partner country.",
+                "pattern": "^[A-Z]{3}$"
+              },
+              "name": {
+                "type": "string",
+                "description": "Partner country name."
+              },
+              "people": {
+                "type": "integer",
+                "description": "Number of migrants."
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "links": {
+      "type": "object",
+      "description": "Related URLs.",
+      "required": [
+        "self",
+        "countries",
+        "risk",
+        "docs",
+        "site"
+      ],
+      "properties": {
+        "self": {
+          "type": "string",
+          "description": "This file."
+        },
+        "countries": {
+          "type": "string",
+          "description": "All countries."
+        },
+        "risk": {
+          "type": "string",
+          "description": "Risk ranking."
+        },
+        "docs": {
+          "type": "string",
+          "description": "Human documentation."
+        },
+        "site": {
+          "type": "string",
+          "description": "This country on the live tracker."
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

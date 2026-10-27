@@ -1,0 +1,353 @@
+{
+  "name": "Fertility Tracker API",
+  "description": "Fertility, births, deaths, net migration, migrant stocks, UN projections to 2100 and a population-decline risk score for every country. Static files, no key, CORS open, refreshed weekly.",
+  "apiVersion": "v1",
+  "schemaVersion": "1.0.0",
+  "generatedAt": "2026-10-27T00:35:59Z",
+  "contentHash": "74dd7f4825f4bff6d395b770ba46f626c86c5fd662d53237887bf9754704b571",
+  "baseUrl": "https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/",
+  "latestEstimateYear": 2023,
+  "replacementTfr": 2.1,
+  "counts": {
+    "records": 238,
+    "ranked": 200,
+    "unranked": 38
+  },
+  "sources": [
+    {
+      "id": "UN-WPP",
+      "name": "World Population Prospects 2024",
+      "publisher": "United Nations, Department of Economic and Social Affairs, Population Division",
+      "via": "Our World in Data (grapher and explorer CSV downloads)",
+      "homepage": "https://population.un.org/wpp/",
+      "license": "CC BY 3.0 IGO (UN); OWID processing CC BY 4.0",
+      "citation": "UN, World Population Prospects (2024) – processed by Our World in Data",
+      "vintage": "2024-07-12",
+      "nextUpdate": "2027-07-12",
+      "coverage": "Estimates 1950 to the latest estimate year; medium-variant projections to 2100",
+      "datasets": [
+        {
+          "id": "fertility",
+          "title": "Fertility rate (births per woman)",
+          "url": "https://ourworldindata.org/grapher/fertility-rate-with-projections.csv?v=1&csvType=full&useColumnShortNames=true",
+          "metadataUrl": "https://ourworldindata.org/grapher/fertility-rate-with-projections.metadata.json?v=1&csvType=full&useColumnShortNames=true",
+          "status": "ok",
+          "columns": [
+            "fertility_rate__sex_all__age_all__variant_estimates",
+            "fertility_rate__sex_all__age_all__variant_medium__projected"
+          ],
+          "lastUpdated": "2024-07-12",
+          "timespan": "1950-2023, 2024-2100"
+        },
+        {
+          "id": "population",
+          "title": "Population (1 July)",
+          "url": "https://ourworldindata.org/grapher/population-with-un-projections.csv?v=1&csvType=full&useColumnShortNames=true",
+          "metadataUrl": "https://ourworldindata.org/grapher/population-with-un-projections.metadata.json?v=1&csvType=full&useColumnShortNames=true",
+          "status": "ok",
+          "columns": [
+            "population__sex_all__age_all__variant_estimates",
+            "population__sex_all__age_all__variant_medium__projected"
+          ],
+          "lastUpdated": "2024-07-12",
+          "timespan": "1950-2023, 2024-2100"
+        },
+        {
+          "id": "birthsDeaths",
+          "title": "Births and deaths per year",
+          "url": "https://ourworldindata.org/grapher/births-and-deaths-projected-to-2100.csv?v=1&csvType=full&useColumnShortNames=true",
+          "metadataUrl": "https://ourworldindata.org/grapher/births-and-deaths-projected-to-2100.metadata.json?v=1&csvType=full&useColumnShortNames=true",
+          "status": "ok",
+          "columns": [
+            "births__sex_all__age_all__variant_estimates",
+            "births__sex_all__age_all__variant_medium__projected",
+            "deaths__sex_all__age_all__variant_estimates",
+            "deaths__sex_all__age_all__variant_medium__projected"
+          ],
+          "lastUpdated": "2024-07-12",
+          "timespan": "1950-2023, 2024-2100"
+        },
+        {
+          "id": "netMigration",
+          "title": "Net migration (immigrants minus emigrants per year)",
+          "url": "https://ourworldindata.org/explorers/population-and-demography.csv?v=1&csvType=full&useColumnShortNames=true&indicator=Net+migration&Sex=Both+sexes&Age=Total&Projection+scenario=Medium",
+          "metadataUrl": "https://ourworldindata.org/explorers/population-and-demography.metadata.json?v=1&csvType=full&useColumnShortNames=true&indicator=Net+migration&Sex=Both+sexes&Age=Total&Projection+scenario=Medium",
+          "status": "ok",
+          "columns": [
+            "net_migration__sex_all__age_all__variant_estimates",
+            "net_migration__sex_all__age_all__variant_medium__projected"
+          ],
+          "lastUpdated": "2024-07-12",
+          "timespan": "1950-2023, 2024-2100"
+        },
+        {
+          "id": "medianAge",
+          "title": "Median age",
+          "url": "https://ourworldindata.org/grapher/median-age.csv?v=1&csvType=full&useColumnShortNames=true",
+          "metadataUrl": "https://ourworldindata.org/grapher/median-age.metadata.json?v=1&csvType=full&useColumnShortNames=true",
+          "status": "ok",
+          "columns": [
+            "median_age__sex_all__age_all__variant_estimates",
+            "median_age__sex_all__age_all__variant_medium__projected"
+          ],
+          "lastUpdated": "2024-07-12",
+          "timespan": "1950-2023, 2024-2100"
+        },
+        {
+          "id": "ageStructure",
+          "title": "Population aged 65+ (for share65)",
+          "url": "https://ourworldindata.org/grapher/population-by-age-group-with-projections.csv?v=1&csvType=full&useColumnShortNames=true",
+          "metadataUrl": "https://ourworldindata.org/grapher/population-by-age-group-with-projections.metadata.json?v=1&csvType=full&useColumnShortNames=true",
+          "status": "ok",
+          "columns": [
+            "population__sex_all__age_65plus__variant_estimates",
+            "population__sex_all__age_65plus__variant_medium__projected",
+            "population__sex_all__age_all__variant_estimates",
+            "population__sex_all__age_all__variant_medium__projected"
+          ],
+          "lastUpdated": "2024-07-12",
+          "timespan": "1950-2023, 2024-2100"
+        }
+      ]
+    },
+    {
+      "id": "UN-DESA",
+      "name": "International Migrant Stock 2024",
+      "publisher": "United Nations, Department of Economic and Social Affairs, Population Division",
+      "via": "Our World in Data (grapher CSV downloads)",
+      "homepage": "https://www.un.org/development/desa/pd/content/international-migrant-stock",
+      "license": "CC BY 3.0 IGO (UN); OWID processing CC BY 4.0",
+      "citation": "United Nations Department of Economic and Social Affairs (2024) – with minor processing by Our World in Data",
+      "vintage": "2025-03-12",
+      "nextUpdate": "2027-03-12",
+      "coverage": "Migrant stocks by country of residence and of birth, 1990-2020 every 5 years plus 2024",
+      "datasets": [
+        {
+          "id": "immigrants",
+          "title": "Immigrant stock: people living here who were born abroad",
+          "url": "https://ourworldindata.org/grapher/migrant-populations.csv?v=1&csvType=full&useColumnShortNames=true&metric=immigrants&unit=number",
+          "metadataUrl": "https://ourworldindata.org/grapher/migrant-populations.metadata.json?v=1&csvType=full&useColumnShortNames=true&metric=immigrants&unit=number",
+          "status": "ok",
+          "columns": [
+            "immigrants_all"
+          ],
+          "lastUpdated": "2025-03-12",
+          "timespan": "1990-2024"
+        },
+        {
+          "id": "immigrantsShare",
+          "title": "Immigrant stock, % of population",
+          "url": "https://ourworldindata.org/grapher/migrant-populations.csv?v=1&csvType=full&useColumnShortNames=true&metric=immigrants&unit=share",
+          "metadataUrl": "https://ourworldindata.org/grapher/migrant-populations.metadata.json?v=1&csvType=full&useColumnShortNames=true&metric=immigrants&unit=share",
+          "status": "ok",
+          "columns": [
+            "immigrant_share_of_dest_population_all"
+          ],
+          "lastUpdated": "2025-03-12",
+          "timespan": "1990-2024"
+        },
+        {
+          "id": "emigrants",
+          "title": "Emigrant stock: people born here living abroad",
+          "url": "https://ourworldindata.org/grapher/migrant-populations.csv?v=1&csvType=full&useColumnShortNames=true&metric=emigrants&unit=number",
+          "metadataUrl": "https://ourworldindata.org/grapher/migrant-populations.metadata.json?v=1&csvType=full&useColumnShortNames=true&metric=emigrants&unit=number",
+          "status": "ok",
+          "columns": [
+            "emigrants_all"
+          ],
+          "lastUpdated": "2025-03-12",
+          "timespan": "1990-2024"
+        },
+        {
+          "id": "emigrantsShare",
+          "title": "Emigrant stock, % of population of origin",
+          "url": "https://ourworldindata.org/grapher/migrant-populations.csv?v=1&csvType=full&useColumnShortNames=true&metric=emigrants&unit=share",
+          "metadataUrl": "https://ourworldindata.org/grapher/migrant-populations.metadata.json?v=1&csvType=full&useColumnShortNames=true&metric=emigrants&unit=share",
+          "status": "ok",
+          "columns": [
+            "emigrants_share_of_total_population"
+          ],
+          "lastUpdated": "2025-03-12",
+          "timespan": "1990-2024"
+        },
+        {
+          "id": "migrationCorridors",
+          "title": "Migrant stock by country of origin and destination (top partners)",
+          "url": "https://ourworldindata.org/grapher/migration-origin-destination.csv?v=1&csvType=full&useColumnShortNames=true&country_select={country_slug}&metric={immigrants|emigrants}&gender=all",
+          "metadataUrl": "https://ourworldindata.org/grapher/migration-origin-destination.metadata.json?v=1&csvType=full&useColumnShortNames=true",
+          "status": "ok",
+          "columns": [
+            "migrants__country_select_{country}__metric_{immigrants|emigrants}__gender_all"
+          ],
+          "lastUpdated": "2025-03-18",
+          "timespan": "1990-2024"
+        }
+      ]
+    },
+    {
+      "id": "WB",
+      "name": "World Development Indicators",
+      "publisher": "World Bank",
+      "via": "World Bank Indicators API v2 (latest non-empty value per country, mrnev=1)",
+      "homepage": "https://data.worldbank.org/",
+      "license": "CC BY 4.0",
+      "citation": "World Bank, World Development Indicators",
+      "vintage": "2026-10-08",
+      "nextUpdate": null,
+      "coverage": "Latest reported year per country and indicator",
+      "datasets": [
+        {
+          "id": "countries",
+          "title": "Country metadata (region, income group)",
+          "url": "https://api.worldbank.org/v2/country?format=json&per_page=400",
+          "status": "ok",
+          "lastUpdated": null
+        },
+        {
+          "id": "SP.DYN.TFRT.IN",
+          "title": "Fertility rate, total (births per woman)",
+          "url": "https://api.worldbank.org/v2/country/all/indicator/SP.DYN.TFRT.IN?format=json&per_page=20000&mrnev=1",
+          "status": "ok",
+          "lastUpdated": "2026-10-08"
+        },
+        {
+          "id": "SP.POP.TOTL",
+          "title": "Population, total",
+          "url": "https://api.worldbank.org/v2/country/all/indicator/SP.POP.TOTL?format=json&per_page=20000&mrnev=1",
+          "status": "ok",
+          "lastUpdated": "2026-10-08"
+        },
+        {
+          "id": "SP.DYN.CBRT.IN",
+          "title": "Birth rate, crude (per 1,000 people)",
+          "url": "https://api.worldbank.org/v2/country/all/indicator/SP.DYN.CBRT.IN?format=json&per_page=20000&mrnev=1",
+          "status": "ok",
+          "lastUpdated": "2026-10-08"
+        },
+        {
+          "id": "SP.DYN.CDRT.IN",
+          "title": "Death rate, crude (per 1,000 people)",
+          "url": "https://api.worldbank.org/v2/country/all/indicator/SP.DYN.CDRT.IN?format=json&per_page=20000&mrnev=1",
+          "status": "ok",
+          "lastUpdated": "2026-10-08"
+        },
+        {
+          "id": "SM.POP.NETM",
+          "title": "Net migration",
+          "url": "https://api.worldbank.org/v2/country/all/indicator/SM.POP.NETM?format=json&per_page=20000&mrnev=1",
+          "status": "ok",
+          "lastUpdated": "2026-10-08"
+        },
+        {
+          "id": "SP.POP.GROW",
+          "title": "Population growth (annual %)",
+          "url": "https://api.worldbank.org/v2/country/all/indicator/SP.POP.GROW?format=json&per_page=20000&mrnev=1",
+          "status": "ok",
+          "lastUpdated": "2026-10-08"
+        },
+        {
+          "id": "SP.POP.65UP.TO.ZS",
+          "title": "Population ages 65 and above (% of total population)",
+          "url": "https://api.worldbank.org/v2/country/all/indicator/SP.POP.65UP.TO.ZS?format=json&per_page=20000&mrnev=1",
+          "status": "ok",
+          "lastUpdated": "2026-10-08"
+        },
+        {
+          "id": "SM.POP.TOTL",
+          "title": "International migrant stock, total",
+          "url": "https://api.worldbank.org/v2/country/all/indicator/SM.POP.TOTL?format=json&per_page=20000&mrnev=1",
+          "status": "ok",
+          "lastUpdated": "2026-10-08"
+        },
+        {
+          "id": "SM.POP.TOTL.ZS",
+          "title": "International migrant stock (% of population)",
+          "url": "https://api.worldbank.org/v2/country/all/indicator/SM.POP.TOTL.ZS?format=json&per_page=20000&mrnev=1",
+          "status": "ok",
+          "lastUpdated": "2026-10-08"
+        }
+      ]
+    }
+  ],
+  "endpoints": [
+    {
+      "path": "index.json",
+      "url": "https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/index.json",
+      "format": "json",
+      "description": "This manifest.",
+      "schema": "https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/schema/index.schema.json"
+    },
+    {
+      "path": "countries.json",
+      "url": "https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/countries.json",
+      "format": "json",
+      "description": "Summary for every country + WLD (sorted by iso3).",
+      "schema": "https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/schema/countries.schema.json"
+    },
+    {
+      "path": "countries/{iso3}.json",
+      "url": "https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/countries/{iso3}.json",
+      "format": "json",
+      "description": "Full record for one country: series 1950-2100, demographic balance, migrant stocks and corridors, risk detail.",
+      "schema": "https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/schema/country.schema.json"
+    },
+    {
+      "path": "risk.json",
+      "url": "https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/risk.json",
+      "format": "json",
+      "description": "Countries ranked by population-decline risk + methodology.",
+      "schema": "https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/schema/risk.schema.json"
+    },
+    {
+      "path": "countries.csv",
+      "url": "https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/countries.csv",
+      "format": "csv",
+      "description": "One row per country; nested fields flattened with underscores (components_births, projection_change2100Pct, ...)."
+    },
+    {
+      "path": "timeseries.csv",
+      "url": "https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/timeseries.csv",
+      "format": "csv",
+      "description": "Long format iso3,year,variant,metric,value. Metrics: population, births, deaths, naturalChange, netMigration, populationChange, tfr, medianAge, share65, immigrants, immigrantsPct, emigrants, emigrantsPct, livingAbroadPct. Rows with no data are omitted."
+    },
+    {
+      "path": "openapi.json",
+      "url": "https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/openapi.json",
+      "format": "json",
+      "description": "OpenAPI 3.1 description of these endpoints."
+    },
+    {
+      "path": "status.json",
+      "url": "https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/status.json",
+      "format": "json",
+      "description": "When the weekly refresh last ran and whether it succeeded (written at deploy time; generatedAt elsewhere only moves when numbers change).",
+      "schema": "https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/schema/status.schema.json"
+    }
+  ],
+  "dataGaps": [
+    "Gross annual migration flows (how many people arrive and how many leave each year) are not published for all countries by any global source. We publish annual net migration (UN WPP: immigrants minus emigrants) plus migrant stocks from UN DESA as inflow/outflow proxies: immigrants = people living in a country who were born elsewhere; emigrants = people born in a country who now live abroad.",
+    "UN WPP 2024 estimates end in 2023; later years are the UN medium-variant projection (variant = \"projection\"). The demographic balance (components) and projection baselines use the latest estimate year.",
+    "Headline fields (population, tfr, birthRate, deathRate, netMigration, populationGrowthPct, share65) take the newest year across World Bank and UN; each carries its own year and source. World Bank's latest net migration (and, for many countries, population) are themselves UN WPP estimates or projections.",
+    "populationChange = births - deaths + netMigration for the calendar year (UN WPP). It can differ slightly from the difference between successive 1 July population figures.",
+    "Migrant stocks are available for 1990-2020 every 5 years plus 2024; there is no annual series. migrantStock.emigrantsPct follows UN DESA / OWID: emigrants as % of the country's CURRENT RESIDENT population. livingAbroadPct is the share of everyone born in the country who lives abroad: emigrants / (residents - immigrants + emigrants).",
+    "projection.change2050Pct / change2100Pct are relative to projection.basePopulation in projection.baseYear (UN WPP, latest estimate year), not to the headline population (often a newer World Bank figure).",
+    "Taiwan and 20 small territories are not in the World Bank database: their figures come from UN sources only, their region is borrowed from a neighbour, and incomeGroup is null.",
+    "Places with fewer than 100,000 people are scored where possible but not ranked: small numbers make rates noisy."
+  ],
+  "links": {
+    "docs": "https://rostyslavdzhohola.github.io/fertility-tracker/api/",
+    "llms": "https://rostyslavdzhohola.github.io/fertility-tracker/llms.txt",
+    "openapi": "https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/openapi.json",
+    "methodology": "https://github.com/RostyslavDzhohola/fertility-tracker/blob/main/docs/METHODOLOGY.md",
+    "apiReference": "https://github.com/RostyslavDzhohola/fertility-tracker/blob/main/docs/API.md",
+    "repo": "https://github.com/RostyslavDzhohola/fertility-tracker",
+    "issues": "https://github.com/RostyslavDzhohola/fertility-tracker/issues",
+    "feedbackEmail": "andromedus+fertility@mail.grokbot.com",
+    "site": "https://rostyslavdzhohola.github.io/fertility-tracker/"
+  },
+  "license": {
+    "code": "MIT",
+    "data": "CC BY 4.0 (World Bank, Our World in Data); UN data CC BY 3.0 IGO. Cite the original publishers and this API."
+  },
+  "cors": "Served by GitHub Pages with Access-Control-Allow-Origin: *, so browsers and agents can fetch any file cross-origin."
+}

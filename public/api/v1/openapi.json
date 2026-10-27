@@ -1,0 +1,166 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Fertility Tracker API",
+    "version": "1.0.0",
+    "summary": "Fertility, births, deaths, migration, UN projections and population-decline risk for every country.",
+    "description": "Static, read-only JSON/CSV files regenerated weekly from the World Bank (WDI), UN World Population Prospects 2024 and UN DESA International Migrant Stock 2024. No key, no rate limit beyond GitHub Pages; CORS is open (Access-Control-Allow-Origin: *). Missing values are null. See /llms.txt and /api/ for a guide.",
+    "license": {
+      "name": "MIT (code); data CC BY 4.0 from the original publishers",
+      "url": "https://github.com/RostyslavDzhohola/fertility-tracker/blob/main/LICENSE"
+    },
+    "contact": {
+      "name": "Feedback",
+      "email": "andromedus+fertility@mail.grokbot.com",
+      "url": "https://github.com/RostyslavDzhohola/fertility-tracker/issues"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/"
+    }
+  ],
+  "paths": {
+    "/index.json": {
+      "get": {
+        "operationId": "getIndex",
+        "summary": "Manifest: sources, vintages, endpoints, data gaps",
+        "responses": {
+          "200": {
+            "description": "Manifest",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "schema/index.schema.json"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/countries.json": {
+      "get": {
+        "operationId": "listCountries",
+        "summary": "Summary for every country + WLD (map/list data)",
+        "responses": {
+          "200": {
+            "description": "All countries",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "schema/countries.schema.json"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/countries/{iso3}.json": {
+      "get": {
+        "operationId": "getCountry",
+        "summary": "Full record for one country: yearly series 1950-2100, demographic balance, migration corridors, risk detail",
+        "parameters": [
+          {
+            "name": "iso3",
+            "in": "path",
+            "required": true,
+            "description": "ISO 3166-1 alpha-3 code, uppercase (e.g. KOR, WLD).",
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Z]{3}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Country",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "schema/country.schema.json"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown code"
+          }
+        }
+      }
+    },
+    "/risk.json": {
+      "get": {
+        "operationId": "getRisk",
+        "summary": "Countries ranked by population-decline risk + methodology",
+        "responses": {
+          "200": {
+            "description": "Risk ranking",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "schema/risk.schema.json"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/status.json": {
+      "get": {
+        "operationId": "getStatus",
+        "summary": "When the weekly refresh last ran (deploy-time file)",
+        "responses": {
+          "200": {
+            "description": "Status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "schema/status.schema.json"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/countries.csv": {
+      "get": {
+        "operationId": "getCountriesCsv",
+        "summary": "One row per country (flat summary)",
+        "responses": {
+          "200": {
+            "description": "CSV with header row",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/timeseries.csv": {
+      "get": {
+        "operationId": "getTimeseriesCsv",
+        "summary": "Long format iso3,year,variant,metric,value for every country, year and metric",
+        "responses": {
+          "200": {
+            "description": "CSV with header row",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

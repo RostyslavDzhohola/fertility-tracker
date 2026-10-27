@@ -1,0 +1,41 @@
+name: Data problem
+description: A number, chart or projection looks wrong or out of date.
+title: "[Data] "
+labels: ["data-problem"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for checking the numbers. A country and a short note are enough; a link to where you saw a different figure helps us fix it faster.
+        This issue is public, so please leave out personal details. Prefer email? Write to andromedus+fertility@mail.grokbot.com.
+  - type: input
+    id: country
+    attributes:
+      label: Which country?
+      description: Name or 3-letter code.
+      placeholder: Japan or JPN
+    validations:
+      required: true
+  - type: input
+    id: metric
+    attributes:
+      label: Which number? (optional)
+      placeholder: Fertility rate, births, net migration, 2050 projection, risk score...
+  - type: textarea
+    id: problem
+    attributes:
+      label: What looks wrong?
+      placeholder: The site shows 1.26 births per woman for 2023, but the latest official figure I found is 1.20.
+    validations:
+      required: true
+  - type: input
+    id: source
+    attributes:
+      label: Where did you see a different number? (optional)
+      placeholder: https://...
+  - type: input
+    id: page
+    attributes:
+      label: Page link (optional)
+      description: Filled in for you when you come from the site.
+      placeholder: https://rostyslavdzhohola.github.io/fertility-tracker/#JPN

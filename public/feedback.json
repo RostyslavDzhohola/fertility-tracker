@@ -1,0 +1,84 @@
+{
+  "$comment": "Single source of truth for feedback channels. The site reads this file; scripts/checks/weekly-check.mjs reads labels, templates and site URL from it. To set the X handle, replace TODO_X_HANDLE in x.handle (no @). See docs/OPERATIONS.md.",
+  "version": 1,
+  "site": {
+    "url": "https://rostyslavdzhohola.github.io/fertility-tracker/",
+    "feedbackAnchor": "feedback"
+  },
+  "email": {
+    "address": "andromedus+fertility@mail.grokbot.com",
+    "subject": "Fertility Tracker feedback",
+    "note": "For people without a GitHub account. Build the link as mailto:{address}?subject={encodeURIComponent(subject + ': ' + country)}; add &body= with the page URL if useful."
+  },
+  "x": {
+    "handle": "TODO_X_HANDLE",
+    "urlTemplate": "https://x.com/{handle}",
+    "note": "Hide every X link while handle is null or starts with TODO_. Swapping the handle here is the only change needed."
+  },
+  "github": {
+    "repo": "RostyslavDzhohola/fertility-tracker",
+    "issuesUrl": "https://github.com/RostyslavDzhohola/fertility-tracker/issues",
+    "chooserUrl": "https://github.com/RostyslavDzhohola/fertility-tracker/issues/new/choose",
+    "templates": {
+      "feedback": {
+        "file": "feedback.yml",
+        "name": "General feedback",
+        "label": "feedback",
+        "titlePrefix": "[Feedback] ",
+        "newIssueUrl": "https://github.com/RostyslavDzhohola/fertility-tracker/issues/new?template=feedback.yml",
+        "fields": {
+          "message": "Your feedback",
+          "country": "Country (optional)",
+          "page": "Page link (optional)"
+        }
+      },
+      "data-problem": {
+        "file": "data-problem.yml",
+        "name": "Data problem",
+        "label": "data-problem",
+        "titlePrefix": "[Data] ",
+        "newIssueUrl": "https://github.com/RostyslavDzhohola/fertility-tracker/issues/new?template=data-problem.yml",
+        "fields": {
+          "country": "Which country?",
+          "metric": "Which number? (optional)",
+          "problem": "What looks wrong?",
+          "source": "Where did you see a different number? (optional)",
+          "page": "Page link (optional)"
+        }
+      },
+      "feature-request": {
+        "file": "feature-request.yml",
+        "name": "Idea or feature request",
+        "label": "feature-request",
+        "titlePrefix": "[Idea] ",
+        "newIssueUrl": "https://github.com/RostyslavDzhohola/fertility-tracker/issues/new?template=feature-request.yml",
+        "fields": {
+          "idea": "What would you like to see?",
+          "why": "How would it help you? (optional)",
+          "country": "Country (optional)",
+          "page": "Page link (optional)"
+        }
+      }
+    },
+    "prefill": {
+      "howTo": "Append URL-encoded query parameters to a template's newIssueUrl: title=<text> plus any key listed in that template's fields (the key is the form field id). The same parameters also work on chooserUrl and carry over into whichever template the visitor picks.",
+      "example": "https://github.com/RostyslavDzhohola/fertility-tracker/issues/new?template=data-problem.yml&title=%5BData%5D%20Japan%3A%20&country=JPN&metric=Fertility%20rate&page=https%3A%2F%2Frostyslavdzhohola.github.io%2Ffertility-tracker%2F%23JPN",
+      "chooserExample": "https://github.com/RostyslavDzhohola/fertility-tracker/issues/new/choose?country=JPN&page=https%3A%2F%2Frostyslavdzhohola.github.io%2Ffertility-tracker%2F%23JPN",
+      "rules": [
+        "Only text fields (inputs and textareas) prefill; these templates have no dropdowns.",
+        "Labels come from the template automatically. Leave out labels=, which needs triage rights and otherwise 404s.",
+        "Visitors must be signed in to GitHub to submit. Show the email option next to the GitHub button.",
+        "Keep the whole URL under about 8000 characters."
+      ],
+      "verified": "2026-10-26: title, input and textarea prefill by field id confirmed on a live issue form; dropdowns do not prefill (by label or index); /issues/new/choose passes the parameters through to each template link."
+    }
+  },
+  "labels": {
+    "feedback": { "color": "0E8A16", "description": "General feedback from people using the tracker" },
+    "data-problem": { "color": "D93F0B", "description": "A number, chart or projection looks wrong or out of date" },
+    "feature-request": { "color": "1D76DB", "description": "Idea or request for something new" },
+    "weekly-check": { "color": "5319E7", "description": "Automated weekly site, data and feedback report" },
+    "triaged": { "color": "C2E0C6", "description": "Reviewed by the weekly agent or a maintainer" },
+    "needs-human": { "color": "FBCA04", "description": "Needs a decision from Ros; the weekly agent will not act on it alone" }
+  }
+}

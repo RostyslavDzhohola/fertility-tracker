@@ -1,0 +1,419 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/schema/risk.schema.json",
+  "title": "Fertility Tracker: risk.json",
+  "description": "risk.json",
+  "type": "object",
+  "required": [
+    "apiVersion",
+    "generatedAt",
+    "methodology",
+    "ranking",
+    "unranked"
+  ],
+  "properties": {
+    "apiVersion": {
+      "type": "string",
+      "description": "API version.",
+      "const": "v1"
+    },
+    "generatedAt": {
+      "type": "string",
+      "description": "When the numbers last changed.",
+      "format": "date-time"
+    },
+    "methodology": {
+      "type": "object",
+      "description": "Formula, components (weights, ramps), tiers and exclusions. See docs/METHODOLOGY.md."
+    },
+    "ranking": {
+      "type": "array",
+      "description": "Ranked countries, highest risk first.",
+      "items": {
+        "type": "object",
+        "description": "Ranked country.",
+        "required": [
+          "rank",
+          "iso3",
+          "name",
+          "region",
+          "score",
+          "tier",
+          "components",
+          "inputs",
+          "factors"
+        ],
+        "properties": {
+          "rank": {
+            "type": "integer",
+            "description": "1 = highest risk.",
+            "minimum": 1
+          },
+          "iso3": {
+            "type": "string",
+            "description": "ISO 3166-1 alpha-3 code (WLD = world, XKX = Kosovo).",
+            "pattern": "^[A-Z]{3}$"
+          },
+          "name": {
+            "type": "string",
+            "description": "Short English name."
+          },
+          "region": {
+            "type": "string",
+            "description": "World Bank region (\"World\" for WLD)."
+          },
+          "score": {
+            "type": "integer",
+            "description": "Risk score 0-100.",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "tier": {
+            "type": "string",
+            "description": "Risk tier.",
+            "enum": [
+              "Critical",
+              "High",
+              "Elevated",
+              "Moderate",
+              "Low"
+            ]
+          },
+          "components": {
+            "type": "object",
+            "description": "Score breakdown by component.",
+            "required": [
+              "fertility",
+              "naturalChange",
+              "aging",
+              "projectedDecline",
+              "migration"
+            ],
+            "properties": {
+              "fertility": {
+                "type": "object",
+                "description": "Fertility below replacement",
+                "required": [
+                  "value",
+                  "points",
+                  "weight"
+                ],
+                "properties": {
+                  "value": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "Component value 0..1 (0 = no risk, 1 = maximum).",
+                    "minimum": 0,
+                    "maximum": 1
+                  },
+                  "points": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "value * weight: points contributed to the score."
+                  },
+                  "weight": {
+                    "type": "integer",
+                    "description": "Maximum points for this component."
+                  }
+                },
+                "additionalProperties": false
+              },
+              "naturalChange": {
+                "type": "object",
+                "description": "More deaths than births",
+                "required": [
+                  "value",
+                  "points",
+                  "weight"
+                ],
+                "properties": {
+                  "value": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "Component value 0..1 (0 = no risk, 1 = maximum).",
+                    "minimum": 0,
+                    "maximum": 1
+                  },
+                  "points": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "value * weight: points contributed to the score."
+                  },
+                  "weight": {
+                    "type": "integer",
+                    "description": "Maximum points for this component."
+                  }
+                },
+                "additionalProperties": false
+              },
+              "aging": {
+                "type": "object",
+                "description": "Aging population",
+                "required": [
+                  "value",
+                  "points",
+                  "weight"
+                ],
+                "properties": {
+                  "value": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "Component value 0..1 (0 = no risk, 1 = maximum).",
+                    "minimum": 0,
+                    "maximum": 1
+                  },
+                  "points": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "value * weight: points contributed to the score."
+                  },
+                  "weight": {
+                    "type": "integer",
+                    "description": "Maximum points for this component."
+                  }
+                },
+                "additionalProperties": false
+              },
+              "projectedDecline": {
+                "type": "object",
+                "description": "UN-projected population decline",
+                "required": [
+                  "value",
+                  "points",
+                  "weight"
+                ],
+                "properties": {
+                  "value": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "Component value 0..1 (0 = no risk, 1 = maximum).",
+                    "minimum": 0,
+                    "maximum": 1
+                  },
+                  "points": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "value * weight: points contributed to the score."
+                  },
+                  "weight": {
+                    "type": "integer",
+                    "description": "Maximum points for this component."
+                  }
+                },
+                "additionalProperties": false
+              },
+              "migration": {
+                "type": "object",
+                "description": "Migration does not fill the gap",
+                "required": [
+                  "value",
+                  "points",
+                  "weight"
+                ],
+                "properties": {
+                  "value": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "Component value 0..1 (0 = no risk, 1 = maximum).",
+                    "minimum": 0,
+                    "maximum": 1
+                  },
+                  "points": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "value * weight: points contributed to the score."
+                  },
+                  "weight": {
+                    "type": "integer",
+                    "description": "Maximum points for this component."
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          },
+          "inputs": {
+            "type": "object",
+            "description": "Inputs used for the score.",
+            "required": [
+              "tfr",
+              "naturalChangeRate",
+              "share65",
+              "medianAge",
+              "change2050Pct",
+              "change2100Pct",
+              "naturalChange",
+              "netMigration",
+              "populationChangePerThousand",
+              "migrationOffsetPct"
+            ],
+            "properties": {
+              "tfr": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "description": "Total fertility rate."
+              },
+              "naturalChangeRate": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "description": "Births minus deaths per 1,000 people."
+              },
+              "share65": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "description": "% aged 65+."
+              },
+              "medianAge": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "description": "Median age."
+              },
+              "change2050Pct": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "description": "UN projected % change to 2050."
+              },
+              "change2100Pct": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "description": "UN projected % change to 2100."
+              },
+              "naturalChange": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "description": "Births minus deaths (UN, latest estimate year)."
+              },
+              "netMigration": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "description": "Net migration (UN, latest estimate year)."
+              },
+              "populationChangePerThousand": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "description": "Population change per 1,000 (UN, latest estimate year)."
+              },
+              "migrationOffsetPct": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "description": "Net migration as % of the natural decline."
+              }
+            },
+            "additionalProperties": false
+          },
+          "factors": {
+            "type": "array",
+            "description": "Plain-English reasons, most important first.",
+            "items": {
+              "type": "string",
+              "description": "Factor."
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "unranked": {
+      "type": "array",
+      "description": "Records not in the ranking (world aggregate, populations under 100,000, incomplete inputs). Scores are shown where computable.",
+      "items": {
+        "type": "object",
+        "description": "Unranked record.",
+        "required": [
+          "iso3",
+          "name",
+          "region",
+          "score",
+          "tier",
+          "reason"
+        ],
+        "properties": {
+          "iso3": {
+            "type": "string",
+            "description": "ISO 3166-1 alpha-3 code (WLD = world, XKX = Kosovo).",
+            "pattern": "^[A-Z]{3}$"
+          },
+          "name": {
+            "type": "string",
+            "description": "Short English name."
+          },
+          "region": {
+            "type": "string",
+            "description": "World Bank region (\"World\" for WLD)."
+          },
+          "score": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Population-decline risk score 0-100 (null if inputs are incomplete).",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "tier": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Risk tier.",
+            "enum": [
+              "Critical",
+              "High",
+              "Elevated",
+              "Moderate",
+              "Low",
+              null
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "description": "Why it is not ranked."
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

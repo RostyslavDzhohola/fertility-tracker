@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1200">
+<meta name="robots" content="noindex">
+<title>Fertility Tracker social card</title>
+<style>
+  :root { --bg: #0B0E14; --surface-1: #11151D; --border: #252C39; --text: #EDEFF4; --muted: #A3AABA; --accent: #FFCB52; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; width: 1200px; height: 630px; overflow: hidden; background: var(--bg); color: var(--text);
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+  .card { position: relative; width: 1200px; height: 630px; }
+  .brand { position: absolute; left: 60px; top: 42px; display: flex; align-items: center; gap: 14px; font-size: 28px; font-weight: 700; letter-spacing: -0.01em; }
+  .dot { width: 22px; height: 22px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 5px rgba(255,203,82,.18); }
+  h1 { position: absolute; left: 60px; top: 92px; width: 680px; margin: 0; font-size: 56px; line-height: 60px; font-weight: 700; letter-spacing: -0.015em; }
+  .map { position: absolute; left: 36px; top: 240px; width: 700px; }
+  .map svg { display: block; }
+  .map path { stroke: #0B0E14; stroke-width: .7px; vector-effect: non-scaling-stroke; }
+  .map circle { stroke: #0B0E14; stroke-width: 1px; }
+  .panel { position: absolute; left: 756px; top: 92px; width: 384px; height: 436px; background: var(--surface-1); border: 1px solid var(--border); border-radius: 14px; padding: 26px 26px 18px; }
+  .panel h2 { margin: 0 0 14px; font-size: 26px; line-height: 32px; font-weight: 600; color: var(--muted); }
+  .row { display: flex; align-items: center; gap: 14px; height: 70px; border-top: 1px solid var(--border); font-size: 29px; line-height: 34px; }
+  .row:first-of-type { border-top: 0; }
+  .rank { width: 26px; text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; font-size: 26px; }
+  .sw { width: 22px; height: 22px; border-radius: 5px; flex: none; border: 1px solid rgba(255,255,255,.15); }
+  .name { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
+  .tfr { flex: none; font-variant-numeric: tabular-nums; color: var(--text); }
+  .strip { position: absolute; left: 60px; right: 60px; top: 552px; height: 36px; display: flex; align-items: center; justify-content: space-between; }
+  .legend { display: flex; align-items: center; gap: 18px; font-size: 22px; color: var(--muted); }
+  .legend span { display: inline-flex; align-items: center; gap: 8px; }
+  .legend i { display: inline-block; width: 20px; height: 20px; border-radius: 4px; border: 1px solid rgba(255,255,255,.15); }
+  .url { font-size: 24px; color: var(--muted); }
+</style>
+<script defer src="vendor/d3-array.min.js"></script>
+<script defer src="vendor/d3-geo.min.js"></script>
+<script defer src="vendor/topojson-client.min.js"></script>
+<script type="module" src="js/og.js"></script>
+</head>
+<body>
+<div class="card">
+  <div class="brand"><span class="dot"></span>Fertility Tracker</div>
+  <h1>Which countries are shrinking, and how fast</h1>
+  <div class="map"><svg id="og-map" aria-hidden="true"></svg></div>
+  <div class="panel">
+    <h2>Highest decline risk</h2>
+    <div id="og-rows"></div>
+  </div>
+  <div class="strip">
+    <div class="legend">
+      <span><i style="background:#2A3A5E"></i>Low</span>
+      <span><i style="background:#5B4A94"></i>Moderate</span>
+      <span><i style="background:#B4508C"></i>Elevated</span>
+      <span><i style="background:#F2713F"></i>High</span>
+      <span><i style="background:#FFCB52"></i>Critical</span>
+    </div>
+    <div class="url">rostyslavdzhohola.github.io/fertility-tracker</div>
+  </div>
+</div>
+</body>
+</html>

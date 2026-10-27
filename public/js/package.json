@@ -1,0 +1,5 @@
+{
+  "//": "Marks the browser modules in this folder as ES modules for Node (test/frontend imports logic.js). Not used by the site.",
+  "type": "module",
+  "private": true
+}

@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fertility Tracker API: open data for people and agents</title>
+<meta name="description" content="Free JSON/CSV API: fertility, births, deaths, migration, UN projections to 2100 and population-decline risk for every country. No key, CORS open, refreshed weekly.">
+<link rel="alternate" type="text/plain" href="../llms.txt" title="llms.txt">
+<link rel="describedby" type="application/json" href="v1/openapi.json">
+<link rel="service-desc" type="application/json" href="v1/openapi.json">
+<meta name="theme-color" content="#0B0E14">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6.5' fill='%23FFCB52'/%3E%3C/svg%3E">
+<style>
+  :root { color-scheme: dark; --fg: #EDEFF4; --muted: #A3AABA; --bg: #0B0E14; --line: #252C39; --code: #11151D; --accent: #FFCB52; --link: #8EC5FF; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: var(--fg); background: var(--bg); }
+  main { max-width: 860px; margin: 0 auto; padding: 32px 20px 64px; }
+  h1 { font-size: 1.9rem; margin: 0 0 4px; } h2 { margin-top: 2.2em; font-size: 1.3rem; border-bottom: 1px solid var(--line); padding-bottom: 4px; }
+  p.lead { color: var(--muted); margin-top: 4px; }
+  a { color: var(--link); text-decoration-color: rgba(142, 197, 255, .45); text-underline-offset: 2px; }
+  a:focus-visible { outline: 2px solid #fff; outline-offset: 2px; border-radius: 3px; }
+  .back::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); margin-right: 8px; vertical-align: 0; }
+  code, pre { font: 0.88em/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--code); border-radius: 6px; }
+  pre { border: 1px solid var(--line); }
+  code { padding: 1px 4px; } pre { padding: 12px 14px; overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.93rem; } th, td { text-align: left; vertical-align: top; padding: 7px 8px; border-bottom: 1px solid var(--line); }
+  th { font-weight: 600; } td:first-child { white-space: nowrap; }
+  /* Tables never widen the page: they wrap on phones and, if still too wide, scroll inside their own box. */
+  .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; max-width: 100%; }
+  .table-scroll:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+  @media (max-width: 599px) {
+    td:first-child { white-space: normal; overflow-wrap: anywhere; min-width: 7.5em; }
+    th, td { padding: 6px 6px; }
+    pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+  }
+  .pill { display: inline-block; font-size: 0.8rem; padding: 1px 8px; border: 1px solid var(--line); border-radius: 99px; margin-right: 4px; color: var(--muted); }
+  #live { color: var(--muted); font-size: 0.92rem; min-height: 1.5em; }
+  ol#top { padding-left: 1.4em; } ol#top li { margin: 2px 0; }
+</style>
+</head>
+<body>
+<main>
+  <p><a class="back" href="../">Fertility Tracker map</a></p>
+  <h1>Fertility Tracker API</h1>
+  <p class="lead">Fertility, births, deaths, net migration, migrant stocks, UN projections to 2100 and a population-decline risk score for every country. Static files: no key, no sign-up, CORS open, refreshed every Monday.</p>
+  <p><span class="pill">JSON</span><span class="pill">CSV</span><span class="pill">OpenAPI 3.1</span><span class="pill">JSON Schema</span><span class="pill">llms.txt</span></p>
+  <p id="live"></p>
+
+  <h2>Base URL</h2>
+  <pre>https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/</pre>
+  <p>GitHub Pages serves every file with <code>Access-Control-Allow-Origin: *</code>, so browsers, servers and AI agents can fetch it directly. Codes are ISO 3166-1 alpha-3 (<code>WLD</code> = world, <code>XKX</code> = Kosovo). Numbers are numbers, missing values are <code>null</code>, and every record includes <code>iso3</code>, <code>name</code> and <code>region</code>.</p>
+
+  <h2>Endpoints</h2>
+  <div class="table-scroll" role="region" tabindex="0" aria-label="Endpoints table">
+  <table>
+    <tr><th>File</th><th>What it contains</th></tr>
+    <tr><td><a href="v1/index.json">index.json</a></td><td>Manifest: exact source URLs, data vintages, endpoints, known data gaps, <code>generatedAt</code> and <code>contentHash</code>. Both change only when a number changes.</td></tr>
+    <tr><td><a href="v1/countries.json">countries.json</a></td><td>Summary for every country plus the world: population, fertility, median age, 65+ share, latest births, deaths and net migration (absolute and per 1,000), immigrant and emigrant stock, UN 2050/2100 projection, generation ratio, risk score, tier, rank and reasons.</td></tr>
+    <tr><td><a href="v1/countries/KOR.json">countries/{ISO3}.json</a></td><td>Everything for one country: yearly series 1950-2100 (estimates, then the UN medium projection), migrant stock history, top 10 countries immigrants come from and emigrants live in, full risk breakdown.</td></tr>
+    <tr><td><a href="v1/risk.json">risk.json</a></td><td>Countries ranked by population-decline risk (1 = highest), with component points, inputs, reasons and the methodology.</td></tr>
+    <tr><td><a href="v1/countries.csv">countries.csv</a></td><td>One row per country; nested fields flattened (<code>components_births</code>, <code>projection_change2100Pct</code>, …).</td></tr>
+    <tr><td><a href="v1/timeseries.csv">timeseries.csv</a></td><td>Long format <code>iso3,year,variant,metric,value</code>, about 11 MB.</td></tr>
+    <tr><td><a href="v1/status.json">status.json</a></td><td>When the weekly refresh last ran and whether it succeeded.</td></tr>
+    <tr><td><a href="v1/openapi.json">openapi.json</a></td><td>OpenAPI 3.1. JSON Schemas with field descriptions: <a href="v1/schema/countries.schema.json">countries</a>, <a href="v1/schema/country.schema.json">country</a>, <a href="v1/schema/risk.schema.json">risk</a>, <a href="v1/schema/index.schema.json">index</a>, <a href="v1/schema/status.schema.json">status</a>.</td></tr>
+  </table>
+  </div>
+
+  <h2>Try it</h2>
+<pre># The 10 countries at highest risk of population decline
+curl -s https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/risk.json \
+  | jq -r '.ranking[:10][] | "\(.rank). \(.name)  \(.score) \(.tier)"'
+
+# Japan in 2050 (UN projection): births, deaths, net migration
+curl -s https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/countries/JPN.json \
+  | jq '.series[] | select(.year == 2050) | {births, deaths, netMigration}'</pre>
+<pre>const base = "https://rostyslavdzhohola.github.io/fertility-tracker/api/v1/";
+const { countries } = await (await fetch(base + "countries.json")).json();
+const korea = countries.find((c) => c.iso3 === "KOR");
+console.log(korea.tfr.value, korea.risk.tier, korea.risk.factors[0]);</pre>
+
+  <h2>Highest risk right now</h2>
+  <ol id="top"><li>Open <a href="v1/risk.json">risk.json</a> for the live ranking.</li></ol>
+
+  <h2>Key fields</h2>
+  <div class="table-scroll" role="region" tabindex="0" aria-label="Key fields table">
+  <table>
+    <tr><th>Field</th><th>Meaning</th></tr>
+    <tr><td><code>tfr</code></td><td>Fertility rate: births per woman. 2.1 keeps each generation the same size.</td></tr>
+    <tr><td><code>{value, year, source}</code></td><td>Headline figures take the newest year across sources. <code>source</code> is <code>WB</code> (World Bank), <code>UN-WPP</code> or <code>UN-DESA</code>.</td></tr>
+    <tr><td><code>components</code></td><td>Latest UN estimate year: population change = births − deaths + net migration, also per 1,000 people. <code>migrationOffsetPct</code>: how much of the natural decline immigration replaces.</td></tr>
+    <tr><td><code>migrantStock</code></td><td><code>immigrants</code>: people living here who were born abroad (inflow). <code>emigrants</code>: people born here who live abroad (outflow). <code>emigrantsPct</code> divides by today's residents (UN definition); <code>livingAbroadPct</code> is the share of everyone born in the country who lives abroad. No global source publishes gross yearly inflows and outflows, so use <code>netMigration</code> for the yearly flow.</td></tr>
+    <tr><td><code>projection</code></td><td>UN WPP 2024 medium variant: population in 2050 and 2100, % change from <code>basePopulation</code> in <code>baseYear</code> (latest UN estimate, 2023), peak year, the year the population halves, when deaths overtake births.</td></tr>
+    <tr><td><code>generations</code></td><td><code>ratio = tfr / 2.1</code>: each ~30-year generation is this share of the last. At 1.14, 100 people → 54 → 29 → 16 → 9.</td></tr>
+    <tr><td><code>risk</code></td><td>Score 0-100 with tiers Critical (≥ 70), High (≥ 55), Elevated (≥ 40), Moderate (≥ 20) and Low, a rank (1 = highest) and plain-English reasons.</td></tr>
+  </table>
+  </div>
+
+  <h2>How the risk score works</h2>
+  <p>Five parts, each scaled from 0 (no risk) to 1 (maximum), weighted and added up to 100:</p>
+  <div class="table-scroll" role="region" tabindex="0" aria-label="Risk score parts table">
+  <table>
+    <tr><th>Weight</th><th>Part</th><th>From 0 → 1</th></tr>
+    <tr><td>35</td><td>Fertility below replacement</td><td>fertility 2.1 → 0.8</td></tr>
+    <tr><td>30</td><td>UN-projected decline</td><td>2050: 0% → −25% (weight 1); 2100: 0% → −60% (weight 2)</td></tr>
+    <tr><td>15</td><td>More deaths than births</td><td>+5 → −7 per 1,000 people</td></tr>
+    <tr><td>10</td><td>Aging</td><td>65+ share 7% → 30%; median age 25 → 50</td></tr>
+    <tr><td>10</td><td>Migration not filling the gap</td><td>share of the natural decline not covered by net immigration</td></tr>
+  </table>
+  </div>
+  <p>Places under 100,000 people are scored but not ranked. Full method: <a href="https://github.com/RostyslavDzhohola/fertility-tracker/blob/main/docs/METHODOLOGY.md">METHODOLOGY.md</a>. Field reference: <a href="https://github.com/RostyslavDzhohola/fertility-tracker/blob/main/docs/API.md">API.md</a>.</p>
+
+  <h2>Sources and licence</h2>
+  <p>World Bank World Development Indicators (CC BY 4.0). UN World Population Prospects 2024 and UN DESA International Migrant Stock 2024 (CC BY 3.0 IGO), via Our World in Data (CC BY 4.0). Code MIT. Please cite the original publishers and "Fertility Tracker (github.com/RostyslavDzhohola/fertility-tracker)".</p>
+  <p>Found a problem? <a href="https://github.com/RostyslavDzhohola/fertility-tracker/issues">Open an issue</a> or email <a href="mailto:andromedus+fertility@mail.grokbot.com">andromedus+fertility@mail.grokbot.com</a>.</p>
+</main>
+<script>
+  // Progressive enhancement: freshness line + live top 10. The page works without it.
+  (async () => {
+    try {
+      const [index, status, risk] = await Promise.all(
+        ["v1/index.json", "v1/status.json", "v1/risk.json"].map((p) => fetch(p).then((r) => (r.ok ? r.json() : null)).catch(() => null)),
+      );
+      const day = (s) => (s ? new Date(s).toISOString().slice(0, 10) : "unknown");
+      if (index) {
+        const v = index.sources.map((s) => `${s.id} ${s.vintage ?? "?"}`).join(", ");
+        document.getElementById("live").textContent =
+          `Data last changed ${day(index.generatedAt)}` + (status ? `; last checked ${day(status.checkedAt)}` : "") + `. Source vintages: ${v}.`;
+      }
+      if (risk) {
+        const ol = document.getElementById("top");
+        ol.replaceChildren(
+          ...risk.ranking.slice(0, 10).map((r) => {
+            const li = document.createElement("li");
+            const a = document.createElement("a");
+            a.href = `v1/countries/${r.iso3}.json`;
+            a.textContent = r.name;
+            li.append(a, ` ${r.score} (${r.tier}): ${r.factors[0] ?? ""}`);
+            return li;
+          }),
+        );
+      }
+    } catch {}
+  })();
+</script>
+</body>
+</html>
