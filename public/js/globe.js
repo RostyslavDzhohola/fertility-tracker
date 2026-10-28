@@ -1165,8 +1165,10 @@ export function createGlobe(canvas, opts = {}) {
     loop();
   }
   function stopIdle() {
-    if (spin) {
+    // A spin paused while the globe is hidden counts too: any interaction stops it for good.
+    if (spin || spinPaused) {
       spin = false;
+      spinPaused = false;
       onInteract("spin-stop");
     }
   }

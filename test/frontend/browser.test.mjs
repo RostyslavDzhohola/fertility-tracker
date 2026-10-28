@@ -971,6 +971,23 @@ test("a hidden globe schedules no frames, and draws again when shown", opts, asy
   }
 });
 
+test("touching a slider on another page stops the idle spin for good", opts, async () => {
+  const page = await openPage({ path: "/?year=2100" });
+  try {
+    assert.equal(await page.eval(`${G}.spinning`), true, "the idle spin is running before we leave");
+    await page.eval(`FT.navigate("/country/TWN"), 0`);
+    await page.waitFor(`!document.getElementById("view-country").hidden && !!document.querySelector("#cv-controls input.tc-range")`);
+    await page.eval(`(() => { const r = document.querySelector("#cv-controls input.tc-range"); r.value = String(Number(r.max) - 1); r.dispatchEvent(new Event("input", { bubbles: true })); })()`);
+    await page.eval("history.back(), 0");
+    await page.waitFor(`!document.getElementById("view-globe").hidden`);
+    await sleep(400);
+    assert.equal(await page.eval(`${G}.spinning`), false, "the spin stays stopped after an interaction while hidden");
+    assert.deepEqual(page.errors, []);
+  } finally {
+    await page.close();
+  }
+});
+
 test("a failed map download shows Retry, and the globe recovers on Retry or on the next visit", opts, async () => {
   let failing = true;
   let sid = null;
