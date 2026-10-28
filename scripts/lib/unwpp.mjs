@@ -8,7 +8,7 @@
 import { createInterface } from "node:readline";
 import { Readable } from "node:stream";
 import { createGunzip, inflateRawSync } from "node:zlib";
-import { getBuffer, openStream, withRetries } from "./http.mjs";
+import { getBuffer, markUnavailable, openStream, withRetries } from "./http.mjs";
 import { NAMES, OWID_ALIASES } from "./names.mjs";
 
 export const WPP_BASE = "https://population.un.org/wpp/assets/Excel%20Files/1_Indicator%20(Standard)/";
@@ -26,7 +26,12 @@ export const WPP_UPDATE = {
     populationBySex: "WPP2024_TotalPopulationBySex_Medium_Update.csv",
     ageGroupsMedium: "WPP2024_PopulationByAge5GroupSex_Medium_Update.csv",
   },
+  /** What the release note says the update contains: every one of these files must hold all of it. */
+  places: ["TGO"],
+  years: [1950, 2100],
 };
+/** UN 5-year age groups: 0-4, 5-9, ..., 95-99, 100+. */
+export const AGE_GROUP_STARTS = Array.from({ length: 21 }, (_, i) => i * 5);
 /** WPP 2024: estimates 1950-2023, medium-variant projection 2024-2100. The next revision is due 2027-07-11. */
 export const WPP_LAST_ESTIMATE_YEAR = 2023;
 export const WPP_RELEASED = "2024-07-11";
@@ -72,7 +77,17 @@ export async function eachCsvRow(lines, onRow, { required = [] } = {}) {
   let index = null;
   let fields = null;
   const get = (name) => fields[index.get(name)] ?? "";
-  for await (const raw of lines) {
+  const it = (lines[Symbol.asyncIterator] ?? lines[Symbol.iterator]).call(lines);
+  for (;;) {
+    let next;
+    try {
+      next = await it.next();
+    } catch (err) {
+      // The download broke off or the gzip is truncated: the source could not be fetched completely.
+      throw markUnavailable(err);
+    }
+    if (next.done) break;
+    const raw = next.value;
     if (index == null) {
       const header = parseCsvLine(raw.replace(/^﻿/, "").trimEnd());
       index = new Map(header.map((h, i) => [h, i]));
@@ -87,8 +102,15 @@ export async function eachCsvRow(lines, onRow, { required = [] } = {}) {
   if (index == null) throw new Error("empty CSV");
 }
 
-/** Lines of a gzip-compressed stream, decompressed on the fly. */
-const gzipLines = (stream) => createInterface({ input: stream.pipe(createGunzip()), crlfDelay: Infinity });
+/**
+ * Lines of a gzip-compressed stream, decompressed on the fly. A failure of the download stream (connection dropped)
+ * is passed on to the gunzip stream, so reading the lines rejects instead of hanging, and is marked as a fetch failure.
+ */
+function gzipLines(stream) {
+  const gunzip = createGunzip();
+  stream.on("error", (err) => gunzip.destroy(markUnavailable(err)));
+  return createInterface({ input: stream.pipe(gunzip), crlfDelay: Infinity });
+}
 
 /**
  * Stream a gzip CSV from a URL into a fresh accumulator. The whole download restarts on any failure (network or
@@ -264,7 +286,10 @@ export function indicatorsAccumulator() {
   };
 }
 
-/** Accumulator for WPP2024_PopulationByAge5GroupSex: Map<code, Map<year, {total, age65plus}>> in people (65+ includes 100+). */
+/**
+ * Accumulator for WPP2024_PopulationByAge5GroupSex: Map<code, Map<year, {total, age65plus, groups}>> in people (65+
+ * includes 100+); groups = the set of AgeGrpStart values seen (used to check the interim update is complete).
+ */
 export function ageAccumulator() {
   const out = new Map();
   return {
@@ -276,9 +301,11 @@ export function ageAccumulator() {
       const year = Number(get("Time"));
       let m = out.get(code);
       if (!m) out.set(code, (m = new Map()));
-      const t = m.get(year) ?? { total: 0, age65plus: 0 };
+      const t = m.get(year) ?? { total: 0, age65plus: 0, groups: new Set() };
+      const start = Number(get("AgeGrpStart"));
       t.total += v;
-      if (Number(get("AgeGrpStart")) >= 65) t.age65plus += v;
+      t.groups.add(start);
+      if (start >= 65) t.age65plus += v;
       m.set(year, t);
     },
     done: () => out,
@@ -321,6 +348,80 @@ export function wppDatasets(indicators, ages, { lastEstimateYear = WPP_LAST_ESTI
   return out;
 }
 
+const INDICATOR_FIELDS = { population: "TPopulation1July", births: "Births", deaths: "Deaths", netMigration: "NetMigrations", naturalChange: "NatChange", tfr: "TFR", medianAge: "MedianAgePop", cbr: "CBR", cdr: "CDR" };
+
+const yearList = (ys) => {
+  const out = [];
+  for (const y of ys) {
+    const last = out.at(-1);
+    if (last && y === last[1] + 1) last[1] = y;
+    else out.push([y, y]);
+  }
+  return out.map(([a, b]) => (a === b ? `${a}` : `${a}-${b}`)).join(", ");
+};
+
+/**
+ * The interim update must hold every row the release note promises before it may replace anything: for each place
+ * (the expected ones plus any other place found in a file), every year of `years` in all three files, every indicator
+ * field filled, all 21 age groups, and the medium population. A header-only or truncated file would otherwise pass as
+ * "ok" and leave the superseded figures in place. Returns a list of problems (empty = complete).
+ */
+export function checkUpdateCoverage({ indicators, ages, population }, { places = WPP_UPDATE.places, years = WPP_UPDATE.years } = {}) {
+  const [y0, y1] = years;
+  const all = new Set([...places, ...indicators.keys(), ...ages.keys(), ...population.keys()]);
+  const F = WPP_UPDATE.files;
+  const problems = [];
+  for (const code of [...all].sort()) {
+    const ind = indicators.get(code)?.years;
+    const age = ages.get(code);
+    const pop = population.get(code)?.medium;
+    const missing = { ind: [], age: [], pop: [] };
+    const fields = new Map();
+    const groups = new Map();
+    for (let y = y0; y <= y1; y++) {
+      const row = ind?.get(y);
+      if (!row) missing.ind.push(y);
+      else for (const [k, col] of Object.entries(INDICATOR_FIELDS)) if (row[k] == null) fields.set(col, [...(fields.get(col) ?? []), y]);
+      const a = age?.get(y);
+      if (!a) missing.age.push(y);
+      else {
+        const lacking = AGE_GROUP_STARTS.filter((g) => !a.groups?.has(g));
+        if (lacking.length) groups.set(y, lacking);
+      }
+      if (pop?.[y - y0] == null) missing.pop.push(y);
+    }
+    const span = `${y0}-${y1}`;
+    if (!ind) problems.push(`${F.indicatorsMedium} has no rows for ${code} (expected ${span})`);
+    else if (missing.ind.length) problems.push(`${F.indicatorsMedium} lacks ${code} ${yearList(missing.ind)}`);
+    for (const [col, ys] of fields) problems.push(`${F.indicatorsMedium} has empty ${col} for ${code} ${yearList(ys)}`);
+    if (!age) problems.push(`${F.ageGroupsMedium} has no rows for ${code} (expected ${span}, 21 age groups)`);
+    else if (missing.age.length) problems.push(`${F.ageGroupsMedium} lacks ${code} ${yearList(missing.age)}`);
+    if (groups.size) {
+      const [y, g] = groups.entries().next().value;
+      problems.push(`${F.ageGroupsMedium} lacks age groups for ${code} in ${groups.size} years (e.g. ${y}: ${g.map((x) => (x === 100 ? "100+" : `${x}-${x + 4}`)).join(", ")})`);
+    }
+    if (!population.get(code)) problems.push(`${F.populationBySex} has no Medium rows for ${code} (expected ${span})`);
+    else if (missing.pop.length) problems.push(`${F.populationBySex} lacks ${code} Medium ${yearList(missing.pop)}`);
+  }
+  return problems;
+}
+
+/** Parse the three correction files from the update zip and check them. Throws (unmarked: a bad source, not a fetch failure). */
+export async function readCheckedUpdate(update, { years = WPP_UPDATE.years, places = WPP_UPDATE.places } = {}) {
+  const F = WPP_UPDATE.files;
+  for (const name of Object.values(F)) if (!update.entries.has(name)) throw new Error(`interim update zip lacks ${name}`);
+  const indicators = (await readUpdateCsv(update.entries, F.indicatorsMedium, indicatorsAccumulator(), { required: INDICATOR_COLUMNS })).places;
+  const ages = await readUpdateCsv(update.entries, F.ageGroupsMedium, ageAccumulator(), { required: AGE_COLUMNS });
+  const population = await readUpdateCsv(update.entries, F.populationBySex, populationAccumulator({ startYear: years[0], endYear: years[1], variants: { Medium: "medium" } }), { required: POPULATION_COLUMNS });
+  const problems = checkUpdateCoverage({ indicators, ages, population }, { places, years });
+  if (problems.length) throw new Error(`interim update is incomplete, refusing to apply it (Togo would keep its superseded figures): ${problems.slice(0, 6).join("; ")}${problems.length > 6 ? `; and ${problems.length - 6} more` : ""}`);
+  return { indicators, ages, population, places: [...indicators.keys()].sort() };
+}
+
+/** Medium population of the update for startYear..endYear (the update file is read for its full year range). */
+const sliceYears = (population, from, startYear, endYear) =>
+  new Map([...population].map(([code, p]) => [code, { medium: p.medium.slice(startYear - from, endYear - from + 1) }]));
+
 const vintageOf = (lastModified, timespan) => ({ lastUpdated: lastModified ?? null, nextUpdate: WPP_NEXT_RELEASE, citation: WPP_CITATION, timespan });
 
 /**
@@ -328,7 +429,7 @@ const vintageOf = (lastModified, timespan) => ({ lastUpdated: lastModified ?? nu
  * population scenarios (Medium, Constant fertility), each with the interim update overlaid. Never throws: returns
  * { wpp (parsed datasets or null pieces), scenarios (or null), entries (manifest, one per file) }.
  */
-export async function fetchUnWpp({ log = () => {}, scenarioYears = [2024, 2100] } = {}) {
+export async function fetchUnWpp({ log = () => {}, scenarioYears = [2024, 2100], updateYears = WPP_UPDATE.years, updatePlaces = WPP_UPDATE.places } = {}) {
   const [startYear, endYear] = scenarioYears;
   const t0 = Date.now();
   const [upd, ind, age, pop] = await Promise.allSettled([
@@ -355,34 +456,40 @@ export async function fetchUnWpp({ log = () => {}, scenarioYears = [2024, 2100] 
     entry("populationScenarios", "Total population by projection scenario: Medium and Constant fertility (scenarios.json)", WPP_CSV.populationBySex, false, pop, ["Variant", "PopTotal"], `${startYear}-${endYear}`),
     entry("interimUpdate", "Interim update of 19 January 2026: revised Togo population and vital events (estimates and medium projection)", WPP_UPDATE.url, true, upd, Object.values(WPP_UPDATE.files), "1950-2100", { releaseNote: WPP_UPDATE.releaseNote, released: WPP_UPDATE.released }),
   ];
-  // The update is required: without it Togo would silently revert to the superseded figures.
-  if (upd.status === "rejected") {
+  // The update is required: without it (or with an incomplete one) Togo would silently keep the superseded figures.
+  let checked = null;
+  if (upd.status === "fulfilled") {
+    try {
+      checked = await readCheckedUpdate(upd.value, { years: updateYears, places: updatePlaces });
+    } catch (e) {
+      Object.assign(entries[3], { status: "unavailable", error: String(e.message ?? e) });
+    }
+  }
+  if (!checked) {
     for (const e of entries) log(`${e.status === "ok" ? "ok  " : "FAIL"} un-wpp/${e.id}${e.error ? ` (${e.error})` : ""}`);
     return { wpp: null, scenarios: null, entries };
   }
   const update = upd.value;
-  const updatedCodes = new Set();
+  const updatedCodes = new Set(checked.places);
   let indicators = null;
   if (ind.status === "fulfilled") {
     indicators = ind.value.value.places;
-    const u = await readUpdateCsv(update.entries, WPP_UPDATE.files.indicatorsMedium, indicatorsAccumulator(), { required: INDICATOR_COLUMNS });
-    for (const [code, p] of u.places) {
-      indicators.set(code, p);
-      updatedCodes.add(code);
-    }
+    for (const [code, p] of checked.indicators) indicators.set(code, p);
   }
   let ages = null;
   if (age.status === "fulfilled") {
     ages = age.value.value;
-    const u = await readUpdateCsv(update.entries, WPP_UPDATE.files.ageGroupsMedium, ageAccumulator(), { required: AGE_COLUMNS });
-    for (const [code, m] of u) ages.set(code, m);
+    for (const [code, m] of checked.ages) ages.set(code, m);
   }
   let scenarios = null;
   if (pop.status === "fulfilled") {
     const places = pop.value.value;
-    const u = await readUpdateCsv(update.entries, WPP_UPDATE.files.populationBySex, populationAccumulator({ codes: null, startYear, endYear, variants: { Medium: "medium" } }), { required: POPULATION_COLUMNS });
-    const adjustments = applyScenarioUpdate(places, u);
-    scenarios = { startYear, endYear, places, adjustments, vintage: { lastModified: pop.value.lastModified, updateLastModified: update.lastModified } };
+    const adjustments = applyScenarioUpdate(places, sliceYears(checked.population, updateYears[0], startYear, endYear));
+    // Every corrected place must have been adjusted: a missing adjustment means its original rows were not found.
+    const notAdjusted = checked.places.filter((c) => !adjustments.some((a) => a.iso3 === c));
+    if (notAdjusted.length) {
+      Object.assign(entries[2], { status: "unavailable", error: `no ${WPP_CSV.populationBySex.split("/").pop()} rows to correct for ${notAdjusted.join(" ")}` });
+    } else scenarios = { startYear, endYear, places, adjustments, vintage: { lastModified: pop.value.lastModified, updateLastModified: update.lastModified } };
   }
   for (const e of entries) {
     if (e.status === "ok") e.updated = [...updatedCodes].sort();

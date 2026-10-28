@@ -943,3 +943,86 @@ test("S1 S2 S7: no focus ring after a mouse drag; + never zooms into empty ocean
     await page.close();
   }
 });
+
+// ------------------------------------------------------------------ Codex review fixes
+
+test("a hidden globe schedules no frames, and draws again when shown", opts, async () => {
+  const page = await openPage({ path: "/?year=2100" });
+  try {
+    assert.equal(await page.eval(`${G}.spinning`), true, "the idle spin is running before we leave");
+    await page.eval(`FT.navigate("/rankings"), 0`);
+    await page.waitFor(`!document.getElementById("view-rankings").hidden`);
+    await sleep(300);
+    const counted = await page.eval(`new Promise((resolve) => {
+      let n = 0;
+      const raf = window.requestAnimationFrame;
+      window.requestAnimationFrame = (fn) => { n++; return raf.call(window, fn); };
+      setTimeout(() => { window.requestAnimationFrame = raf; resolve({ n, scheduled: ${G}.scheduled }); }, 1000);
+    })`);
+    assert.deepEqual(counted, { n: 0, scheduled: false }, "no animation frames while the globe is hidden");
+    const draws = await page.eval(`${G}.stats.draws`);
+    await page.eval("history.back(), 0");
+    await page.waitFor(`!document.getElementById("view-globe").hidden`);
+    await page.waitFor(`${G}.stats.draws > ${draws}`, 3000);
+    assert.equal(await page.eval(`${G}.spinning`), true, "the spin resumes");
+    assert.deepEqual(page.errors, []);
+  } finally {
+    await page.close();
+  }
+});
+
+test("a failed map download shows Retry, and the globe recovers on Retry or on the next visit", opts, async () => {
+  let failing = true;
+  let sid = null;
+  const onPaused = (msg) => {
+    if (msg.method !== "Fetch.requestPaused" || msg.sessionId !== sid) return;
+    const { requestId } = msg.params;
+    if (failing) send("Fetch.failRequest", { requestId, errorReason: "Failed" }, sid).catch(() => {});
+    else send("Fetch.continueRequest", { requestId }, sid).catch(() => {});
+  };
+  listeners.add(onPaused);
+  const setup = async (s, sessionId) => {
+    sid = sessionId;
+    await s("Fetch.enable", { patterns: [{ urlPattern: "*/geo/countries-110m.json*" }] });
+  };
+  const page = await openPage({ path: "/?year=2100", ready: `!!window.FT && !document.getElementById("geo-error").hidden`, setup });
+  try {
+    assert.equal(await page.eval(`document.getElementById("geo-error").textContent.includes("Couldn't load the map.")`), true);
+    assert.deepEqual(page.errors, [], "no unhandled rejection");
+    failing = false;
+    await page.eval(`document.getElementById("geo-retry").click(), 0`);
+    await page.waitFor(`${G}.ready && document.getElementById("geo-error").hidden`, 8000);
+  } finally {
+    await page.close();
+  }
+  failing = true;
+  const again = await openPage({ path: "/?year=2100", ready: `!!window.FT && !document.getElementById("geo-error").hidden`, setup });
+  try {
+    failing = false;
+    await again.eval(`FT.navigate("/rankings"), 0`);
+    await again.waitFor(`!document.getElementById("view-rankings").hidden`);
+    await again.eval("history.back(), 0");
+    await again.waitFor(`${G}.ready && document.getElementById("geo-error").hidden`, 8000);
+    assert.deepEqual(again.errors, []);
+  } finally {
+    listeners.delete(onPaused);
+    await again.close();
+  }
+});
+
+test("Skip to content moves focus to the main content and keeps the page, year and scenario", opts, async () => {
+  const page = await openPage({ path: "/country/TWN?year=2070&scenario=constant" });
+  try {
+    await page.eval(`document.activeElement && document.activeElement.blur(), 0`);
+    await page.key("Tab", { vk: 9 });
+    assert.equal(await page.eval(`document.activeElement.className`), "skip-link");
+    await page.key("Enter", { text: "\r", vk: 13 });
+    await sleep(200);
+    assert.equal(await page.eval(`document.activeElement.id`), "main");
+    assert.equal(await page.eval(`location.pathname + location.search`), "/country/TWN?year=2070&scenario=constant");
+    assert.deepEqual(await page.eval(`({ year: Math.round(FT.state.year), scenario: FT.state.scenario })`), { year: 2070, scenario: "constant" });
+    assert.equal(await page.eval(`document.getElementById("view-country").hidden`), false);
+  } finally {
+    await page.close();
+  }
+});

@@ -216,7 +216,7 @@ export function createGlobe(canvas, opts = {}) {
   let selected = null;
   let hover = null;
   let pulseT0 = -1;
-  let visible = true;
+  let visible = false; // until the globe page is shown (setVisible)
   let destroyed = false;
 
   // Motion state
@@ -225,6 +225,7 @@ export function createGlobe(canvas, opts = {}) {
   let zoomGoal = null; // { logk, anchor: { ll, x, y } | null, tau }
   let tween = null; // { t0, dur, step(t) }
   let spin = false;
+  let spinPaused = false;
   let raf = 0;
   let lastFrame = 0;
   let dirty = true;
@@ -846,8 +847,9 @@ export function createGlobe(canvas, opts = {}) {
     loop();
   }
 
+  // No frames at all while the globe page is hidden: setVisible(true) redraws once and resumes.
   function loop() {
-    if (raf || destroyed) return;
+    if (raf || destroyed || !visible) return;
     raf = requestAnimationFrame(tick);
   }
 
@@ -869,6 +871,10 @@ export function createGlobe(canvas, opts = {}) {
 
   function tick(t) {
     raf = 0;
+    if (!visible) {
+      lastFrame = 0;
+      return;
+    }
     const dt = lastFrame ? Math.min(64, t - lastFrame) : 16;
     lastFrame = t;
     let active = false;
@@ -1457,12 +1463,33 @@ export function createGlobe(canvas, opts = {}) {
     startSpin,
     stopSpin: stopIdle,
     pick,
+    // Hidden (another page is showing): cancel the pending frame and drop motion in flight (glide, fly-to, wheel zoom),
+    // pause the idle spin, and draw nothing. Shown again: one redraw, and the spin resumes if it was on.
     setVisible(v) {
+      if (v === visible) return;
       visible = v;
-      if (v) {
+      if (!v) {
+        cancelAnimationFrame(raf);
+        raf = 0;
+        lastFrame = 0;
+        stopMotion();
+        bg = null;
+        spinPaused = spin;
+        spin = false;
+        drag = null;
+        pointers.clear();
+        clearTimeout(restTimer);
+        restTimer = 0;
+        moving = false;
+      } else {
+        if (spinPaused) spin = true;
+        spinPaused = false;
         sizeCanvas();
         requestDraw();
       }
+    },
+    get scheduled() {
+      return raf !== 0;
     },
     // For tests and debugging.
     get dragging() {

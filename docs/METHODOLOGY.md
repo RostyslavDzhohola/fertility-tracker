@@ -191,7 +191,8 @@ rank 6.
    are streamed and restart from scratch on a broken download), builds all files, then refuses to write anything
    (exit 1, published data untouched) if:
    - a required source (the UN demographic indicators file, the UN interim update, the World Bank country list) is
-     down. Without the interim update Togo would silently fall back to the superseded figures;
+     down, or the interim update is incomplete: each correction file must hold Togo for every year 1950-2100, every
+     indicator field and all 21 age groups. Without a complete update Togo would silently keep the superseded figures;
    - any source that worked in the previous build is down now;
    - sanity checks fail: at least 200 records and 150 ranked; value ranges; `naturalChange = births − deaths` and the
      balance identity hold; world population and record count within 5% of the previous build; spot checks such as
@@ -215,7 +216,9 @@ rank 6.
    - any JSON file fails its JSON Schema.
 3. The workflow then runs `node scripts/validate-data.mjs`, which compares every published number with the primary
    sources (UN WPP CSVs, World Bank API, UN DESA tables; see [DATA-VALIDATION.md](DATA-VALIDATION.md)). A mismatch
-   blocks scheduled and manual runs before anything is committed or deployed; an unreachable source only warns.
+   blocks scheduled and manual runs before anything is committed or deployed. A published value with no reference
+   value counts as a mismatch. Exit 2 means only that a primary source could not be fetched; any other failure is
+   exit 3.
 4. Output is idempotent. Unchanged numbers give byte-identical files. `generatedAt` and `contentHash` in `index.json`
    move only when some published value changes, so the workflow commits only real changes.
 5. The migration corridors (about 460 small CSVs) are reused from the previous build while their source vintage is

@@ -683,6 +683,25 @@ body.page-globe {
   pointer-events: none;
   transition: opacity 0.2s, transform 0.2s;
 }
+.geo-error {
+  position: absolute;
+  left: 50%;
+  top: calc(var(--topbar-h) + 16px);
+  z-index: 26;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 8px 8px 18px;
+  border-radius: 999px;
+  background: var(--card);
+  box-shadow: var(--shadow-2);
+  font-weight: 650;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+.geo-error .btn-small {
+  min-height: 44px;
+}
 .globe-note.show {
   opacity: 1;
   transform: translate(-50%, 0);

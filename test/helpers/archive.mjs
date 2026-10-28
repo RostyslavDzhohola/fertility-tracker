@@ -1,8 +1,9 @@
 // Build small zip and gzip files in memory for offline tests of the UN WPP and UN DESA readers.
 import { deflateRawSync, gzipSync } from "node:zlib";
 
-/** A zip archive (deflated entries, no CRC: the reader does not check it). files: { name: string | Buffer }. */
-export function makeZip(files) {
+/** A zip archive (deflated entries, no CRC: the reader does not check it). files: { name: string | Buffer } (undefined = left out). */
+export function makeZip(input) {
+  const files = Object.fromEntries(Object.entries(input).filter(([, v]) => v != null));
   const locals = [];
   const central = [];
   let offset = 0;

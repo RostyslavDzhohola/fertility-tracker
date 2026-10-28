@@ -127,6 +127,10 @@
             aria-label="Globe colored by how many people each country has compared with today. Drag to turn, scroll or pinch to zoom. Arrow keys turn it, plus and minus zoom, Enter opens the country in the middle."></canvas>
     <div class="globe-tip" id="globe-tip" aria-hidden="true" hidden></div>
     <p class="globe-note" id="globe-note" role="status"></p>
+    <div class="geo-error" id="geo-error" role="alert" hidden>
+      <span>Couldn't load the map.</span>
+      <button type="button" class="btn btn-primary btn-small" id="geo-retry">Retry</button>
+    </div>
 
     <div class="zoom-ctrl" id="zoom-ctrl">
       <div class="zoom-stack" role="group" aria-label="Zoom">

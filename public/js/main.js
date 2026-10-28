@@ -53,6 +53,19 @@ document.addEventListener("click", (e) => {
   if (!a || a.target === "_blank" || a.hasAttribute("download")) return;
   const url = new URL(a.href, location.href);
   if (url.origin !== location.origin) return;
+  // In-page fragment links ("Skip to content" → #main): move focus to the target, keep the route and the URL state.
+  // Native anchor jumps would fire popstate and reset the year and scenario from a URL that doesn't carry them.
+  if (url.hash && url.pathname === location.pathname && url.search === location.search) {
+    const target = document.getElementById(decodeURIComponent(url.hash.slice(1)));
+    if (!target) return;
+    e.preventDefault();
+    if (!target.hasAttribute("tabindex")) target.setAttribute("tabindex", "-1");
+    focusNoScroll(target);
+    // The user asked to move: bring the target to the top, below the sticky bar.
+    const top = target.getBoundingClientRect().top + window.scrollY - (document.querySelector(".topbar")?.offsetHeight ?? 0);
+    window.scrollTo({ top: Math.max(0, top), behavior: "auto" });
+    return;
+  }
   const r = L.parseRoute(url.pathname, url.search, url.hash);
   if (r.page === "notfound" || /^\/api\//.test(url.pathname)) return;
   e.preventDefault();

@@ -22,14 +22,42 @@ export const TOLERANCE = {
   livingAbroadPct: 0.1 + 1e-9,
 };
 
+/**
+ * Genuine gaps in the primary sources: published values the source has no reference for, allowed explicitly.
+ * Every other published value without a reference value is a mismatch (check "reference.missing"), so a dropped row,
+ * place or corridor in a reference can never turn a wrong number into a silent pass. Entries: { iso3, section, reason }
+ * where section is a prefix of the check id (e.g. "corridors", "series.share65"). Currently none are needed: every
+ * published value has a reference (validated 2026-10-28).
+ */
+export const REFERENCE_GAPS = [];
+
 const round = (v, d = 0) => (v == null || !Number.isFinite(v) ? null : Math.round(v * 10 ** d) / 10 ** d || 0);
 
 /** Collects comparisons per check: counts, mismatches with examples, and the largest difference seen. */
 export class Report {
-  constructor({ examples = 8 } = {}) {
+  constructor({ examples = 8, gaps = REFERENCE_GAPS } = {}) {
     this.checks = new Map();
     this.examples = examples;
     this.notes = [];
+    this.gaps = gaps;
+  }
+  /**
+   * A published value (or row, place, corridor) with nothing to compare it with. A mismatch unless REFERENCE_GAPS
+   * allows it for this place and check.
+   */
+  missing(id, meta, iso3, label) {
+    const gap = this.gaps.find((g) => g.iso3 === iso3 && id.startsWith(g.section));
+    if (gap) {
+      const a = this.check("reference.allowedGaps", { source: "REFERENCE_GAPS", description: "Published values without a reference, allowed by REFERENCE_GAPS (not mismatches)" });
+      a.compared++;
+      a.countries.add(iso3);
+      if (a.examples.length < this.examples) a.examples.push(`${iso3} ${label}: ${gap.reason}`);
+      return true;
+    }
+    const c = this.check("reference.missing", { source: meta.source, description: "Published values with no reference value in the primary source (a missing reference is a failure)" });
+    c.compared++;
+    c.countries.add(iso3);
+    return this.#bad(c, iso3, `${iso3} ${label} (${id}): published, but the reference has no value`);
   }
   check(id, { source, description }) {
     if (!this.checks.has(id)) this.checks.set(id, { id, source, description, compared: 0, mismatches: 0, countries: new Set(), badCountries: new Set(), maxDiff: 0, maxExample: null, examples: [] });
@@ -39,9 +67,10 @@ export class Report {
   num(id, meta, iso3, label, pub, ref, tol) {
     const c = this.check(id, meta);
     if (pub == null && ref == null) return true;
+    if (pub != null && ref == null) return this.missing(id, meta, iso3, label);
     c.compared++;
     c.countries.add(iso3);
-    if (pub == null || ref == null || !Number.isFinite(pub) || !Number.isFinite(ref)) return this.#bad(c, iso3, `${iso3} ${label}: published ${fmt(pub)}, reference ${fmt(ref)}`);
+    if (pub == null || !Number.isFinite(pub) || !Number.isFinite(ref)) return this.#bad(c, iso3, `${iso3} ${label}: published ${fmt(pub)}, reference ${fmt(ref)}`);
     const diff = Math.abs(pub - ref);
     if (diff > c.maxDiff) {
       c.maxDiff = diff;
@@ -130,14 +159,17 @@ function compareUnSeries(r, details, un, estYear) {
     const ref = un.ind.get(iso3);
     const meta = (field, description) => [`series.${field}`, { ...UN, description }];
     if (!ref) {
-      r.eq("series.coverage", { ...UN, description: "Every published place exists in the UN file" }, iso3, "in UN WPP", false, true);
+      r.missing("series", UN, iso3, "every year (place not in the UN file)");
       continue;
     }
     const years = d.series.map((s) => s.year);
     r.eq("series.years", { ...UN, description: "Series covers every year 1950-2100 once, in order" }, iso3, "years", `${years[0]}-${years.at(-1)} x${years.length}`, "1950-2100 x151");
     for (const s of d.series) {
       const u = ref.get(s.year);
-      if (!u) continue;
+      if (!u) {
+        r.missing("series", UN, iso3, `${s.year} (year not in the UN file)`);
+        continue;
+      }
       const y = `${s.year}`;
       r.eq("series.variant", { ...UN, description: `variant = estimate up to ${estYear}, projection after` }, iso3, `${y} variant`, s.variant, s.year <= estYear ? "estimate" : "projection");
       r.num(...meta("population", "1 July population vs TPopulation1July"), iso3, `${y} population`, s.population, u.population, TOLERANCE.people);
@@ -201,9 +233,13 @@ function compareProjection(r, details, un, estYear) {
   const m = (f, description) => [`projection.${f}`, { ...UN, description }];
   for (const [iso3, d] of details) {
     const ref = un.ind.get(iso3);
-    if (!ref || !d.projection) continue;
+    if (!d.projection) continue;
     const p = d.projection;
-    const e = expectedProjection(ref, un.share65?.get(iso3), estYear);
+    const e = ref && expectedProjection(ref, un.share65?.get(iso3), estYear);
+    if (!e) {
+      r.missing("projection", UN, iso3, `projection (no UN rows for ${estYear}, 2050 or 2100)`);
+      continue;
+    }
     r.eq(...m("baseYear", "baseYear = latest UN estimate year"), iso3, "baseYear", p.baseYear, estYear);
     for (const k of ["basePopulation", "population2050", "population2100", "peakPopulation"]) r.num(...m(k, `${k} vs TPopulation1July`), iso3, k, p[k], e[k], TOLERANCE.people);
     for (const k of ["change2050Pct", "change2100Pct"]) r.num(...m(k, `${k} recomputed from UN totals`), iso3, k, p[k], e[k], TOLERANCE.pct1);
@@ -260,11 +296,22 @@ function compareHeadline(r, details, refs, estYear) {
         const exp = pickLatest(cand, unPt(unValues?.[key]));
         const meta = { source: "World Bank API + UN WPP", description: `${key}: year and source are the newest available (World Bank wins ties)` };
         if (exp || pub) r.eq(`headline.provenance`, meta, iso3, `${key} year/source`, pub ? `${pub.year} ${pub.source}` : null, exp ? `${exp.year} ${exp.source}` : null);
-        if (pub?.source === "WB" && cand) r.num(`headline.wb.${key}`, { ...WB, description: `${key} equals the World Bank's latest value` }, iso3, `${key} ${pub.year}`, pub.value, cand.year === pub.year ? cand.value : null, TOLERANCE.wb[key]);
+        if (pub?.source === "WB") {
+          const meta = { ...WB, description: `${key} equals the World Bank's latest value` };
+          if (!cand) r.missing(`headline.wb.${key}`, meta, iso3, `${key} ${pub.year} (no World Bank value)`);
+          else if (cand.year !== pub.year) r.eq(`headline.wb.${key}`, meta, iso3, `${key} year`, pub.year, cand.year);
+          else r.num(`headline.wb.${key}`, meta, iso3, `${key} ${pub.year}`, pub.value, cand.value, TOLERANCE.wb[key]);
+        }
       }
-      if (pub?.source === "UN-WPP" && unValues) r.num(`headline.un.${key}`, { ...UN, description: `${key} (UN ${estYear}) vs the UN file` }, iso3, `${key} ${pub.year}`, pub.value, pub.year === estYear ? unValues[key] : null, unTol[key]);
+      if (pub?.source === "UN-WPP" && refs.un) {
+        const meta = { ...UN, description: `${key} (UN ${estYear}) vs the UN file` };
+        if (pub.year !== estYear) r.eq(`headline.un.${key}`, meta, iso3, `${key} year`, pub.year, estYear);
+        else if (!unValues) r.missing(`headline.un.${key}`, meta, iso3, `${key} ${pub.year} (no UN row)`);
+        else r.num(`headline.un.${key}`, meta, iso3, `${key} ${pub.year}`, pub.value, unValues[key], unTol[key]);
+      }
     }
     const c = d.components;
+    if (c && !u && refs.un) r.missing("components", UN, iso3, `components ${c.year} (no UN row)`);
     if (c && u) {
       const m = (f) => [`components.${f}`, { ...UN, description: `components (${estYear}) ${f} vs the UN file` }];
       r.eq("components.year", { ...UN, description: "components.year = latest UN estimate year" }, iso3, "year", c.year, estYear);
@@ -367,7 +414,6 @@ function compareScenarios(r, published, ref) {
 function compareMigrantStock(r, details, ims) {
   const m = (f, description) => [`migrantStock.${f}`, { ...IMS, description }];
   for (const [iso3, d] of details) {
-    if (iso3 === "WLD") continue;
     for (const s of d.migrantStockSeries) {
       const y = s.year;
       const imm = ims.immigrants.get(iso3)?.get(y) ?? null;
@@ -377,16 +423,15 @@ function compareMigrantStock(r, details, ims) {
       r.num(...m("immigrantsPct", "immigrants % of population vs Table 3 (destination)"), iso3, `${y} immigrantsPct`, s.immigrantsPct, ims.immigrantsPct.get(iso3)?.get(y) ?? null, TOLERANCE.stockPct);
       r.num(...m("emigrants", "emigrant stock vs Table 1 (origin)"), iso3, `${y} emigrants`, s.emigrants, emi, 0.5);
       if (s.emigrantsPct != null || (emi != null && pop)) r.num(...m("emigrantsPct", "emigrants % of resident population (origin Table 1 / destination Table 2)"), iso3, `${y} emigrantsPct`, s.emigrantsPct, emi != null && pop ? (emi / (pop * 1000)) * 100 : null, TOLERANCE.stockPct);
-      if (imm != null && emi != null && pop) {
-        const born = pop * 1000 - imm + emi;
-        r.num(...m("livingAbroadPct", "emigrants / (residents - immigrants + emigrants)"), iso3, `${y} livingAbroadPct`, s.livingAbroadPct, born > 0 ? (emi / born) * 100 : null, TOLERANCE.livingAbroadPct);
-      }
+      const born = imm != null && emi != null && pop ? pop * 1000 - imm + emi : null;
+      r.num(...m("livingAbroadPct", "emigrants / (residents - immigrants + emigrants)"), iso3, `${y} livingAbroadPct`, s.livingAbroadPct, born > 0 ? (emi / born) * 100 : null, TOLERANCE.livingAbroadPct);
       r.eq("migrantStock.identities", { ...SELF, description: "netStock = immigrants - emigrants" }, iso3, `${y} netStock`, s.netStock, s.immigrants != null && s.emigrants != null ? s.immigrants - s.emigrants : null);
     }
     const last = d.migrantStockSeries.at(-1);
     if (d.migrantStock?.source === "UN-DESA") r.eq("migrantStock.latest", { ...SELF, description: "migrantStock = latest migrantStockSeries row" }, iso3, "latest", { ...d.migrantStock, source: undefined }, last && { ...last, source: undefined });
     const corr = d.migrationCorridors;
     const ref = ims.corridors?.get(iso3);
+    if (corr && !ref) r.missing("corridors", IMS, iso3, "migrationCorridors (no destination-and-origin rows)");
     if (corr && ref) {
       const cm = (f) => [`corridors.${f}`, { ...IMS, description: `migrationCorridors ${f} vs the destination-and-origin table (${ref.year})` }];
       r.eq(...cm("year"), iso3, "year", corr.year, ref.year);

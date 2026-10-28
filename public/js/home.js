@@ -49,9 +49,12 @@ export function createHome({ navigate, onFocusChange, geoFetch = null }) {
     cardReasons: $("card-reasons"),
     cardCta: $("card-cta"),
     topbar: document.querySelector(".topbar"),
+    geoError: $("geo-error"),
+    geoRetry: $("geo-retry"),
   };
 
   let selected = null;
+  let lastRoute = {};
   let started = false;
   let visible = false;
   let colorMemo = new Map();
@@ -450,12 +453,36 @@ export function createHome({ navigate, onFocusChange, geoFetch = null }) {
 
   // ---------------------------------------------------------------- lifecycle
 
-  let geoLoaded = false;
-  async function loadGeo() {
-    if (geoLoaded) return;
-    geoLoaded = true;
-    const [t110, pts] = await Promise.all([(geoFetch ? geoFetch.catch(() => fetchJson("/geo/countries-110m.json")) : fetchJson("/geo/countries-110m.json")), fetchJson("/geo/world-points.json").catch(() => ({}))]);
-    globe.setData({ topology110: t110, worldPoints: pts, records: data.records });
+  // The outlines count as loaded only once they have arrived. A failure resets the state, shows "Couldn't load the
+  // map. Retry", and the next visit to the globe (or the Retry button) tries again.
+  let geoState = "idle"; // idle | loading | done
+  let geoPromise = null;
+  function loadGeo() {
+    if (geoState === "done") return Promise.resolve(true);
+    if (geoState === "loading") return geoPromise;
+    geoState = "loading";
+    el.geoError.hidden = true;
+    const early = geoFetch;
+    geoFetch = null; // the boot-time request is used once; retries fetch afresh
+    geoPromise = (async () => {
+      try {
+        const t110 = await (early ? early.catch(() => fetchJson("/geo/countries-110m.json")) : fetchJson("/geo/countries-110m.json"));
+        const pts = await fetchJson("/geo/world-points.json").catch(() => ({}));
+        globe.setData({ topology110: t110, worldPoints: pts, records: data.records });
+        geoState = "done";
+        loadDetail50();
+        return true;
+      } catch (err) {
+        console.warn("[globe] map outlines unavailable", err);
+        geoState = "idle";
+        el.geoError.hidden = !visible;
+        return false;
+      }
+    })();
+    return geoPromise;
+  }
+
+  function loadDetail50() {
     // The detailed outlines load once the page is idle and are prepared in small idle slices, so switching to them
     // never blocks a frame.
     idle(() => {
@@ -465,6 +492,24 @@ export function createHome({ navigate, onFocusChange, geoFetch = null }) {
         .catch((err) => console.warn("[globe] 50m outlines unavailable", err));
     });
   }
+
+  // First paint of the globe: outlines, counter, spin and (first visit) the intro. Runs again after a failed load.
+  let introDecided = null;
+  async function start(route, first) {
+    if (introDecided == null) introDecided = first && introWanted(route);
+    const intro = introDecided && !state.touched;
+    if (intro && !started) setYear(data.today, { source: "auto" });
+    const ok = await loadGeo();
+    if (!ok || started) return ok;
+    started = true;
+    renderCounter();
+    if (!lastRoute.focus && !media.reduced()) globe.startSpin();
+    if (intro && !state.touched) requestAnimationFrame(() => visible && !state.touched && play({ from: data.today, duration: 5200, source: "auto" }));
+    if (lastRoute.focus && data.records.has(lastRoute.focus) && lastRoute.focus !== selected) select(lastRoute.focus, { source: "init" });
+    return true;
+  }
+
+  el.geoRetry.addEventListener("click", () => start(lastRoute, false));
 
   // First visit: play today → 2100 once, starting with the first painted frame. Skipped with reduced motion, a ?year=
   // link, or later in the session. Any slider, Play or scenario touch stops it at once (store.touch).
@@ -492,14 +537,9 @@ export function createHome({ navigate, onFocusChange, geoFetch = null }) {
           for (const x of el.modeBtns) setAttr(x, "aria-pressed", String(x.dataset.mode === m));
         }
       } catch {}
+      lastRoute = route;
       if (!started) {
-        started = true;
-        const intro = first && introWanted(route);
-        if (intro) setYear(data.today, { source: "auto" });
-        await loadGeo();
-        renderCounter();
-        if (!route.focus && !media.reduced()) globe.startSpin();
-        if (intro && !state.touched) requestAnimationFrame(() => visible && !state.touched && play({ from: data.today, duration: 5200, source: "auto" }));
+        if (!(await start(route, first))) return;
       } else {
         globe.recolor();
         renderCounter();
@@ -513,6 +553,7 @@ export function createHome({ navigate, onFocusChange, geoFetch = null }) {
       visible = false;
       el.view.hidden = true;
       el.tip.hidden = true;
+      el.geoError.hidden = true;
       closeRiskPanel();
       document.body.classList.remove("page-globe");
       globe.setVisible(false);

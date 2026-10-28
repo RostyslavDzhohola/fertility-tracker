@@ -9,11 +9,13 @@
 //
 //   node scripts/validate-data.mjs [--api public/api/v1] [--cache /tmp/ft-cache] [--json report.json]
 //                                  [--skip un,age,scenarios,wb,ims] [--examples 8]
-// Exit codes: 0 = no mismatches, 1 = mismatches found, 2 = a source could not be loaded.
+// Exit codes: 0 = no mismatches; 1 = mismatches found (including published values with no reference value);
+//             2 = a primary source could not be fetched (network/HTTP failure, broken download), and nothing else;
+//             3 = anything unexpected: a bug, unreadable published files, or a source whose format changed.
 import { readdir, readFile, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { getBuffer, getJson, useCache } from "./lib/http.mjs";
+import { getBuffer, getJson, isUnavailable, useCache } from "./lib/http.mjs";
 import { parseWbLatest } from "./lib/parse.mjs";
 import { WB_INDICATORS } from "./lib/sources.mjs";
 import {
@@ -136,7 +138,7 @@ function byLocation(rows, indexToCode) {
   const out = new Map();
   for (const row of rows.slice(h + 1)) {
     const code = indexToCode.get(row?.[0]);
-    if (!code || code === "WLD") continue;
+    if (!code) continue;
     out.set(code, new Map(YEARS.map((y, i) => [y, typeof row[cols[i]] === "number" ? row[cols[i]] : null]).filter(([, v]) => v != null)));
   }
   return out;
@@ -216,31 +218,38 @@ function print(summary) {
   for (const n of summary.notes) console.log(`\nNote: ${n}`);
 }
 
+export const EXIT = { ok: 0, mismatches: 1, unavailable: 2, error: 3 };
+
+/** Exit code for an error that escaped the run: 2 only if a primary source could not be fetched, otherwise 3. */
+export const exitCodeFor = (err) => (isUnavailable(err) ? EXIT.unavailable : EXIT.error);
+
 async function main() {
   const published = await loadPublished();
   const refs = {};
-  try {
-    if (!skip.has("un")) refs.un = await loadUn();
-    if (!skip.has("wb")) refs.wb = await loadWb();
-    if (!skip.has("ims")) {
-      const loc = refs.un?.loc ?? (await loadUn()).loc;
-      refs.ims = await loadIms(loc);
-    }
-  } catch (err) {
-    console.error(`Could not load a primary source: ${err.message ?? err}`);
-    process.exit(2);
+  if (!skip.has("un")) refs.un = await loadUn();
+  if (!skip.has("wb")) refs.wb = await loadWb();
+  if (!skip.has("ims")) {
+    const loc = refs.un?.loc ?? (await loadUn()).loc;
+    refs.ims = await loadIms(loc);
   }
   const report = validatePublished(published, refs, { examples: Number(opt("--examples", 8)) });
   const summary = report.summary();
   summary.vintages = { un: refs.un?.vintage ?? null, wb: refs.wb?.lastUpdated ?? null, ims: refs.ims?.vintage ?? null };
+  summary.skipped = [...skip];
   print(summary);
+  if (skip.size) console.log(`\nPartial run: skipped ${[...skip].join(", ")}.`);
   if (opt("--json")) await writeFile(resolve(opt("--json")), JSON.stringify(summary, null, 2) + "\n");
-  process.exit(summary.mismatches ? 1 : 0);
+  return summary.mismatches ? EXIT.mismatches : EXIT.ok;
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  main().catch((err) => {
-    console.error(err);
-    process.exit(2);
-  });
+  main().then(
+    (code) => process.exit(code),
+    (err) => {
+      const code = exitCodeFor(err);
+      if (code === EXIT.unavailable) console.error(`Could not fetch a primary source (exit 2): ${err.message ?? err}`);
+      else console.error(`validate-data failed unexpectedly (exit 3; not an outage, not a data mismatch):\n${err?.stack ?? err}`);
+      process.exit(code);
+    },
+  );
 }

@@ -71,6 +71,38 @@ test("one five-word scale: the legend, chips, meter and verdicts share bands and
 
 });
 
+test("rounding ties: the printed %, its color and its word always agree, on both sides of every band edge", () => {
+  // Halves round away from zero on both signs (Math.round alone would turn −49.5 into −49 while fmtPct prints −50%).
+  assert.equal(L.roundPct(-49.5), -50);
+  assert.equal(L.roundPct(49.5), 50);
+  assert.equal(L.roundPct(-24.5), -25);
+  assert.equal(L.roundPct(-5.5), -6);
+  assert.equal(L.roundPct(5.5), 6);
+  assert.equal(L.roundPct(-0.45), -0.5);
+  assert.equal(L.roundPct(-0.04), 0);
+  assert.equal(L.roundPct(null), null);
+  const parse = (t) => {
+    const m = /^([+−])?(\d+(?:\.\d)?)%$/.exec(t);
+    return m ? (m[1] === "−" ? -1 : 1) * Number(m[2]) : null;
+  };
+  const edges = [];
+  for (const e of [5, 25, 50]) for (const sgn of [-1, 1]) for (const d of [-0.5, -0.49, 0, 0.49, 0.5]) edges.push(sgn * (e + d));
+  for (const x of edges) {
+    const shown = parse(L.fmtPct(x));
+    assert.equal(shown, L.roundPct(x), `fmtPct(${x}) = ${L.fmtPct(x)}`);
+    assert.equal(L.outlookOf(x)?.label, L.outlookOf(shown)?.label, `word for ${x} (shown ${L.fmtPct(x)})`);
+    assert.equal(L.changeColor(x), L.changeColor(shown), `color for ${x} (shown ${L.fmtPct(x)})`);
+  }
+  assert.equal(L.outlookOf(-49.5).label, "Half gone");
+  assert.equal(L.fmtPct(-49.5), `${M}50%`);
+  assert.equal(L.outlookOf(-24.5).label, "Shrinking fast");
+  assert.equal(L.fmtPct(-24.5), `${M}25%`);
+  assert.equal(L.outlookOf(-5.5).label, "Shrinking");
+  assert.equal(L.fmtPct(-5.5), `${M}6%`);
+  assert.equal(L.outlookOf(5.5).label, "Growing");
+  assert.equal(L.outlookOf(-4.5).label, "About the same", "−4.5 prints −5%: still about the same");
+});
+
 test("scenarios: popAt interpolates fractional years; % is measured against today's UN forecast", () => {
   const s = { startYear: 2024, endYear: 2027, places: { AAA: { medium: [100, 90, 80, 70], constant: [100, 85, 70, 55] } } };
   assert.equal(L.popAt(s, "AAA", 2024), 100);

@@ -22,6 +22,22 @@ export function configureHttp(options) {
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /**
+ * Errors that mean "the source could not be fetched" (network failure, HTTP error, broken or truncated download, a
+ * non-JSON block page) carry `unavailable: true`. Everything else (a parse error, a changed format, a bug) does not:
+ * callers must never report those as an outage (scripts/validate-data.mjs exit 2), and withRetries does not retry them.
+ */
+export function markUnavailable(err) {
+  const e = err instanceof Error ? err : new Error(String(err));
+  e.unavailable = true;
+  return e;
+}
+/** True if err, or any error in its cause chain, is a fetch failure. */
+export const isUnavailable = (err) => {
+  for (let e = err; e; e = e.cause) if (e.unavailable === true) return true;
+  return false;
+};
+
+/**
  * GET a URL as text. Retries network errors, 429 and 5xx with exponential backoff.
  * Throws after the last attempt with a message naming the URL.
  */
@@ -56,7 +72,7 @@ export async function getText(url, { retries = defaults.retries, timeoutMs = def
       await sleep(defaults.baseDelayMs * 2 ** (attempt - 1));
     }
   }
-  throw new Error(`GET ${url} failed: ${lastErr?.message ?? lastErr}`);
+  throw markUnavailable(new Error(`GET ${url} failed: ${lastErr?.message ?? lastErr}`, { cause: lastErr }));
 }
 
 /**
@@ -80,7 +96,7 @@ async function fetchOk(url, { retries = defaults.retries, timeoutMs = defaults.t
       await sleep(defaults.baseDelayMs * 2 ** (attempt - 1));
     }
   }
-  throw new Error(`GET ${url} failed: ${lastErr?.message ?? lastErr}`);
+  throw markUnavailable(new Error(`GET ${url} failed: ${lastErr?.message ?? lastErr}`, { cause: lastErr }));
 }
 
 const lastModifiedDate = (h) => {
@@ -113,7 +129,7 @@ export async function openStream(url, { timeoutMs = 600_000, ...opts } = {}) {
     await rename(tmp, key);
   } catch (err) {
     await rm(tmp, { force: true });
-    throw new Error(`GET ${url} failed while downloading: ${err.message ?? err}`);
+    throw markUnavailable(new Error(`GET ${url} failed while downloading: ${err.message ?? err}`, { cause: err }));
   }
   await writeFile(`${key}.meta`, JSON.stringify({ url, lastModified }));
   return { stream: createReadStream(key), lastModified };
@@ -123,22 +139,30 @@ export async function openStream(url, { timeoutMs = 600_000, ...opts } = {}) {
 export async function getBuffer(url, opts) {
   const { stream, lastModified } = await openStream(url, opts);
   const chunks = [];
-  for await (const c of stream) chunks.push(c);
+  try {
+    for await (const c of stream) chunks.push(c);
+  } catch (err) {
+    throw markUnavailable(new Error(`GET ${url} failed while downloading: ${err.message ?? err}`, { cause: err }));
+  }
   return { buffer: Buffer.concat(chunks), lastModified };
 }
 
-/** Run fn (which must start from scratch on each call) up to `attempts` times; for streamed downloads. */
+/**
+ * Run fn (which must start from scratch on each call) up to `attempts` times; for streamed downloads. Only fetch
+ * failures (isUnavailable) are retried and reported as such; any other error is rethrown at once, unchanged.
+ */
 export async function withRetries(fn, { attempts = defaults.retries, label = "download" } = {}) {
   let lastErr;
   for (let attempt = 1; attempt <= attempts; attempt++) {
     try {
       return await fn(attempt);
     } catch (err) {
+      if (!isUnavailable(err)) throw err;
       lastErr = err;
       if (attempt < attempts) await sleep(defaults.baseDelayMs * 2 ** (attempt - 1));
     }
   }
-  throw new Error(`${label} failed after ${attempts} attempts: ${lastErr?.message ?? lastErr}`);
+  throw markUnavailable(new Error(`${label} failed after ${attempts} attempts: ${lastErr?.message ?? lastErr}`, { cause: lastErr }));
 }
 
 export async function getJson(url, opts) {
@@ -146,7 +170,8 @@ export async function getJson(url, opts) {
   try {
     return JSON.parse(text);
   } catch {
-    throw new Error(`GET ${url} returned invalid JSON (starts: ${JSON.stringify(text.slice(0, 80))})`);
+    // Typically a bot-check or error page instead of the API: the data could not be fetched.
+    throw markUnavailable(new Error(`GET ${url} returned invalid JSON (starts: ${JSON.stringify(text.slice(0, 80))})`));
   }
 }
 

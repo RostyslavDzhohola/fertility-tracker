@@ -153,7 +153,7 @@ or of objects with `url` / `path` / `href` / `urlTemplate`), as absolute URLs, s
 | Checker tests | `node --test "test/checks/*.test.mjs"` |
 | Refresh data and redeploy now | `gh workflow run refresh-and-deploy.yml -R RostyslavDzhohola/fertility-tracker` |
 | Rebuild the API locally | `node scripts/fetch-data.mjs --cache /tmp/ft-cache` (the cache keeps the ~65 MB of UN downloads between runs; drop it for a fresh fetch), then `node scripts/fetch-data.mjs --verify` |
-| Validate the published data against the primary sources | `node scripts/validate-data.mjs --cache /tmp/ft-cache` (about 30 s; add `--json report.json`; `--skip age,scenarios,wb,ims` to narrow it). Exit 0 = no mismatches, 1 = mismatches (listed with examples), 2 = a source could not be loaded. See `docs/DATA-VALIDATION.md` |
+| Validate the published data against the primary sources | `node scripts/validate-data.mjs --cache /tmp/ft-cache` (about 30 s; add `--json report.json`; `--skip age,scenarios,wb,ims` to narrow it). Exit 0 = no mismatches, 1 = mismatches (listed with examples; a published value with no reference counts), 2 = a primary source could not be fetched (only that), 3 = unexpected error (bug, unreadable files, changed source format). See `docs/DATA-VALIDATION.md` |
 | Run the weekly agent now | Run the T3 scheduled task now (`run_scheduled_task_now`), or start a session with `docs/weekly-agent-prompt.md` as its instructions |
 | Recreate labels | Any non-dry-run check does it; or `gh label create <name> --color <hex> --description "…" --force` using `public/feedback.json` |
 
@@ -211,7 +211,9 @@ zip is re-read on every run, so a re-upload of the same zip is picked up automat
 - **Local servers list directories.** `python3 -m http.server` answers `api/` with a directory listing, so a
   missing `public/api/index.html` passes a local check but returns 404 on the live site.
 - **population.un.org is a required source.** If it is down, the weekly refresh refuses to publish and the last data
-  stays live (the run fails loudly). The validator's UN DESA tables come from www.un.org; if those are unreachable,
-  the validation step only warns.
+  stays live (the run fails loudly). An interim-update zip that downloads but is incomplete (for example header-only
+  CSVs) is refused the same way, with a message naming the missing rows. The validator's UN DESA tables come from
+  www.un.org; if those are unreachable, the data counts as unvalidated: scheduled and manual runs fail without committing or deploying, and a push to
+  `main` deploys its code with the last committed data. Re-run the workflow once the source is back.
 - **Issue text is untrusted.** The check never copies issue bodies into its report; the weekly agent treats all
   issue and email text as data, per its prompt.

@@ -17,7 +17,10 @@ Every published value for all 238 records (237 countries and areas + `WLD`), aga
 | **Total** | | **817,759** |
 
 Tolerances are only the published rounding: whole people for counts, 0.0005 for fertility, 0.05 for one-decimal
-values.
+values. **A missing reference is a failure**: a published value (or year, place or corridor) with no value in the
+primary source counts as a mismatch (check `reference.missing`), so a reference that lost a row can't hide a wrong
+number. Genuine source gaps must be listed, with a reason, in `REFERENCE_GAPS` (`scripts/lib/validate.mjs`). The
+list is empty: every published value has a reference, including the world's migrant stock.
 
 ## What it found, and the fixes
 
@@ -37,7 +40,10 @@ Cook Islands, Montserrat, Wallis and Futuna +1).
 3. **Togo in the provisional `scenarios.json` used superseded figures.** The UN's interim update of 19 January 2026
    corrected Togo's population (it had been adjusted for undercount twice), but only in a separate `_Update` zip.
    2024: 9,515,236 → **8,406,558**; 2100: 26.3 → 23.6 million. **Fix:** the pipeline overlays the update zip on every
-   UN file and refuses to publish without it. The UN did not revise Togo's constant-fertility scenario, so it is
+   UN file and refuses to publish without it. Before applying it, every correction file must hold every row the
+   release note promises: Togo, every year 1950-2100, every indicator field, all 21 age groups and the medium
+   population. A header-only or truncated zip is refused with a message naming what is missing, instead of passing as
+   "ok" and keeping the superseded figures. The UN did not revise Togo's constant-fertility scenario, so it is
    rescaled to the corrected level (factor 0.88-0.90) and listed in `scenarios.json` `adjustments`. OWID already
    had the update, so the old series were right for Togo.
 4. **UN crude rates** (headline birth and death rates for the 21 places without World Bank data) were births or
@@ -135,7 +141,9 @@ node scripts/validate-data.mjs --cache /tmp/ft-cache --json report.json --exampl
 node scripts/validate-data.mjs --skip age,scenarios,ims           # quicker partial check
 ```
 
-Exit 0 = no mismatches, 1 = mismatches (each check lists counts, places and examples), 2 = a source could not be
-loaded. The weekly workflow runs it after every refresh (reusing the pipeline's downloads). A mismatch blocks a
-scheduled or manual run before anything is committed or deployed; an unreachable source only warns. The comparison
-code is `scripts/lib/validate.mjs` (unit tests: `test/validate.test.mjs`).
+Exit codes: **0** = no mismatches; **1** = mismatches, including published values with no reference (each check lists
+counts, places and examples); **2** = a primary source could not be fetched (network or HTTP failure, broken
+download, a block page instead of JSON), and nothing else; **3** = anything unexpected (a bug, unreadable published
+files, a source whose format changed). Only fetch failures are retried. The weekly workflow runs it after every
+refresh, reusing the pipeline's downloads, and a mismatch blocks the run before anything is committed or deployed.
+The comparison code is `scripts/lib/validate.mjs` (unit tests: `test/validate.test.mjs`).

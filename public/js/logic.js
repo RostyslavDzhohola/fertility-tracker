@@ -121,12 +121,16 @@ function rgbToHex([r, g, b]) {
 
 const RAMP_RGB = RAMP.map(([p, c]) => [p, hexToRgb(c)]);
 
-// The % as people read it: whole numbers, one decimal under 1% (fmtPct). Colors and words use this value, so a place
-// shown as "−50%" is always "Half gone", never "Shrinking fast".
-export function shownPct(pct) {
-  if (!isNum(pct)) return null;
-  return Math.abs(pct) < 1 ? Math.round(pct * 10) / 10 : Math.round(pct);
+// The % as people read it: whole numbers, one decimal under 1%, halves rounded away from zero on both sides
+// (−49.5 → −50, like +49.5 → +50). fmtPct prints this value and colors and words use it, so a place shown as "−50%"
+// is always "Half gone", never "Shrinking fast".
+export function roundPct(x) {
+  if (!isNum(x)) return null;
+  const a = Math.abs(x);
+  const r = a < 1 ? Math.round(a * 10) / 10 : Math.round(a);
+  return r === 0 ? 0 : Math.sign(x) * r;
 }
+export const shownPct = roundPct;
 
 export function changeColor(pct) {
   if (!isNum(pct)) return null;
@@ -262,11 +266,11 @@ export function fmtFlow(n, { plus = true } = {}) {
 
 // "−58%", "+12%", "−0.4%". Integer with sign; one decimal when |x| < 1.
 export function fmtPct(x, { plus = true } = {}) {
-  if (!isNum(x)) return "–";
-  const a = Math.abs(x);
-  const str = a < 1 ? (Math.round(a * 10) / 10).toFixed(1) : String(Math.round(a));
-  if (Number(str) === 0) return "0%";
-  return signOf(x, plus) + str + "%";
+  const r = roundPct(x);
+  if (r == null) return "–";
+  if (r === 0) return "0%";
+  const a = Math.abs(r);
+  return signOf(r, plus) + (a < 1 ? a.toFixed(1) : String(a)) + "%";
 }
 
 export function fmtRate(x, { plus = false } = {}) {
