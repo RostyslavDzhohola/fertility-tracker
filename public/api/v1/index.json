@@ -1,10 +1,10 @@
 {
   "name": "Fertility Tracker API",
-  "description": "Fertility, births, deaths, net migration, migrant stocks, UN projections to 2100 and a population-decline risk score for every country. Static files, no key, CORS open, refreshed weekly.",
+  "description": "Fertility, births, deaths, net migration, migrant stocks, UN projections to 2100 (medium and constant-fertility scenarios) and a population-decline risk score for every country. Static files, no key, CORS open, refreshed weekly.",
   "apiVersion": "v1",
   "schemaVersion": "1.0.0",
-  "generatedAt": "2026-10-27T07:36:24Z",
-  "contentHash": "659567b4da0d35b05c374e7706a59242357b18d7bcee9a33cee4957a7aba0265",
+  "generatedAt": "2026-10-28T04:53:48Z",
+  "contentHash": "34860e390786db37620efb7acd826ef2bb608945aa99e73c0b979bb342f252cc",
   "baseUrl": "https://fertility-tracker-live.vercel.app/api/v1/",
   "latestEstimateYear": 2023,
   "replacementTfr": 2.1,
@@ -18,95 +18,81 @@
       "id": "UN-WPP",
       "name": "World Population Prospects 2024",
       "publisher": "United Nations, Department of Economic and Social Affairs, Population Division",
-      "via": "Our World in Data (grapher and explorer CSV downloads)",
+      "via": "UN Population Division CSV files (population.un.org/wpp/downloads), read directly",
       "homepage": "https://population.un.org/wpp/",
-      "license": "CC BY 3.0 IGO (UN); OWID processing CC BY 4.0",
-      "citation": "UN, World Population Prospects (2024) – processed by Our World in Data",
-      "vintage": "2024-07-12",
-      "nextUpdate": "2027-07-12",
-      "coverage": "Estimates 1950 to the latest estimate year; medium-variant projections to 2100",
+      "license": "CC BY 3.0 IGO",
+      "citation": "United Nations, Department of Economic and Social Affairs, Population Division (2024). World Population Prospects 2024, Online Edition (interim update for Togo, 19 January 2026).",
+      "edition": "World Population Prospects 2024",
+      "released": "2024-07-11",
+      "interimUpdate": {
+        "released": "2026-01-19",
+        "places": [
+          "TGO"
+        ],
+        "releaseNote": "https://population.un.org/wpp/assets/Files/WPP2024_Release-Note-rev1.pdf",
+        "url": "https://population.un.org/wpp/assets/Excel%20Files/1_Indicator%20(Standard)/WPP2024_CSV_files_update.zip"
+      },
+      "vintage": "2026-01-22",
+      "nextUpdate": "2027-07-11",
+      "coverage": "Estimates 1950-2023; medium-variant projections and the constant-fertility scenario 2024-2100",
       "datasets": [
         {
-          "id": "fertility",
-          "title": "Fertility rate (births per woman)",
-          "url": "https://ourworldindata.org/grapher/fertility-rate-with-projections.csv?v=1&csvType=full&useColumnShortNames=true",
-          "metadataUrl": "https://ourworldindata.org/grapher/fertility-rate-with-projections.metadata.json?v=1&csvType=full&useColumnShortNames=true",
+          "id": "demographicIndicators",
+          "title": "Demographic indicators, medium variant: population (1 July), births, deaths, net migration, fertility rate, median age",
+          "url": "https://population.un.org/wpp/assets/Excel%20Files/1_Indicator%20(Standard)/CSV_FILES/WPP2024_Demographic_Indicators_Medium.csv.gz",
           "status": "ok",
           "columns": [
-            "fertility_rate__sex_all__age_all__variant_estimates",
-            "fertility_rate__sex_all__age_all__variant_medium__projected"
+            "TPopulation1July",
+            "Births",
+            "Deaths",
+            "NetMigrations",
+            "TFR",
+            "MedianAgePop"
           ],
-          "lastUpdated": "2024-07-12",
-          "timespan": "1950-2023, 2024-2100"
+          "lastUpdated": "2024-12-13",
+          "timespan": "1950-2023 estimates, 2024-2100 medium projection"
         },
         {
-          "id": "population",
-          "title": "Population (1 July)",
-          "url": "https://ourworldindata.org/grapher/population-with-un-projections.csv?v=1&csvType=full&useColumnShortNames=true",
-          "metadataUrl": "https://ourworldindata.org/grapher/population-with-un-projections.metadata.json?v=1&csvType=full&useColumnShortNames=true",
+          "id": "ageGroups",
+          "title": "Population by 5-year age group, medium variant (65+ share)",
+          "url": "https://population.un.org/wpp/assets/Excel%20Files/1_Indicator%20(Standard)/CSV_FILES/WPP2024_PopulationByAge5GroupSex_Medium.csv.gz",
           "status": "ok",
           "columns": [
-            "population__sex_all__age_all__variant_estimates",
-            "population__sex_all__age_all__variant_medium__projected"
+            "AgeGrpStart",
+            "PopTotal"
           ],
-          "lastUpdated": "2024-07-12",
-          "timespan": "1950-2023, 2024-2100"
+          "lastUpdated": "2024-12-13",
+          "timespan": "1950-2023 estimates, 2024-2100 medium projection"
         },
         {
-          "id": "birthsDeaths",
-          "title": "Births and deaths per year",
-          "url": "https://ourworldindata.org/grapher/births-and-deaths-projected-to-2100.csv?v=1&csvType=full&useColumnShortNames=true",
-          "metadataUrl": "https://ourworldindata.org/grapher/births-and-deaths-projected-to-2100.metadata.json?v=1&csvType=full&useColumnShortNames=true",
+          "id": "populationScenarios",
+          "title": "Total population by projection scenario: Medium and Constant fertility (scenarios.json)",
+          "url": "https://population.un.org/wpp/assets/Excel%20Files/1_Indicator%20(Standard)/CSV_FILES/WPP2024_TotalPopulationBySex.csv.gz",
           "status": "ok",
           "columns": [
-            "births__sex_all__age_all__variant_estimates",
-            "births__sex_all__age_all__variant_medium__projected",
-            "deaths__sex_all__age_all__variant_estimates",
-            "deaths__sex_all__age_all__variant_medium__projected"
+            "Variant",
+            "PopTotal"
           ],
-          "lastUpdated": "2024-07-12",
-          "timespan": "1950-2023, 2024-2100"
+          "lastUpdated": "2024-12-13",
+          "timespan": "2024-2100"
         },
         {
-          "id": "netMigration",
-          "title": "Net migration (immigrants minus emigrants per year)",
-          "url": "https://ourworldindata.org/explorers/population-and-demography.csv?v=1&csvType=full&useColumnShortNames=true&indicator=Net+migration&Sex=Both+sexes&Age=Total&Projection+scenario=Medium",
-          "metadataUrl": "https://ourworldindata.org/explorers/population-and-demography.metadata.json?v=1&csvType=full&useColumnShortNames=true&indicator=Net+migration&Sex=Both+sexes&Age=Total&Projection+scenario=Medium",
+          "id": "interimUpdate",
+          "title": "Interim update of 19 January 2026: revised Togo population and vital events (estimates and medium projection)",
+          "url": "https://population.un.org/wpp/assets/Excel%20Files/1_Indicator%20(Standard)/WPP2024_CSV_files_update.zip",
           "status": "ok",
           "columns": [
-            "net_migration__sex_all__age_all__variant_estimates",
-            "net_migration__sex_all__age_all__variant_medium__projected"
+            "WPP2024_Demographic_Indicators_Medium_Update.csv",
+            "WPP2024_TotalPopulationBySex_Medium_Update.csv",
+            "WPP2024_PopulationByAge5GroupSex_Medium_Update.csv"
           ],
-          "lastUpdated": "2024-07-12",
-          "timespan": "1950-2023, 2024-2100"
-        },
-        {
-          "id": "medianAge",
-          "title": "Median age",
-          "url": "https://ourworldindata.org/grapher/median-age.csv?v=1&csvType=full&useColumnShortNames=true",
-          "metadataUrl": "https://ourworldindata.org/grapher/median-age.metadata.json?v=1&csvType=full&useColumnShortNames=true",
-          "status": "ok",
-          "columns": [
-            "median_age__sex_all__age_all__variant_estimates",
-            "median_age__sex_all__age_all__variant_medium__projected"
-          ],
-          "lastUpdated": "2024-07-12",
-          "timespan": "1950-2023, 2024-2100"
-        },
-        {
-          "id": "ageStructure",
-          "title": "Population aged 65+ (for share65)",
-          "url": "https://ourworldindata.org/grapher/population-by-age-group-with-projections.csv?v=1&csvType=full&useColumnShortNames=true",
-          "metadataUrl": "https://ourworldindata.org/grapher/population-by-age-group-with-projections.metadata.json?v=1&csvType=full&useColumnShortNames=true",
-          "status": "ok",
-          "columns": [
-            "population__sex_all__age_65plus__variant_estimates",
-            "population__sex_all__age_65plus__variant_medium__projected",
-            "population__sex_all__age_all__variant_estimates",
-            "population__sex_all__age_all__variant_medium__projected"
-          ],
-          "lastUpdated": "2024-07-12",
-          "timespan": "1950-2023, 2024-2100"
+          "lastUpdated": "2026-01-22",
+          "timespan": "1950-2100",
+          "released": "2026-01-19",
+          "releaseNote": "https://population.un.org/wpp/assets/Files/WPP2024_Release-Note-rev1.pdf",
+          "places": [
+            "TGO"
+          ]
         }
       ]
     },
@@ -299,6 +285,13 @@
       "schema": "https://fertility-tracker-live.vercel.app/api/v1/schema/risk.schema.json"
     },
     {
+      "path": "scenarios.json",
+      "url": "https://fertility-tracker-live.vercel.app/api/v1/scenarios.json",
+      "format": "json",
+      "description": "Population of every country + WLD each year 2024-2100 under two UN WPP 2024 scenarios: medium (\"UN forecast\") and constant fertility (\"If birth rates stay the same\").",
+      "schema": "https://fertility-tracker-live.vercel.app/api/v1/schema/scenarios.schema.json"
+    },
+    {
       "path": "countries.csv",
       "url": "https://fertility-tracker-live.vercel.app/api/v1/countries.csv",
       "format": "csv",
@@ -326,7 +319,8 @@
   ],
   "dataGaps": [
     "Gross annual migration flows (how many people arrive and how many leave each year) are not published for all countries by any global source. We publish annual net migration (UN WPP: immigrants minus emigrants) plus migrant stocks from UN DESA as inflow/outflow proxies: immigrants = people living in a country who were born elsewhere; emigrants = people born in a country who now live abroad.",
-    "UN WPP 2024 estimates end in 2023; later years are the UN medium-variant projection (variant = \"projection\"). The demographic balance (components) and projection baselines use the latest estimate year.",
+    "UN WPP 2024 estimates end in 2023; later years are the UN medium-variant projection (variant = \"projection\"). The demographic balance (components) and projection baselines use the latest estimate year. The next WPP revision is due 11 July 2027.",
+    "Togo follows the UN's interim update of 19 January 2026 (revised population and vital events, estimates and medium projection). The UN did not revise Togo's other scenarios or the world and regional aggregates; scenarios.json rescales Togo's constant-fertility path to the revised level (see its adjustments).",
     "Headline fields (population, tfr, birthRate, deathRate, netMigration, populationGrowthPct, share65) take the newest year across World Bank and UN; each carries its own year and source. World Bank's latest net migration (and, for many countries, population) are themselves UN WPP estimates or projections.",
     "populationChange = births - deaths + netMigration for the calendar year (UN WPP). It can differ slightly from the difference between successive 1 July population figures.",
     "Migrant stocks are available for 1990-2020 every 5 years plus 2024; there is no annual series. migrantStock.emigrantsPct follows UN DESA / OWID: emigrants as % of the country's CURRENT RESIDENT population. livingAbroadPct is the share of everyone born in the country who lives abroad: emigrants / (residents - immigrants + emigrants).",
@@ -338,6 +332,7 @@
     "docs": "https://fertility-tracker-live.vercel.app/api/",
     "llms": "https://fertility-tracker-live.vercel.app/llms.txt",
     "openapi": "https://fertility-tracker-live.vercel.app/api/v1/openapi.json",
+    "scenarios": "https://fertility-tracker-live.vercel.app/api/v1/scenarios.json",
     "methodology": "https://github.com/RostyslavDzhohola/fertility-tracker/blob/main/docs/METHODOLOGY.md",
     "apiReference": "https://github.com/RostyslavDzhohola/fertility-tracker/blob/main/docs/API.md",
     "repo": "https://github.com/RostyslavDzhohola/fertility-tracker",

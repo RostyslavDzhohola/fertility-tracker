@@ -18,10 +18,15 @@ export const BUILTIN_TARGETS = [
   { path: "api/v1/openapi.json", kind: "openapi", planned: true },
   { path: "api/v1/status.json", kind: "status", name: "Deploy status", planned: true },
   { path: "api/", kind: "html", name: "API docs", planned: true },
+  // Clean app URLs served by vercel.json rewrites (DESIGN-v3 §6): a deep link must survive a reload.
+  { path: "country/KOR", kind: "html", name: "Country page (clean URL)", planned: true, route: true },
+  { path: "rankings", kind: "html", name: "Rankings page", planned: true, route: true },
   { path: "llms.txt", kind: "text", planned: true },
   { path: "feedback.json", kind: "feedback", planned: true },
   { path: "geo/countries-110m.json", kind: "topojson", name: "Map outlines", planned: true },
   { path: "geo/world-points.json", kind: "json", name: "Map points", planned: true },
+  { path: "geo/countries-50m.json", kind: "topojson", name: "Detailed map outlines", planned: true },
+  { path: "api/v1/scenarios.json", kind: "json", name: "Population by year, both scenarios", planned: true },
   { path: "data/fertility.json", kind: "json", legacy: true },
 ];
 
@@ -446,6 +451,12 @@ export async function fetchTarget(url, { fetchImpl = fetch, timeoutMs = 20000, r
   return { ...last, ms: Date.now() - started };
 }
 
+// A vercel.json rewrite source ("/country/:iso3") as a RegExp.
+export function routePattern(source) {
+  const esc = String(source).replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/:\w+/g, "[^/]+");
+  return new RegExp(`^${esc}/?$`);
+}
+
 async function exists(file) {
   try {
     await access(file);
@@ -483,13 +494,13 @@ async function mapLimit(items, limit, fn) {
 //  - anything the site serves with HTTP 200 must be valid (deployed but broken is broken);
 //  - the API manifest must, once a previous weekly check saw the API live (catches deploy-time files vanishing);
 //  - anything present in the repo's public/ must, when the checked-out ref is the deployed branch.
-export function requirement({ always, advertised, loadedBy, inRepo, expectDeployed, wasLive, served }) {
+export function requirement({ always, advertised, loadedBy, inRepo, expectDeployed, wasLive, served, route = false }) {
   if (always) return { required: true, reason: "site root" };
   if (advertised) return { required: true, reason: "listed in live API manifest" };
   if (loadedBy) return { required: true, reason: loadedBy };
   if (served) return { required: true, reason: "deployed (HTTP 200) but invalid" };
   if (wasLive) return { required: true, reason: "was live in the previous weekly check" };
-  if (inRepo && expectDeployed) return { required: true, reason: "in repo public/ on the deployed branch" };
+  if (inRepo && expectDeployed) return { required: true, reason: route ? "rewritten by vercel.json on the deployed branch" : "in repo public/ on the deployed branch" };
   return { required: false, reason: inRepo ? "in repo, not on the deployed branch" : "planned, not in repo yet" };
 }
 
@@ -557,7 +568,7 @@ export function extractModuleRefs(js, moduleUrl, pageUrl, siteUrl) {
     const p = sitePathOf(spec, new URL(moduleUrl), siteUrl);
     if (p !== null) imports.add(p);
   }
-  for (const m of text.matchAll(/["'`]((?:\.{1,2}\/)?(?:[\w-]+\/)*[\w.-]+\.(?:json|geojson|topojson))["'`]/g)) {
+  for (const m of text.matchAll(/["'`]((?:\.{1,2}\/|\/)?(?:[\w-]+\/)*[\w.-]+\.(?:json|geojson|topojson))["'`]/g)) {
     if (m[1].includes("${") || /(^|\/)package\.json$/.test(m[1])) continue;
     const p = sitePathOf(m[1], new URL(pageUrl), siteUrl);
     if (p !== null) data.add(p);
@@ -567,6 +578,9 @@ export function extractModuleRefs(js, moduleUrl, pageUrl, siteUrl) {
 
 function sitePathOf(ref, baseUrl, siteUrl) {
   if (!ref || /^(data|blob|javascript|mailto):/i.test(ref)) return null;
+  const sitePath = new URL(siteUrl).pathname;
+  // "/js/main.js" is written relative to the site root, so it also works when the site is checked under a sub-path.
+  if (ref.startsWith("/") && !ref.startsWith("//") && !ref.startsWith(sitePath)) return cleanPath(safeDecode(ref.replace(/^\/+/, "")));
   let u;
   try {
     u = new URL(ref, baseUrl);
@@ -677,6 +691,7 @@ export async function runSiteChecks({ siteUrl, repoRoot, expectDeployed = false,
   siteUrl = normalizeSiteUrl(siteUrl);
   if (localBuild === undefined) localBuild = isLocalSite(siteUrl);
   const publicDir = path.join(repoRoot, "public");
+  const rewrites = ((await readJson(path.join(repoRoot, "vercel.json")))?.rewrites ?? []).map((r) => routePattern(r.source));
   const urlFor = (p) => new URL(p, siteUrl).toString();
   const fetchOpts = { fetchImpl, timeoutMs, retries };
   const cache = new Map();
@@ -784,7 +799,7 @@ export async function runSiteChecks({ siteUrl, repoRoot, expectDeployed = false,
   const payloads = new Map(); // api/v1 JSON kept for cross-file checks
   const checked = await mapLimit(jobs, concurrency, async (job) => {
     const repoFile = path.join(publicDir, job.path === "" || job.path.endsWith("/") ? path.join(job.path, "index.html") : job.path);
-    const inRepo = await exists(repoFile);
+    const inRepo = job.target.route ? rewrites.some((re) => re.test(`/${job.path}`)) : await exists(repoFile);
     const t = job.target;
     if (t.legacy && !inRepo) return null; // legacy file removed from the repo: stop checking it
     const res = await get(job.path);
@@ -809,6 +824,7 @@ export async function runSiteChecks({ siteUrl, repoRoot, expectDeployed = false,
       expectDeployed,
       wasLive: apiWasLive && job.path === MANIFEST_PATH,
       served: res.status === 200 && !val.ok,
+      route: !!t.route,
     });
     const result = {
       path: job.path,

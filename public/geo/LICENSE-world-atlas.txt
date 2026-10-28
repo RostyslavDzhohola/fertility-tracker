@@ -1,4 +1,4 @@
-world-atlas@2.0.2 (countries-110m.json, unmodified). Data: Natural Earth (public domain), https://www.naturalearthdata.com/
+world-atlas@2.0.2 (countries-110m.json and countries-50m.json, unmodified). Data: Natural Earth (public domain), https://www.naturalearthdata.com/
 Packaging licence:
 
 Copyright 2013-2019 Michael Bostock

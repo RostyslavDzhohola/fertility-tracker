@@ -1,8 +1,8 @@
 # Fertility Tracker API (v1)
 
 Static, read-only JSON and CSV for every country: fertility, births, deaths, net migration, immigrant and emigrant
-stocks, migration corridors, UN projections to 2100 and a population-decline risk score. No key, no sign-up,
-refreshed weekly.
+stocks, migration corridors, UN projections to 2100 (the UN forecast and "if birth rates stay the same") and a
+population-decline risk score. No key, no sign-up, refreshed weekly.
 
 - **Base URL:** `https://fertility-tracker-live.vercel.app/api/v1/`
 - **CORS:** Vercel sends `Access-Control-Allow-Origin: *` for `api/`, `llms.txt` and `feedback.json` (set in `vercel.json`), so any file can be fetched cross-origin from a
@@ -24,6 +24,7 @@ refreshed weekly.
 | `countries.json` | One summary record per country + `WLD` (238), sorted by iso3. About 310 KB raw, 42 KB gzipped. |
 | `countries/{ISO3}.json` | Everything for one country: all headline fields, yearly series 1950-2100, migrant stock history, migration corridors, full risk breakdown. About 35 KB. |
 | `risk.json` | Ranked countries (highest risk first) with component points and inputs, unranked records with reasons, and the full methodology. |
+| `scenarios.json` | Population of every country + `WLD`, each year 2024-2100, under two UN scenarios: "UN forecast" (medium) and "If birth rates stay the same" (constant fertility). About 305 KB raw, 145 KB gzipped. |
 | `countries.csv` | One row per country, nested fields flattened with `_` (`components_births`, `projection_change2100Pct`, …). |
 | `timeseries.csv` | Long format `iso3,year,variant,metric,value`. Every country, year and metric; rows with no data are omitted. |
 | `status.json` | Deploy-time: `checkedAt`, refresh outcome, run URL, source statuses. |
@@ -75,7 +76,7 @@ Each record (South Korea, October 2026):
 | `isoNumeric` | ISO 3166-1 numeric code: the feature id in common world map files (world-atlas TopoJSON). `null` for WLD and XKX. |
 | `region`, `incomeGroup` | World Bank classification (`incomeGroup` `null` if unclassified). |
 | `ranked`, `flags` | `ranked: false` for `WLD` and places under 100,000 people or with incomplete inputs. Flags: `aggregate`, `small-population`, `no-world-bank-data`, `incomplete-risk-inputs`. |
-| `population`, `tfr`, `medianAge`, `share65` | Newest value across sources, with `year` and `source` (`WB`, `UN-WPP`, `UN-DESA`). `tfr` = births per woman; 2.1 = replacement. `share65` = % aged 65+. |
+| `population`, `tfr`, `medianAge`, `share65` | Newest value across sources, with `year` and `source` (`WB`, `UN-WPP`, `UN-DESA`). `tfr` = births per woman; 2.1 = replacement. `share65` = % aged 65+ (100+ included). |
 | `components` | Demographic balance for the latest UN estimate year: `populationChange = births − deaths + netMigration`, plus rates per 1,000 people. `migrationOffsetPct` = net migration as % of the natural decline (null when births ≥ deaths). |
 | `migrantStock` | UN DESA stocks. `immigrants` = people living here born abroad (inflow proxy); `immigrantsPct` = % of residents. `emigrants` = people born here living abroad (outflow proxy). `emigrantsPct` = emigrants as % of the current RESIDENT population (UN DESA/OWID definition, so it can exceed the share of people born here). `livingAbroadPct` = share of everyone born here who lives abroad: emigrants ÷ (residents − immigrants + emigrants). |
 | `projection` | UN WPP 2024 medium variant: populations in 2050 and 2100 and the % change from `basePopulation` in `baseYear` (the latest UN estimate year, not the headline population year), peak year, first year at half of the baseline population, start of more-deaths-than-births. Label the baseline when showing the % change next to the headline `population`. |
@@ -99,7 +100,39 @@ Everything in the summary, plus:
 - `migrationCorridors`: `{year, source, immigrantsTotal, emigrantsTotal, topOrigins[], topDestinations[]}`. Each
   partner is `{iso3, name, people}`: top 10 countries of birth of immigrants, and top 10 countries where emigrants live.
   `null` where UN DESA has no corridor data.
-- `links`: `self`, `countries`, `risk`, `docs`, `site` (the country on the live tracker).
+- `links`: `self`, `countries`, `risk`, `docs`, `site` (the country's page on the live tracker,
+  `https://fertility-tracker-live.vercel.app/country/{ISO3}`).
+
+## `scenarios.json`
+
+The data behind the year slider: total population on 1 July for every record (all 238, including `WLD`), each year
+`startYear`..`endYear` (2024-2100), under two UN World Population Prospects 2024 scenarios.
+
+```json
+{
+  "apiVersion": "v1", "generatedAt": "...", "unit": "people", "startYear": 2024, "endYear": 2100,
+  "source": { "id": "UN-WPP", "url": ".../WPP2024_TotalPopulationBySex.csv.gz", "vintage": "2024-12-13",
+              "interimUpdate": { "released": "2026-01-19", ... }, "nextUpdate": "2027-07-11", "license": "CC BY 3.0 IGO", ... },
+  "scenarios": {
+    "medium":   { "label": "UN forecast", "unVariant": "Medium", "description": "...", "unDefinition": "..." },
+    "constant": { "label": "If birth rates stay the same", "unVariant": "Constant fertility", "description": "...", "unDefinition": "..." }
+  },
+  "notes": [ "..." ],
+  "adjustments": [ { "iso3": "TGO", "scenarios": ["constant"], "method": "...", "ratioRange": [0.883, 0.901], "reason": "..." } ],
+  "places": { "KOR": { "medium": [51717590, ...77 integers], "constant": [51715325, ...] }, "WLD": { ... }, ... }
+}
+```
+
+| Field | Meaning |
+| --- | --- |
+| `places[ISO3].medium` | UN forecast (medium scenario): the same projection as `series` in `countries/{ISO3}.json` (to within 1 person). |
+| `places[ISO3].constant` | If birth rates stay the same: each country's fertility rate stays at its 2023 level to 2100, while mortality and migration follow the medium scenario (UN constant-fertility scenario). A what-if, not a forecast. |
+| index | `array[year - startYear]`; integers are people; `null` = missing (none at present). |
+| `scenarios.*.unDefinition` | The UN's own definition, quoted from the WPP 2024 Methodology Report. |
+| `adjustments` | Places whose numbers are not straight from the UN file, and why. Togo: the UN's interim update of 19 January 2026 revised only its medium scenario, so its constant-fertility path is rescaled to the revised population level. |
+
+"Today" is not in the file: take the current calendar year's value from `medium` (UN estimates end in 2023). Past
+years (1950-2023) are in `countries/{ISO3}.json` `series`.
 
 ## `risk.json`
 
@@ -123,6 +156,10 @@ reason`). The method is described in [METHODOLOGY.md](METHODOLOGY.md).
 curl -s https://fertility-tracker-live.vercel.app/api/v1/risk.json \
   | jq -r '.ranking[:10][] | "\(.rank). \(.name) \(.score) \(.tier)"'
 
+# Taiwan in 2070: UN forecast vs if birth rates stay the same
+curl -s https://fertility-tracker-live.vercel.app/api/v1/scenarios.json \
+  | jq '.startYear as $s | .places.TWN | {medium: .medium[2070 - $s], constant: .constant[2070 - $s]}'
+
 # Japan's births, deaths and net migration in 2050 (UN projection)
 curl -s https://fertility-tracker-live.vercel.app/api/v1/countries/JPN.json \
   | jq '.series[] | select(.year == 2050) | {births, deaths, netMigration}'
@@ -142,6 +179,7 @@ kor = ts[(ts.iso3 == "KOR") & (ts.metric == "births")]
 
 ## Sources, licence, citation
 
-World Bank WDI (CC BY 4.0); UN World Population Prospects 2024 and UN DESA International Migrant Stock 2024 (UN,
-CC BY 3.0 IGO), both via Our World in Data (CC BY 4.0). Code: MIT. Cite the original publishers plus "Fertility Tracker
+World Bank WDI (CC BY 4.0); UN World Population Prospects 2024 with its January 2026 interim update (UN, CC BY 3.0 IGO,
+read from the UN's CSV files); UN DESA International Migrant Stock 2024 (UN, CC BY 3.0 IGO, via Our World in Data,
+CC BY 4.0). Code: MIT. Cite the original publishers plus "Fertility Tracker
 (github.com/RostyslavDzhohola/fertility-tracker)". Feedback: GitHub Issues or `andromedus+fertility@mail.grokbot.com`.

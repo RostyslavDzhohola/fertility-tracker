@@ -5,30 +5,36 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
 <title>Page not found · Fertility Tracker</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6.5' fill='%23FFCB52'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6.5' fill='%232457FF'/%3E%3Cpath d='M3 9.5c2.5-1.8 7.5-1.8 10 0' stroke='%23fff' stroke-width='1.4' fill='none'/%3E%3C/svg%3E">
 <style>
-  :root { color-scheme: dark; }
-  body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #0B0E14; color: #EDEFF4;
-    font: 16px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
-  main { max-width: 520px; padding: 24px; }
-  h1 { font-size: 24px; line-height: 30px; margin: 0 0 8px; }
-  p { color: #A3AABA; margin: 0 0 16px; }
-  a { color: #8EC5FF; font-weight: 600; }
-  .dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: #FFCB52; margin-right: 8px; }
+  :root { color-scheme: light; }
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #F6F4EF; color: #1F2328;
+    font: 17px/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+  main { max-width: 560px; padding: 24px; }
+  h1 { font-size: 34px; line-height: 1.15; margin: 0 0 10px; letter-spacing: -0.02em; }
+  p { color: #3D4651; margin: 0 0 18px; }
+  .links { display: flex; flex-wrap: wrap; gap: 10px; }
+  a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 18px; border-radius: 999px; font-weight: 650; text-decoration: none;
+    color: #2457FF; background: #fff; border: 2px solid rgba(36, 87, 255, .35); }
+  a.primary { background: #2457FF; color: #fff; border-color: #2457FF; }
+  a:focus-visible { outline: 3px solid rgba(36, 87, 255, .45); outline-offset: 2px; }
 </style>
 <script>
-  // Vercel serves this file for any missing path. "/KOR" and the old GitHub Pages form "/fertility-tracker/KOR" → "/#KOR".
+  // Vercel serves this file for any missing path. Old and short links go to the country page:
+  // "/KOR", "/kor/", the GitHub Pages form "/fertility-tracker/KOR", and "/country/KOR/" → "/country/KOR".
   (function () {
-    var m = /^(?:\/fertility-tracker)?\/([A-Za-z]{3})\/?$/.exec(location.pathname);
-    if (m) location.replace("/#" + m[1].toUpperCase());
+    var p = location.pathname;
+    var m = /^\/(?:fertility-tracker\/|country\/)?([A-Za-z]{3})\/?$/.exec(p);
+    if (m) return location.replace("/country/" + m[1].toUpperCase() + location.search);
+    if (/^\/rankings\/$/.test(p)) location.replace("/rankings" + location.search);
   })();
 </script>
 </head>
 <body>
 <main>
-  <h1><span class="dot" aria-hidden="true"></span>Page not found</h1>
-  <p>This page doesn't exist. The map, the data and the API are still here.</p>
-  <p><a href="https://fertility-tracker-live.vercel.app/">Open the Fertility Tracker</a> · <a href="https://fertility-tracker-live.vercel.app/api/">API</a> · <a href="https://fertility-tracker-live.vercel.app/llms.txt">llms.txt</a></p>
+  <h1>This page doesn't exist.</h1>
+  <p>The globe, every country and the data are still here.</p>
+  <p class="links"><a class="primary" href="/">Open the globe</a> <a href="/rankings">Rankings</a> <a href="/api/">Data &amp; API</a></p>
 </main>
 </body>
 </html>

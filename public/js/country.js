@@ -1,690 +1,513 @@
-// Country view (DESIGN §5). Every block keeps its reserved size; content is updated in place (G5, G6).
+// The country page `/country/{ISO3}` (DESIGN-v3 §3): a vertical visual story. Each block is one picture and at most
+// one sentence. Numbers follow the shared year slider and scenario.
 
-import { $, h, setText, setAttr, media, debounce } from "./dom.js";
-import {
-  REPLACEMENT,
-  TIER_COLORS,
-  TIERS,
-  DEFAULT_TIER_MINS,
-  GEN_YEARS,
-  tierOf,
-  tfrValue,
-  fmtTfr,
-  fmtCompact,
-  fmtPct,
-  fmtFlow,
-  fmtRate,
-  fmtCount,
-  generationCounts,
-  nextGeneration,
-  dotFills,
-  rankLabel,
-  tierLabel,
-  summarySentence,
-  populationTakeaway,
-  waterfallTakeaway,
-  waterfallRows,
-  componentsTakeaway,
-  migrationTakeaway,
-  generationsTakeaway,
-  tfrTakeaway,
-  possessive,
-  projectionBase,
-  lastEstimateYear,
-  peakOf,
-} from "./logic.js";
-import { lineChart, waterfallChart, chartSkeleton, chartError } from "./charts.js";
+import { $, h, s, setText, setAttr, media, focusNoScroll, announce, copyText } from "./dom.js";
+import * as L from "./logic.js";
+import { data, state, subscribe, popNow, ratioNow, pctNow, pct2100, peakYear, loadDetail, cachedDetail, setYear, yearInt } from "./store.js";
+import { createTimeControls } from "./controls.js";
+import { createPopChart } from "./charts.js";
+import { peopleRow } from "./people.js";
 
-const GEN_LABELS = ["Today", "Children", "Grandchildren", "Great-grandchildren", "4th generation"];
+const GEN_LABELS = ["Today", "Children", "Grandchildren", "Great-grandchildren"];
 
-export function createCountryView(opts) {
-  const { getRecord, rankedCount, loadDetail, cachedDetail, onSelect, issueUrl, xIntentUrl, onShare, latestEstimateYear } = opts;
-
+export function createCountryPage({ navigate, siteUrl }) {
   const el = {
-    content: $("country-content"),
+    view: $("view-country"),
+    story: $("story"),
+    missing: $("cv-missing"),
     region: $("cv-region"),
-    name: $("country-name"),
-    tier: $("cv-tier"),
-    tierSw: $("cv-tier-swatch"),
-    tierText: $("cv-tier-text"),
-    rank: $("cv-rank"),
-    summary: $("cv-summary"),
-    share: $("share-btn"),
-    postX: $("post-x"),
-    kpiTfr: $("kpi-tfr"),
-    kpiTfrSub: $("kpi-tfr-sub"),
-    kpiPop: $("kpi-pop"),
-    kpiPopSub: $("kpi-pop-sub"),
-    kpiGen: $("kpi-gen"),
-    kpiAge: $("kpi-age"),
-    kpiAgeSub: $("kpi-age-sub"),
-    whyTitle: $("why-title"),
-    meterWrap: $("meter-wrap"),
-    meterTrack: $("meter-track"),
-    meterMarker: $("meter-marker"),
-    meterValue: $("meter-value"),
-    meterWorld: $("meter-world"),
-    factors: $("factors"),
-    allFactors: $("all-factors"),
-    popTake: $("pop-takeaway"),
-    popChart: $("pop-chart"),
-    wfLabel: $("wf-label"),
-    wfTake: $("wf-takeaway"),
-    wfChart: $("wf-chart"),
-    compTake: $("comp-takeaway"),
-    compChart: $("comp-chart"),
-    migTake: $("mig-takeaway"),
-    migBars: $("mig-bars"),
-    migNet: $("mig-net"),
-    corrOrigins: $("corr-origins"),
-    corrDest: $("corr-dest"),
-    migNote: $("mig-note"),
-    genText: $("gen-takeaway-text"),
-    hypo: $("hypo-tag"),
-    range: $("whatif-range"),
-    out: $("whatif-out"),
-    tickCountry: $("tick-country"),
-    tickRepl: $("tick-repl"),
-    reset: $("whatif-reset"),
+    name: $("cv-name"),
+    verdict: $("cv-verdict"),
+    meter: $("cv-meter"),
+    lede: $("cv-lede"),
+    controls: $("cv-controls"),
+    ppTitle: $("pp-title"),
+    ppYear: $("pp-year"),
+    ppNum: $("pp-num"),
+    ppUnit: $("pp-unit"),
+    ppPct: $("pp-pct"),
+    ppGrid: $("pp-grid"),
+    ppSentence: $("pp-sentence"),
+    chTitle: $("ch-title"),
+    chSentence: $("ch-sentence"),
+    chart: $("pop-chart"),
+    babies: $("why-babies"),
+    born: $("why-born"),
+    move: $("why-move"),
+    genSentence: $("gen-sentence"),
     gens: $("gens"),
-    tfrTake: $("tfr-takeaway"),
-    tfrChart: $("tfr-chart"),
-    c9Label: $("c9-label"),
-    c9Json: $("c9-json"),
-    c9Report: $("c9-report"),
+    whatif: $("whatif-range"),
+    whatifOut: $("whatif-out"),
+    whatifReset: $("whatif-reset"),
+    more: $("more"),
+    moreBody: $("more-body"),
   };
 
-  const H = {
-    pop: Number(el.popChart.dataset.height) || 200,
-    wf: Number(el.wfChart.dataset.height) || 168,
-    comp: Number(el.compChart.dataset.height) || 220,
-    tfr: Number(el.tfrChart.dataset.height) || 200,
-  };
-  for (const [k, c] of [
-    ["pop", el.popChart],
-    ["wf", el.wfChart],
-    ["comp", el.compChart],
-    ["tfr", el.tfrChart],
-  ])
-    c.style.height = `${H[k]}px`;
-
-  let current = null;
+  let current = null; // record
   let token = 0;
   let whatIf = null;
-  let factorsExpanded = false;
-  let tierMins = { ...DEFAULT_TIER_MINS };
-  let lazyState = { status: "idle", detail: null, world: null };
 
-  // ------------------------------------------------------------ static structures built once
-  const genRows = GEN_LABELS.map((label, i) => {
-    const dots = [];
-    const grid = h("span", { class: "dots", "aria-hidden": "true" });
-    for (let k = 0; k < 100; k++) {
-      const fill = h("i");
-      dots.push(fill);
-      grid.append(h("span", { class: "dot" }, fill));
-    }
-    const year = h("span");
-    const count = h("b");
-    const extra = h("span", { class: "gen-extra", hidden: true });
-    const nameEl = h("strong", null, label); // wraps only at the hyphen in "Great-grandchildren"
-    const li = h(
-      "li",
-      { class: "gen" },
-      h("span", { class: "gen-label" }, nameEl, year),
-      grid,
-      h("span", { class: "gen-count" }, count, extra),
-    );
-    el.gens.append(li);
-    return { li, dots, year, count, extra, fills: new Array(100).fill(-1), i };
+  const controls = createTimeControls({
+    prefix: "cv",
+    valueText: (y) => (current ? `${y}, ${current.name} ${L.fmtWords(popNow(current.iso3, y))}` : String(y)),
+  });
+  el.controls.replaceChildren(controls.root);
+
+  const grid = peopleRow(el.ppGrid, { per: 100, maxExtra: 100, extraLabel: (n) => `+${n} more for every 100 today` });
+
+  const chart = createPopChart(el.chart, {
+    onScrub: (yr) => setYear(yr, { animate: false }),
   });
 
-  function setTierMins(tiers) {
-    if (Array.isArray(tiers) && tiers.length) {
-      for (const t of tiers) if (TIERS.includes(t.name) && Number.isFinite(t.min)) tierMins[t.name] = t.min;
-    }
-    el.meterTrack.replaceChildren();
-    const order = [...TIERS].sort((a, b) => tierMins[a] - tierMins[b]);
-    order.forEach((t, i) => {
-      const from = tierMins[t];
-      const to = i + 1 < order.length ? tierMins[order[i + 1]] : 100;
-      el.meterTrack.append(h("span", { style: { width: `${to - from}%`, background: TIER_COLORS[t] } }));
-    });
-  }
-  setTierMins(null);
+  // ---------------------------------------------------------------- hero
 
-  // ------------------------------------------------------------ helpers
-  const isWorld = (rec) => rec?.iso3 === "WLD";
-  const label = (rec) => (isWorld(rec) ? "the world" : rec.name);
-
-  // ------------------------------------------------------------ C1, C2, C3 (instant)
-  function renderHeader(rec, detail) {
-    const world = isWorld(rec);
-    setText(el.region, world ? "Whole world" : rec.region ?? "");
-    setText(el.name, rec.name);
-    el.name.classList.toggle("long", rec.name.length > 24);
-    setAttr(el.name, "title", rec.name);
-    const tier = tierOf(rec);
-    el.tier.hidden = world;
-    if (!world) {
-      el.tier.style.setProperty("--sw", tier ? TIER_COLORS[tier] : "var(--border-strong)");
-      el.tierSw.style.setProperty("--sw", tier ? TIER_COLORS[tier] : "var(--map-nodata)");
-      setText(el.tierText, tierLabel(tier));
-    }
-    setText(el.rank, rankLabel(rec, rankedCount()));
-    setText(el.summary, summarySentence(rec, detail, { fallbackYear: latestEstimateYear() }));
-    setAttr(el.postX, "href", xIntentUrl(rec));
-  }
-
-  function renderKpis(rec) {
-    const tfr = tfrValue(rec);
-    setText(el.kpiTfr, fmtTfr(tfr));
-    setText(el.kpiTfrSub, tfr != null ? `in ${rec.tfr.year} · 2.1 keeps a population steady` : "no recent figure");
-    const p = rec.projection ?? {};
-    // The % is measured against the UN base year, so show that pair (not the newer World Bank population).
-    const base = projectionBase(rec, { fallbackYear: latestEstimateYear() });
-    if (p.change2100Pct != null) el.kpiPop.replaceChildren(fmtPct(p.change2100Pct), h("small", null, ` vs ${base.year}`));
-    else setText(el.kpiPop, "–");
-    setText(
-      el.kpiPopSub,
-      base.population != null && p.population2100 != null
-        ? `${fmtCompact(base.population)} in ${base.year} → ${fmtCompact(p.population2100)} in 2100 (UN projection)`
-        : "no UN projection",
-    );
-    const g = nextGeneration(tfr);
-    setText(el.kpiGen, g != null ? String(g) : "–");
-    const age = rec.medianAge?.value;
-    setText(el.kpiAge, age != null ? age.toFixed(1) : "–");
-    const s65 = rec.share65?.value;
-    setText(el.kpiAgeSub, s65 != null ? `65 and older: ${Math.round(s65)}%` : "share 65+ not available");
-  }
-
-  function renderWhy(rec, detail) {
-    const world = isWorld(rec);
-    const tier = tierOf(rec);
-    const score = rec.risk?.score;
-    if (world) setText(el.whyTitle, "The world as a whole");
-    else if (!tier || score == null) setText(el.whyTitle, `${rec.name} is not scored`);
-    else setText(el.whyTitle, `Why ${rec.name} is rated ${tier} for decline risk`);
-    const noMeter = world || !tier || score == null;
-    el.meterWrap.classList.toggle("world", noMeter);
-    el.meterWorld.hidden = !noMeter;
-    if (world) {
-      const tfr = tfrValue(rec);
-      setText(
-        el.meterWorld,
-        `The world as a whole isn't scored. It has ${fmtTfr(tfr)} births per woman, ${tfr >= REPLACEMENT ? "just above" : "just below"} the 2.1 replacement level.`,
-      );
-    } else if (noMeter) {
-      setText(el.meterWorld, "Not scored (incomplete data).");
-    } else {
-      el.meterMarker.style.left = `${Math.max(0, Math.min(100, score))}%`;
-      setText(el.meterValue, `${score} / 100`);
-      const v = el.meterValue;
-      v.style.transform = score < 8 ? "translateX(-4px)" : score > 92 ? "translateX(calc(-100% + 4px))" : "";
-    }
-    renderFactors(rec, detail);
-  }
-
-  function renderFactors(rec, detail) {
-    const all = detail?.risk?.factors ?? rec.risk?.factors ?? [];
-    const top = rec.risk?.factors ?? all.slice(0, 3);
-    const list = factorsExpanded ? all : top.slice(0, 3);
-    const items = [...list];
-    if (!factorsExpanded) while (items.length < 3) items.push(null);
-    el.factors.classList.toggle("expanded", factorsExpanded);
-    const lis = items.map((f) => (f == null ? h("li", { class: "skeleton-line", "aria-hidden": "true" }, " ") : h("li", { title: f }, f)));
-    el.factors.replaceChildren(...lis);
-    const more = (detail?.risk?.factors?.length ?? 0) > Math.min(3, top.length);
-    el.allFactors.hidden = !more;
-    setText(el.allFactors, factorsExpanded ? "Show fewer factors" : "See all factors");
-    setAttr(el.allFactors, "aria-expanded", factorsExpanded ? "true" : "false");
-  }
-
-  el.allFactors.addEventListener("click", () => {
-    factorsExpanded = !factorsExpanded;
-    renderFactors(current, lazyState.detail);
-  });
-
-  // ------------------------------------------------------------ C5a waterfall (instant)
-  function renderWaterfall(rec, fade) {
-    const c = rec.components;
-    setText(el.wfLabel, c?.year ? `What's changing the population, ${c.year}` : "What's changing the population");
-    setText(el.wfTake, waterfallTakeaway(rec));
-    const rows = waterfallRows(c);
-    if (!rows) {
-      chartError(el.wfChart, H.wf, `No recent births and deaths data for ${label(rec)}.`, null);
-      el.wfChart.querySelector(".chart-error button")?.remove();
+  // The meter says where the place is headed by 2100 under the selected scenario, on the globe legend's five words
+  // and colors. The 0–100 risk score lives under "More numbers" only.
+  function renderMeter(rec) {
+    const small = rec.iso3 !== "WLD" && L.isSmallPlace(rec);
+    const pct = pct2100(rec.iso3, state.scenario);
+    const step = L.outlookStep(pct);
+    if (small || step < 0) {
+      // Micro-places: the verdict already says why there's no word, so no meter at all.
+      el.meter.className = "meter none";
+      el.meter.replaceChildren(...(small ? [] : [h("p", { class: "meter-none" }, "No forecast for this place.")]));
+      setAttr(el.meter, "role", null);
+      setAttr(el.meter, "aria-label", null);
       return;
     }
-    waterfallChart(el.wfChart, rows, {
-      height: H.wf,
-      fmtValue: (v) => fmtFlow(v),
-      fmtRate: (r) => fmtRate(r, { plus: true }),
-      ariaLabel: `${el.wfTake.textContent} Births ${fmtFlow(c.births, { plus: false })}, deaths ${fmtFlow(c.deaths, { plus: false })}, net migration ${fmtFlow(c.netMigration ?? 0)}.`,
-      fade,
-    });
+    const scen = state.scenario === "constant" ? ", if birth rates stay the same" : "";
+    el.meter.className = "meter";
+    setAttr(el.meter, "role", "img");
+    setAttr(el.meter, "aria-label", `By 2100${scen}: ${L.OUTLOOK[step].label}, ${L.fmtPct(pct)} compared with today.`);
+    el.meter.replaceChildren(
+      h("p", { class: "meter-title", "aria-hidden": "true" }, `By 2100${scen}: `, h("b", null, L.OUTLOOK[step].label), h("span", { class: "meter-pct" }, ` ${L.fmtPct(pct)} vs today`)),
+      h(
+        "div",
+        { class: "meter-track", "aria-hidden": "true" },
+        ...L.OUTLOOK.map((o, i) => h("span", { class: `meter-seg${i === step ? " on" : ""}` }, h("i", { style: { background: L.outlookColor(i) } }), h("span", { class: "meter-word" }, o.label))),
+      ),
+    );
   }
 
-  // ------------------------------------------------------------ C6 moving in, moving out
-  function migItem(labelText, valueNode, cls, pct) {
-    const track = h("div", { class: "mig-track" });
-    if (pct != null) track.append(h("div", { class: `mig-fill ${cls}`, style: { width: `max(2px, ${pct}%)` } }));
-    return h("div", { class: "mig-item" }, h("p", { class: "mig-label", title: labelText }, labelText), valueNode, track);
+  function renderHero(rec) {
+    setText(el.region, rec.iso3 === "WLD" ? "Whole world" : rec.region ?? "");
+    setText(el.name, rec.iso3 === "WLD" ? "The world" : rec.name);
+    el.name.classList.toggle("long", rec.name.length > 22);
+    const sc = state.scenario;
+    const small = rec.iso3 !== "WLD" && L.isSmallPlace(rec);
+    const p = pct2100(rec.iso3, sc);
+    setText(el.verdict, L.verdict(rec, p, data.today, { scenario: sc, peakYear: peakYear(rec.iso3, sc), small }));
+    el.verdict.dataset.band = small ? "" : L.changeBand(p) ?? "";
+    renderMeter(rec);
+    const r = L.ratioVsToday(data.scen, rec.iso3, data.end, sc, data.today);
+    setText(el.lede, small ? "" : L.hundredSentence(rec, r, sc));
   }
 
-  function renderMigration(rec) {
-    setText(el.migTake, migrationTakeaway(rec));
+  // ---------------------------------------------------------------- 100 people + chart (follow the slider)
+
+  function renderLive() {
+    if (!current) return;
+    const iso3 = current.iso3;
+    const y = yearInt();
+    const v = popNow(iso3);
+    const pct = pctNow(iso3);
+    const sp = L.splitWords(v);
+    setText(el.ppYear, y === data.today ? "Today" : String(y));
+    setText(el.ppNum, sp.num);
+    setText(el.ppUnit, sp.unit ? `${sp.unit} people` : "people");
+    setText(el.ppPct, y === data.today || pct == null ? "" : L.fmtPct(pct));
+    el.ppPct.dataset.band = L.changeBand(pct) ?? "";
+    const r = ratioNow(iso3);
+    grid.update(r);
+    const n = r == null ? null : Math.round(r * 100);
+    let sentence;
+    if (r == null) sentence = "No forecast for this place.";
+    else if (y === data.today) sentence = `Each figure is 1 in every 100 people in ${placeName()} today. Press Play to watch them change.`;
+    else if (n < 100) sentence = `In ${y}, ${n} of today's 100 are left${state.mix >= 0.5 ? " if birth rates stay the same" : ""}. Gray figures are people who are gone.`;
+    else if (n > 100) sentence = `In ${y}, there are ${n} for every 100 today${state.mix >= 0.5 ? " if birth rates stay the same" : ""}. Green figures are new people.`;
+    else sentence = `In ${y}, about the same number of people as today.`;
+    setText(el.ppSentence, sentence);
+    chart.update(state.year, state.mix);
+  }
+
+  function placeName() {
+    return L.theName(current);
+  }
+
+  function renderChart(rec, detail) {
+    const today = data.today;
+    const past = (detail?.series ?? []).filter((r) => r.variant === "estimate" && r.population != null).map((r) => [r.year, r.population]);
+    const arr = (sc) => (data.scen?.places?.[rec.iso3]?.[sc] ?? []).map((v, i) => [data.start + i, v]);
+    const medium = arr("medium");
+    const constant = arr("constant");
+    // The past line runs up to today using the UN's own path between its last estimate and today.
+    const bridge = medium.filter((p) => p[0] <= today && (!past.length || p[0] > past[past.length - 1][0]));
+    const pastAll = [...past, ...bridge];
+    const peak = L.peakOf([...pastAll, ...medium.filter((p) => p[0] > today)]);
+    setText(el.chTitle, `People in ${placeName()}, 1950–2100`);
+    const endM = medium[medium.length - 1]?.[1];
+    const endC = constant[constant.length - 1]?.[1];
+    let sentence = "";
+    if (endM != null && endC != null) {
+      const diff = (endC / endM - 1) * 100;
+      sentence =
+        Math.abs(diff) < 3
+          ? "Both futures end up in about the same place."
+          : diff < 0
+            ? `If birth rates stay where they are, ${placeName()} ends up ${L.fmtPct(Math.abs(diff), { plus: false })} smaller than the UN forecast.`
+            : `If birth rates stay where they are, ${placeName()} ends up ${L.fmtPct(diff, { plus: false })} bigger than the UN forecast.`;
+    }
+    setText(el.chSentence, sentence);
+    chart.setData({ past: pastAll, medium, constant, today, peak, name: placeName(), year: state.year, mix: state.mix });
+  }
+
+  // ---------------------------------------------------------------- why it's happening
+
+  function babyIcons(count, cls, max = 8) {
+    const n = Math.min(max, Math.ceil(count - 1e-9));
+    const wrap = h("span", { class: `babies ${cls}` });
+    for (let i = 0; i < Math.max(1, n); i++) {
+      const f = Math.max(0, Math.min(1, count - i));
+      const icon = h("i", { class: "person baby" });
+      icon.style.setProperty("--f", String(Math.round(f * 100) / 100));
+      wrap.append(icon);
+    }
+    return wrap;
+  }
+
+  function renderWhy(rec) {
+    const tfr = rec.tfr?.value;
+    el.babies.replaceChildren(
+      h("h3", { class: "tile-title" }, "Babies per woman"),
+      h(
+        "div",
+        { class: "tile-pic babies-pic", "aria-hidden": "true" },
+        h("div", { class: "brow" }, h("span", { class: "brow-label" }, h("b", null, L.fmtTfr(tfr)), h("span", null, rec.iso3 === "WLD" ? "World" : current.name)), tfr != null ? babyIcons(tfr, "have") : ""),
+        h("div", { class: "brow" }, h("span", { class: "brow-label" }, h("b", null, "2.1"), h("span", null, "Same size")), babyIcons(L.REPLACEMENT, "need")),
+      ),
+      h("p", { class: "tile-text" }, L.babiesSentence(tfr)),
+    );
+
+    const c = rec.components;
+    const max = Math.max(c?.births ?? 0, c?.deaths ?? 0) || 1;
+    const bar = (cls, label, v) =>
+      h(
+        "div",
+        { class: `bd-row ${cls}` },
+        h("span", { class: "bd-label" }, label),
+        h("span", { class: "bd-track" }, h("span", { class: "bd-fill", style: { width: `${Math.max(2, (100 * (v ?? 0)) / max)}%` } })),
+        h("span", { class: "bd-val" }, L.fmtFlow(v, { plus: false })),
+      );
+    el.born.replaceChildren(
+      h("h3", { class: "tile-title" }, `Born vs died${c?.year ? `, ${c.year}` : ""}`),
+      h("div", { class: "tile-pic bd-pic", "aria-hidden": "true" }, bar("born", "Born", c?.births), bar("died", "Died", c?.deaths)),
+      h("p", { class: "tile-text" }, L.bornDiedSentence(c)),
+    );
+
+    // Moving: arrows labelled with the people who arrived and left (UN migrant stock: everyone alive today who moved),
+    // and the yearly net in words. No global source counts yearly arrivals and departures separately.
     const m = rec.migrantStock;
-    const world = isWorld(rec);
-    const items = [];
-    if (!m || m.immigrants == null) {
-      items.push(h("div", { class: "chart-empty" }, `No migrant-stock data for ${label(rec)}.`));
-    } else if (world) {
-      items.push(
-        migItem(
-          "People living outside the country they were born in",
-          h("p", { class: "mig-value" }, h("strong", null, fmtCompact(m.immigrants)), ` · ${m.immigrantsPct ?? "–"}% of the world's people`),
-          "in",
-          100,
-        ),
-      );
-    } else {
-      const max = Math.max(m.immigrants ?? 0, m.emigrants ?? 0) || 1;
-      items.push(
-        migItem(
-          `Born abroad, living in ${rec.name}`,
-          h("p", { class: "mig-value" }, h("strong", null, fmtCompact(m.immigrants)), m.immigrantsPct != null ? ` · ${m.immigrantsPct.toFixed(1)}% of residents` : ""),
-          "in",
-          (100 * m.immigrants) / max,
-        ),
-      );
-      if (m.emigrants == null) {
-        items.push(
-          h(
-            "div",
-            { class: "mig-item" },
-            h("p", { class: "mig-label" }, `Born in ${rec.name}, living abroad`),
-            h("p", { class: "mig-value" }, "No data on people living abroad"),
-            h("div", { class: "mig-track" }),
-          ),
+    const net = c?.netMigration;
+    const world = rec.iso3 === "WLD";
+    const pic = h("div", { class: "tile-pic move-pic", "aria-hidden": "true" });
+    if (world && m?.immigrants != null) {
+      pic.append(h("p", { class: "move-world" }, h("b", null, L.fmtWords(m.immigrants)), " people live outside the country they were born in."));
+    } else if (m?.immigrants != null || m?.emigrants != null) {
+      const mx = Math.max(m.immigrants ?? 0, m.emigrants ?? 0) || 1;
+      const arrow = (cls, label, v) =>
+        h(
+          "div",
+          { class: `mv-row ${cls}` },
+          h("span", { class: "mv-label" }, label),
+          h("span", { class: "mv-track" }, h("span", { class: "mv-arrow", style: { width: `${Math.max(14, (100 * (v ?? 0)) / mx)}%` } })),
+          h("span", { class: "mv-val" }, v == null ? "–" : L.fmtWords(v)),
         );
-      } else {
-        const whose = rec.name.length <= 18 ? `${possessive(rec.name)} population` : "its population";
-        items.push(
-          migItem(
-            `Born in ${rec.name}, living abroad`,
+      pic.append(arrow("in", "Arrived", m.immigrants), arrow("out", "Left", m.emigrants));
+      pic.append(h("p", { class: "mv-note" }, `People alive in ${m.year ?? "2024"} who moved in, and who moved away.`));
+    }
+    el.move.replaceChildren(
+      h("h3", { class: "tile-title" }, "Moving in vs out"),
+      pic,
+      h("p", { class: "tile-text" }, world ? "Moving doesn't change the world's total." : L.yearlyNetSentence(net)),
+    );
+  }
+
+  // ---------------------------------------------------------------- generations
+
+  function dotGroup(count) {
+    const shown = Math.min(400, Math.round(count));
+    const cols = shown > 100 ? 20 : 10;
+    const wrap = h("span", { class: "gdots", style: { "--cols": String(cols) } });
+    for (let i = 0; i < shown; i++) wrap.append(h("i"));
+    if (count - shown >= 1) wrap.append(h("span", { class: "gmore" }, `+${Math.round(count - shown)}`));
+    return wrap;
+  }
+
+  function renderGens(rec) {
+    const base = rec.tfr?.value;
+    const tfr = whatIf ?? base;
+    setText(el.genSentence, whatIf != null ? L.generationsSentence(tfr, { whatIfName: placeName() }) : L.generationsSentence(tfr));
+    const counts = L.generationCounts(tfr, 4);
+    el.gens.replaceChildren(
+      ...counts.map((c, i) =>
+        h(
+          "li",
+          { class: "gen" },
+          h("span", { class: "gen-count" }, L.fmtPeople(c)),
+          dotGroup(c),
+          h("span", { class: "gen-label" }, GEN_LABELS[i], i > 0 ? h("small", null, ` ~${data.today + i * L.GEN_YEARS}`) : ""),
+        ),
+      ),
+    );
+    setText(el.whatifOut, L.fmtTfr(tfr));
+    el.whatif.style.setProperty("--pf", String(Math.max(0, Math.min(1, ((tfr ?? 2.1) - 0.5) / 3.5))));
+    if (document.activeElement !== el.whatif) el.whatif.value = String(tfr ?? 2.1);
+    el.whatifReset.hidden = whatIf == null;
+    setText(el.whatifReset, `Back to ${L.possessiveOf(current)} ${L.fmtTfr(base)}`);
+  }
+
+  el.whatif.addEventListener("input", () => {
+    whatIf = Number(el.whatif.value);
+    if (current) renderGens(current);
+  });
+  el.whatifReset.addEventListener("click", () => {
+    whatIf = null;
+    if (current) renderGens(current);
+    focusNoScroll(el.whatif);
+  });
+
+  // ---------------------------------------------------------------- more numbers
+
+  function stat(label, value, sub) {
+    return h("div", { class: "stat" }, h("dt", null, label), h("dd", null, value, sub ? h("small", null, ` ${sub}`) : ""));
+  }
+
+  function renderMore(rec, detail, status) {
+    const p = rec.projection ?? {};
+    const c = rec.components ?? {};
+    const world = rec.iso3 === "WLD";
+    // Every % here is vs today (this year's UN figure), like the rest of the page. Measured figures keep their year.
+    const today = data.today;
+    const vsToday = (year, sc) => {
+      const v = L.popAt(data.scen, rec.iso3, year, sc);
+      const pct = L.pctVsToday(data.scen, rec.iso3, year, sc, today);
+      return [L.fmtWords(v), pct == null ? "" : `(${L.fmtPct(pct)} vs today)`];
+    };
+    const medArr = data.scen?.places?.[rec.iso3]?.medium ?? [];
+    const base = L.popAt(data.scen, rec.iso3, today, "medium");
+    let halfYear = null;
+    for (let i = Math.max(0, today - data.start); i < medArr.length; i++)
+      if (base && medArr[i] != null && medArr[i] <= base / 2) {
+        halfYear = data.start + i;
+        break;
+      }
+    const stats = h(
+      "dl",
+      { class: "stats" },
+      stat("People", L.fmtWords(rec.population?.value), rec.population?.year ? `(${rec.population.year})` : ""),
+      stat(`People today (${today}, UN)`, L.fmtWords(base)),
+      stat("Babies per woman", L.fmtTfr(rec.tfr?.value), rec.tfr?.year ? `(${rec.tfr.year})` : ""),
+      stat("Median age", rec.medianAge?.value != null ? `${rec.medianAge.value.toFixed(1)} years` : "–", rec.medianAge?.year ? `(${rec.medianAge.year})` : ""),
+      stat("65 and older", rec.share65?.value != null ? `${Math.round(rec.share65.value)}%` : "–", rec.share65?.year ? `of people (${rec.share65.year})` : ""),
+      stat("Born per year", L.fmtFlow(c.births, { plus: false }), c.year ? `(${c.year})` : ""),
+      stat("Died per year", L.fmtFlow(c.deaths, { plus: false }), c.year ? `(${c.year})` : ""),
+      stat("Net migration", L.fmtFlow(c.netMigration), c.year ? `(${c.year})` : ""),
+      stat("UN forecast, 2050", ...vsToday(2050, "medium")),
+      stat("UN forecast, 2100", ...vsToday(data.end, "medium")),
+      stat("If birth rates stay the same, 2100", ...vsToday(data.end, "constant")),
+      stat("Peak", p.peakYear != null ? String(p.peakYear) : "–", p.peakYear != null && p.peakYear >= L.END_YEAR ? "(still growing)" : ""),
+      stat("Half of today's people by", halfYear != null ? String(halfYear) : "Not before 2100", "(UN forecast)"),
+    );
+
+    // The composite risk score (API) and its inputs, kept apart and labelled: it measures change from 2023.
+    const factors = detail?.risk?.factors ?? rec.risk?.factors ?? [];
+    const factorBlock =
+      !world && rec.risk?.score != null
+        ? h(
+            "div",
+            { class: "cv-more-sec" },
+            h("h3", null, "Risk score (0–100), ", h("a", { href: "https://github.com/RostyslavDzhohola/fertility-tracker/blob/main/docs/METHODOLOGY.md", target: "_blank", rel: "noopener" }, "how it works →")),
             h(
               "p",
-              { class: "mig-value" },
-              h("strong", null, fmtCompact(m.emigrants)),
-              m.emigrantsPct != null ? ` · equal to ${m.emigrantsPct.toFixed(1)}% of ${whose}` : "",
+              { class: "score-line" },
+              h("b", null, `${rec.risk.score} / 100`),
+              ` · tier ${rec.risk.tier ?? "–"}`,
+              Number.isInteger(rec.risk?.rank) ? ` · ${L.rankLabel(rec, data.rankedN)}` : ` · ${L.rankLabel(rec, data.rankedN)}`,
             ),
-            "out",
-            (100 * m.emigrants) / max,
+            h("p", { class: "muted small" }, "A summary of five signals: babies per woman, births vs deaths, age, migration and the UN forecast. Unlike the rest of this page, it compares with 2023."),
+            factors.length ? h("ul", { class: "factors" }, ...factors.map((f) => h("li", null, f))) : "",
+          )
+        : "";
+
+    const m = rec.migrantStock;
+    const corr = detail?.migrationCorridors;
+    const partnerList = (list) => {
+      if (status === "loading") return h("p", { class: "muted" }, "Loading…");
+      if (status === "error") return h("p", { class: "muted" }, "Couldn't load this list.");
+      if (!list?.length) return h("p", { class: "muted" }, "No breakdown by country.");
+      return h(
+        "ol",
+        { class: "partners" },
+        ...list.slice(0, 5).map((pp) =>
+          h(
+            "li",
+            null,
+            pp.iso3 && data.records.has(pp.iso3) ? h("a", { href: L.countryPath(pp.iso3), "data-nav": "" }, pp.name) : h("span", null, pp.name),
+            h("span", { class: "num" }, L.fmtCompact(pp.people)),
           ),
-        );
-      }
-    }
-    el.migBars.replaceChildren(...items);
-    const c = rec.components;
-    if (c && c.netMigration != null) {
-      const rate = c.perThousand?.netMigration;
-      setText(el.migNet, `Net migration in ${c.year}: ${fmtFlow(c.netMigration)} people${rate != null ? ` (${fmtRate(rate, { plus: true })} per 1,000)` : ""}`);
-    } else setText(el.migNet, "Net migration: no recent figure");
-    setText(
-      el.migNote,
-      `These count people, not yearly moves: everyone born abroad who lives here now, and everyone born here who lives abroad. Source: UN migrant stock${m?.year ? `, ${m.year}` : ""}.`,
-    );
-  }
-
-  function corridorRows(list, partners, state) {
-    const rows = [];
-    if (state === "loading") {
-      for (let i = 0; i < 3; i++) rows.push(h("li", { "aria-hidden": "true" }, h("span", { class: "skel" })));
-    } else if (state === "error") {
-      rows.push(h("li", null, h("span", { class: "corr-none" }, "Couldn't load this list.")));
-    } else if (!partners || !partners.length) {
-      rows.push(h("li", null, h("span", { class: "corr-none" }, "No breakdown by country available.")));
-    } else {
-      for (const p of partners.slice(0, 3)) {
-        const known = p.iso3 && getRecord(p.iso3);
-        const nameNode = known
-          ? h("button", { type: "button", class: "corr-name", "data-iso3": p.iso3, title: p.name }, p.name)
-          : h("span", { class: "corr-name", title: p.name }, p.name);
-        rows.push(h("li", null, nameNode, h("span", { class: "corr-count" }, fmtCompact(p.people))));
-      }
-    }
-    list.replaceChildren(...rows);
-  }
-
-  for (const list of [el.corrOrigins, el.corrDest]) {
-    list.addEventListener("click", (e) => {
-      const b = e.target.closest("button[data-iso3]");
-      if (b) onSelect(b.dataset.iso3, "list");
-    });
-  }
-
-  function renderCorridors(rec, state, detail) {
-    if (isWorld(rec)) {
-      corridorRows(el.corrOrigins, [], "done");
-      corridorRows(el.corrDest, [], "done");
-      return;
-    }
-    const c = detail?.migrationCorridors;
-    corridorRows(el.corrOrigins, c?.topOrigins, state);
-    corridorRows(el.corrDest, c?.topDestinations, state);
-  }
-
-  // ------------------------------------------------------------ C7 start with 100 people
-  function sliderMax(tfr) {
-    return Math.max(4, tfr != null ? Math.ceil(tfr * 20) / 20 : 4);
-  }
-
-  function renderGenerations(rec) {
-    const base = tfrValue(rec);
-    const tfr = whatIf ?? base;
-    const nameForCopy = isWorld(rec) ? "the world" : rec.name;
-    setText(el.genText, generationsTakeaway(nameForCopy, tfr, { whatIf: whatIf != null }));
-    el.hypo.hidden = whatIf == null;
-    setText(el.out, fmtTfr(tfr));
-    el.reset.hidden = whatIf == null;
-    setText(el.reset, `Reset to ${isWorld(rec) ? "the world's" : possessive(rec.name)} rate`);
-    const counts = generationCounts(tfr, 5);
-    const now = new Date().getFullYear();
-    genRows.forEach((row, i) => {
-      const v = counts[i];
-      setText(row.year, i === 0 ? String(now) : `~${now + i * GEN_YEARS}`);
-      const txt = v == null ? "–" : v >= 1000 ? Math.round(v).toLocaleString("en-US") : fmtCount(v);
-      setText(row.count, txt);
-      row.count.classList.toggle("big", txt.length > 4);
-      const over = v != null && v > 100 ? Math.round(v) - 100 : 0;
-      row.extra.hidden = over <= 0;
-      if (over > 0) setText(row.extra, `+${over.toLocaleString("en-US")}`);
-      const fills = dotFills(v ?? 0);
-      for (let k = 0; k < 100; k++) {
-        const f = Math.round(fills[k] * 1000) / 1000;
-        if (row.fills[k] !== f) {
-          row.fills[k] = f;
-          row.dots[k].style.setProperty("--f", f);
-        }
-      }
-      setAttr(row.li, "aria-label", `${GEN_LABELS[i]}: ${txt} people`);
-    });
-  }
-
-  function positionTicks(rec) {
-    const base = tfrValue(rec);
-    const min = Number(el.range.min);
-    const max = Number(el.range.max);
-    const trackW = el.range.getBoundingClientRect().width || 300;
-    const pos = (v) => 10 + (trackW - 20) * ((Math.min(Math.max(v, min), max) - min) / (max - min));
-    // Centre a caption on its tick (pinned inside the track at the ends) and return its real box.
-    const place = (node, v, text) => {
-      node.hidden = false;
-      node.textContent = text;
-      node.classList.remove("edge-left", "edge-right");
-      const px = pos(v);
-      node.style.left = `${px}px`;
-      const w = node.getBoundingClientRect().width;
-      if (px - w / 2 < 0) node.classList.add("edge-left");
-      else if (px + w / 2 > trackW) node.classList.add("edge-right");
-      return node.getBoundingClientRect();
+        ),
+      );
     };
-    const clash = (a, b) => a.right + 8 > b.left && b.right + 8 > a.left;
-    const repl = place(el.tickRepl, REPLACEMENT, "Replacement 2.1");
-    if (base == null || Math.abs(base - REPLACEMENT) < 0.15) {
-      el.tickCountry.hidden = true;
-      return;
-    }
-    const name = isWorld(rec) ? "World" : rec.name;
-    // Full caption, then the number alone, then nothing (the output above the slider still shows the rate).
-    for (const text of [`${name} ${fmtTfr(base)}`, fmtTfr(base)]) {
-      if (!clash(place(el.tickCountry, base, text), repl)) return;
-    }
-    el.tickCountry.hidden = true;
-  }
+    const migBlock =
+      !world && m
+        ? h(
+            "div",
+            { class: "cv-more-sec" },
+            h("h3", null, `Moving in and out${m.year ? ` (people, ${m.year})` : ""}`),
+            h(
+              "dl",
+              { class: "stats two" },
+              stat(`Born abroad, living in ${rec.name}`, L.fmtWords(m.immigrants), m.immigrantsPct != null ? `(${m.immigrantsPct}% of residents)` : ""),
+              stat(`Born in ${rec.name}, living abroad`, L.fmtWords(m.emigrants)),
+            ),
+            h("div", { class: "corridors" }, h("div", null, h("h4", null, "Most come from"), partnerList(corr?.topOrigins)), h("div", null, h("h4", null, "Most live in"), partnerList(corr?.topDestinations))),
+          )
+        : "";
 
-
-  function resetSlider(rec) {
-    whatIf = null;
-    const base = tfrValue(rec);
-    el.range.max = String(sliderMax(base));
-    el.range.value = String(base ?? REPLACEMENT);
-    el.range.disabled = base == null;
-    positionTicks(rec);
-    renderGenerations(rec);
-  }
-
-  el.range.addEventListener("input", () => {
-    if (!current) return;
-    const v = Number(el.range.value);
-    const base = tfrValue(current);
-    whatIf = base != null && Math.abs(v - base) < 0.001 ? null : v;
-    renderGenerations(current);
-  });
-  el.reset.addEventListener("click", () => {
-    if (!current) return;
-    resetSlider(current);
-    el.range.focus({ preventScroll: true });
-  });
-
-  // ------------------------------------------------------------ lazy charts (C4, C5b, C8, corridors)
-  function seriesOf(detail, key) {
-    return (detail?.series ?? []).map((r) => [r.year, r[key] ?? null]);
-  }
-
-  function renderPopulation(rec, detail, fade) {
-    const series = detail.series ?? [];
-    const boundary = lastEstimateYear(series, latestEstimateYear());
-    setText(el.popTake, populationTakeaway(rec, boundary));
-    const values = seriesOf(detail, "population");
-    const first = series.find((r) => r.population != null);
-    const last = [...series].reverse().find((r) => r.population != null);
-    const peak = peakOf(series, "population");
-    const ann = [];
-    if (peak && peak.year !== first?.year && peak.year !== last?.year)
-      ann.push({ year: peak.year, v: peak.population, text: `Peak ${fmtCompact(peak.population)} (${peak.year})`, dot: true });
-    lineChart(el.popChart, {
-      height: H.pop,
-      boundary,
-      yKind: "count",
-      series: [{ key: "population", color: "var(--text)", width: 2, values, area: "rgba(237,239,244,.06)", endLabel: last ? fmtCompact(last.population) : null, labelColor: "var(--text)" }],
-      annotations: ann,
-      startLabel: first ? { year: first.year, v: first.population, text: fmtCompact(first.population) } : null,
-      fmt: (v) => fmtCompact(v),
-      ariaLabel: `${el.popTake.textContent} ${first ? `${first.year}: ${fmtCompact(first.population)}.` : ""} ${last ? `${last.year}: ${fmtCompact(last.population)}.` : ""}`,
-      fade,
-    });
-  }
-
-  function renderComponents(rec, detail, fade) {
-    const series = detail.series ?? [];
-    const boundary = lastEstimateYear(series, latestEstimateYear());
-    setText(el.compTake, componentsTakeaway(rec, series, boundary));
-    const since = rec.projection?.naturalDeclineSince;
-    const ann = [];
-    if (since != null) {
-      const row = series.find((r) => r.year === since);
-      if (row) ann.push({ year: since, v: (row.births + row.deaths) / 2, text: `Deaths overtake births, ${since}`, dot: true, dotColor: "var(--text)" });
-    }
-    const first = series[0];
-    const last = series[series.length - 1];
-    lineChart(el.compChart, {
-      height: H.comp,
-      boundary,
-      yKind: "count",
-      emphasizeZero: true,
-      series: [
-        { key: "births", color: "var(--c-births)", width: 2, values: seriesOf(detail, "births"), endLabel: "Births" },
-        { key: "deaths", color: "var(--c-deaths)", width: 2, values: seriesOf(detail, "deaths"), endLabel: "Deaths", labelColor: "#A3AABA" },
-        { key: "migration", color: "var(--c-migration)", width: 2, values: seriesOf(detail, "netMigration"), endLabel: "Net migration" },
-      ],
-      fillBetween: { a: "births", b: "deaths", aboveColor: "rgba(86,180,233,.14)", belowColor: "rgba(124,132,152,.22)" },
-      annotations: ann,
-      fmt: (v, key) => fmtCompact(v, { plus: key === "migration" }),
-      ariaLabel: `${el.compTake.textContent} ${first ? `${first.year}: ${fmtCompact(first.births)} births, ${fmtCompact(first.deaths)} deaths.` : ""} ${last ? `${last.year}: ${fmtCompact(last.births)} births, ${fmtCompact(last.deaths)} deaths.` : ""}`,
-      fade,
-    });
-  }
-
-  function renderTfr(rec, detail, world, fade) {
-    const series = detail.series ?? [];
-    const boundary = lastEstimateYear(series, latestEstimateYear());
-    setText(el.tfrTake, tfrTakeaway(rec, series));
-    const values = seriesOf(detail, "tfr");
-    let maxV = 0;
-    for (const [, v] of values) if (v != null) maxV = Math.max(maxV, v);
-    const worldVals = !isWorld(rec) && world ? seriesOf(world, "tfr") : null;
-    if (worldVals) for (const [, v] of worldVals) if (v != null) maxV = Math.max(maxV, v);
-    const last = [...series].reverse().find((r) => r.tfr != null);
-    const sr = [];
-    if (worldVals) sr.push({ key: "world", color: "var(--c-deaths)", width: 1.5, values: worldVals, endLabel: "World", labelColor: "#A3AABA" });
-    sr.push({ key: "tfr", color: "var(--text)", width: 2.5, values, endLabel: last ? fmtTfr(last.tfr) : null, labelColor: "var(--text)" });
-    const ann = [];
-    const t = rec.tfr;
-    if (t?.value != null && t.year > boundary) ann.push({ year: t.year, v: t.value, text: `${fmtTfr(t.value)} (${t.year})`, dot: true, r: 4, below: t.value > 2.6 });
-    lineChart(el.tfrChart, {
-      height: H.tfr,
-      boundary,
-      yKind: "tfr",
-      yDomain: [0, Math.max(3, Math.ceil(maxV))],
-      series: sr,
-      refLines: [{ v: REPLACEMENT, label: "Replacement 2.1", dash: "2 4" }],
-      annotations: ann,
-      fmt: (v, key) => (key === "world" ? `World ${fmtTfr(v)}` : fmtTfr(v)),
-      ariaLabel: `${el.tfrTake.textContent}`,
-      fade,
-    });
-  }
-
-  function renderLazy(rec, detail, world, fade) {
-    lazyState = { status: "done", detail, world };
-    renderPopulation(rec, detail, fade);
-    renderComponents(rec, detail, fade);
-    renderTfr(rec, detail, world, fade);
-    renderCorridors(rec, "done", detail);
-    renderFactors(rec, detail);
-    if (isWorld(rec)) setText(el.summary, summarySentence(rec, detail, { fallbackYear: latestEstimateYear() }));
-  }
-
-  function renderLoading(rec) {
-    lazyState = { status: "loading", detail: null, world: null };
-    const boundary = latestEstimateYear();
-    setText(el.popTake, populationTakeaway(rec, boundary));
-    setText(el.compTake, componentsTakeaway(rec, null, boundary));
-    setText(el.tfrTake, `Births per woman in ${label(rec)}, 1950–2100.`);
-    chartSkeleton(el.popChart, H.pop);
-    chartSkeleton(el.compChart, H.comp);
-    chartSkeleton(el.tfrChart, H.tfr);
-    renderCorridors(rec, "loading", null);
-  }
-
-  function renderLazyError(rec) {
-    lazyState = { status: "error", detail: null, world: null };
-    const msg = `Couldn't load ${isWorld(rec) ? "the world's" : possessive(rec.name)} history.`;
-    const retry = () => loadLazy(rec, true);
-    chartError(el.popChart, H.pop, msg, retry);
-    chartError(el.compChart, H.comp, msg, retry);
-    chartError(el.tfrChart, H.tfr, msg, retry);
-    renderCorridors(rec, "error", null);
-  }
-
-  function loadLazy(rec, fade) {
-    const my = token;
-    const d = cachedDetail(rec.iso3);
-    const w = cachedDetail("WLD");
-    if (d && (w || isWorld(rec))) {
-      renderLazy(rec, d, isWorld(rec) ? d : w, fade);
-      return;
-    }
-    renderLoading(rec);
-    const pd = loadDetail(rec.iso3);
-    const pw = isWorld(rec) ? pd : loadDetail("WLD").catch(() => null);
-    Promise.all([pd, pw]).then(
-      ([detail, world]) => {
-        if (my !== token) return; // a newer selection won
-        renderLazy(rec, detail, world, true);
-      },
-      () => {
-        if (my !== token) return;
-        renderLazyError(rec);
-      },
+    const api = `/api/v1/countries/${rec.iso3}.json`;
+    const links = h(
+      "div",
+      { class: "cv-more-sec" },
+      h("h3", null, "Get the data"),
+      h(
+        "p",
+        { class: "links" },
+        h("a", { href: api }, `${world ? "World" : rec.name} as JSON`),
+        h("a", { href: "/api/v1/timeseries.csv", download: "" }, "Every year, every place (CSV)"),
+        h("a", { href: "/api/v1/scenarios.json" }, "Both futures, every place (JSON)"),
+        h("a", { href: "/api/", "data-nav-external": "" }, "API docs"),
+      ),
+      h("pre", { class: "code" }, h("code", null, `curl -s ${siteUrl()}api/v1/countries/${rec.iso3}.json`)),
     );
+
+    const shareBtn = h("button", { type: "button", class: "btn btn-secondary", id: "share-btn" }, "Copy link");
+    const r2100 = L.ratioVsToday(data.scen, rec.iso3, data.end, "medium", data.today);
+    const xUrl = `https://x.com/intent/post?text=${encodeURIComponent(L.xPostText(rec, r2100))}&url=${encodeURIComponent(L.pageUrl(rec.iso3, siteUrl()))}`;
+    shareBtn.addEventListener("click", () => share(rec, shareBtn, r2100));
+    const fb = data.feedback;
+    const issue = fb ? L.buildIssueUrl(fb, "data-problem", { iso3: rec.iso3, name: rec.name, siteUrl: siteUrl() }) : null;
+    const mail = L.buildMailto(fb, { iso3: rec.iso3, name: rec.name, siteUrl: siteUrl() });
+    const shareSec = h(
+      "div",
+      { class: "cv-more-sec" },
+      h("h3", null, "Share or tell us"),
+      h(
+        "p",
+        { class: "actions" },
+        shareBtn,
+        h("a", { class: "btn btn-secondary", href: xUrl, target: "_blank", rel: "noopener" }, "Post on X"),
+        issue ? h("a", { class: "btn btn-secondary", href: issue, target: "_blank", rel: "noopener", id: "report-link" }, "Report a problem with these numbers") : "",
+        h("a", { class: "btn btn-secondary", href: mail }, "Email us"),
+      ),
+      h("p", { class: "muted small" }, "Sources: UN World Population Prospects 2024 (CC BY 3.0 IGO), UN DESA International Migrant Stock 2024, World Bank (CC BY 4.0). GitHub issues are public; email stays private."),
+    );
+    el.moreBody.replaceChildren(stats, factorBlock, migBlock, links, shareSec);
   }
 
-  // ------------------------------------------------------------ C9
-  function renderLinks(rec) {
-    const world = isWorld(rec);
-    setText(el.c9Label, `${world ? "World" : rec.name} data:`);
-    setAttr(el.c9Json, "href", `api/v1/countries/${encodeURIComponent(rec.iso3)}.json`);
-    setText(el.c9Report, `Report a problem with ${world ? "the world's" : possessive(rec.name)} numbers →`);
-    const url = issueUrl(rec);
-    if (url) setAttr(el.c9Report, "href", url);
-  }
-
-  // ------------------------------------------------------------ public
-  function render(rec, { source } = {}) {
-    if (!rec) return;
-    token++;
-    const changed = current?.iso3 !== rec.iso3;
-    current = rec;
-    if (changed) factorsExpanded = false;
-    const cached = cachedDetail(rec.iso3);
-    renderHeader(rec, cached);
-    renderKpis(rec);
-    renderWhy(rec, cached);
-    renderWaterfall(rec, false);
-    renderMigration(rec);
-    resetSlider(rec);
-    renderLinks(rec);
-    loadLazy(rec, source !== "init");
-    if (source !== "init" && changed && !media.reduced()) {
-      el.content.classList.remove("xfade");
-      void el.content.offsetWidth;
-      el.content.classList.add("xfade");
-    }
-  }
-
-  function refreshLinks() {
-    if (current) renderLinks(current);
-  }
-
-  function refreshHeader() {
-    if (current) setText(el.rank, rankLabel(current, rankedCount()));
-  }
-
-  // Re-render charts on width changes (viewBox is in CSS pixels).
-  let lastW = 0;
-  const ro = new ResizeObserver(
-    debounce(() => {
-      const w = Math.round(el.content.getBoundingClientRect().width);
-      if (!current || w === lastW) return;
-      lastW = w;
-      renderWaterfall(current, false);
-      positionTicks(current);
-      if (lazyState.status === "done") {
-        renderPopulation(current, lazyState.detail, false);
-        renderComponents(current, lazyState.detail, false);
-        renderTfr(current, lazyState.detail, lazyState.world, false);
-      } else if (lazyState.status === "loading") {
-        chartSkeleton(el.popChart, H.pop);
-        chartSkeleton(el.compChart, H.comp);
-        chartSkeleton(el.tfrChart, H.tfr);
+  async function share(rec, btn, r2100) {
+    const url = L.pageUrl(rec.iso3, siteUrl());
+    if (navigator.share && media.coarse()) {
+      try {
+        await navigator.share({ title: document.title, text: L.xPostText(rec, r2100), url });
+        return;
+      } catch (err) {
+        if (err?.name === "AbortError") return;
       }
-    }, 120),
-  );
-  ro.observe(el.content);
+    }
+    const ok = await copyText(url);
+    btn.textContent = ok ? "Link copied" : "Copy failed";
+    announce(ok ? "Link copied to clipboard" : "Couldn't copy the link");
+    setTimeout(() => (btn.textContent = "Copy link"), 1600);
+  }
 
-  el.share.addEventListener("click", () => current && onShare(current, el.share));
+  // ---------------------------------------------------------------- lifecycle
+
+  subscribe((what) => {
+    if (!current || el.view.hidden) return;
+    if (what === "year" || what === "mix") renderLive();
+    if (what === "scenario") renderHero(current);
+  });
+
+  async function show(iso3) {
+    el.view.hidden = false;
+    document.body.classList.add("page-country");
+    const rec = data.records.get(iso3);
+    if (!rec) {
+      current = null;
+      el.story.hidden = true;
+      el.missing.hidden = false;
+      setText($("cv-missing-code"), iso3);
+      document.title = "Place not found · Fertility Tracker";
+      return null;
+    }
+    el.story.hidden = false;
+    el.missing.hidden = true;
+    const changed = current?.iso3 !== iso3;
+    current = rec;
+    if (changed) {
+      whatIf = null;
+      el.more.open = false;
+    }
+    const my = ++token;
+    renderHero(rec);
+    setText(el.ppTitle, `Start with 100 people in ${L.theName(rec)}`);
+    renderLive();
+    renderWhy(rec);
+    renderGens(rec);
+    const cached = cachedDetail(iso3);
+    renderChart(rec, cached);
+    renderMore(rec, cached, cached ? "done" : "loading");
+    if (!cached) {
+      loadDetail(iso3).then(
+        (d) => {
+          if (my !== token) return;
+          renderChart(rec, d);
+          renderMore(rec, d, "done");
+        },
+        () => {
+          if (my !== token) return;
+          renderMore(rec, null, "error");
+        },
+      );
+    }
+    const p = pct2100(rec.iso3, "medium");
+    document.title = L.documentTitle("country", rec, p);
+    return rec;
+  }
+
+  function hide() {
+    el.view.hidden = true;
+    document.body.classList.remove("page-country");
+  }
+
+  // Links inside "More numbers" to other countries.
+  el.moreBody.addEventListener("click", (e) => {
+    const a = e.target.closest("a[data-nav]");
+    if (!a || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    e.preventDefault();
+    navigate(a.getAttribute("href"));
+  });
 
   return {
-    render,
-    setTierMins,
-    refreshLinks,
-    refreshHeader,
+    show,
+    hide,
+    focusTitle: () => focusNoScroll(el.name),
+    refreshLinks() {
+      if (current) renderMore(current, cachedDetail(current.iso3), cachedDetail(current.iso3) ? "done" : "loading");
+    },
     get current() {
       return current;
     },
   };
 }
+

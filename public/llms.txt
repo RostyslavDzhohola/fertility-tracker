@@ -1,8 +1,8 @@
 # Fertility Tracker
 
-> Live, weekly-refreshed fertility and population data for every country: fertility rate, births, deaths, net migration, immigrant and emigrant stocks, migration corridors, UN projections to 2100, and a population-decline risk score (0-100) with plain-English reasons. Static JSON/CSV on Vercel: no key, CORS open (Access-Control-Allow-Origin: *).
+> Live, weekly-refreshed fertility and population data for every country: fertility rate, births, deaths, net migration, immigrant and emigrant stocks, migration corridors, UN projections to 2100 (UN forecast and "if birth rates stay the same"), and a population-decline risk score (0-100) with plain-English reasons. Static JSON/CSV on Vercel: no key, CORS open (Access-Control-Allow-Origin: *).
 
-Sources: World Bank World Development Indicators (latest reported year), UN World Population Prospects 2024 (estimates 1950-2023 + medium-variant projection 2024-2100) and UN DESA International Migrant Stock 2024, the UN data via Our World in Data. Codes are ISO 3166-1 alpha-3 (WLD = world, XKX = Kosovo). Numbers are JSON numbers; missing = null. Every record includes iso3, name and region.
+Sources: World Bank World Development Indicators (latest reported year: fertility 2024, population 2025), UN World Population Prospects 2024 read from the UN's own CSV files with its January 2026 interim update for Togo (estimates 1950-2023, medium-variant and constant-fertility projections 2024-2100; next UN revision 11 July 2027), and UN DESA International Migrant Stock 2024 (via Our World in Data). Every published number is re-checked against these primary sources on each refresh. Codes are ISO 3166-1 alpha-3 (WLD = world, XKX = Kosovo). Numbers are JSON numbers; missing = null. Every record includes iso3, name and region.
 
 ## API (base: https://fertility-tracker-live.vercel.app/api/v1/)
 
@@ -10,6 +10,7 @@ Sources: World Bank World Development Indicators (latest reported year), UN Worl
 - [countries.json](https://fertility-tracker-live.vercel.app/api/v1/countries.json): one summary record per country + WLD: population, tfr, median age, 65+ share, latest births/deaths/net migration (absolute and per 1,000), immigrant/emigrant stock, UN 2050/2100 projection, generation ratio, risk {score, tier, rank, factors}
 - [countries/{ISO3}.json](https://fertility-tracker-live.vercel.app/api/v1/countries/KOR.json): everything for one country, including yearly series 1950-2100 (population, births, deaths, naturalChange, netMigration, populationChange, tfr, medianAge, share65), migrant stock history, top 10 origin and destination countries, full risk breakdown
 - [risk.json](https://fertility-tracker-live.vercel.app/api/v1/risk.json): countries ranked by population-decline risk (rank 1 = highest), component points, inputs, factors and the full methodology
+- [scenarios.json](https://fertility-tracker-live.vercel.app/api/v1/scenarios.json): population of every country + WLD each year 2024-2100 under two UN scenarios: places[ISO3].medium ("UN forecast") and places[ISO3].constant ("If birth rates stay the same": fertility held at its 2023 level, mortality and migration as in the forecast); index = year - startYear
 - [countries.csv](https://fertility-tracker-live.vercel.app/api/v1/countries.csv): one row per country, nested fields flattened with underscores
 - [timeseries.csv](https://fertility-tracker-live.vercel.app/api/v1/timeseries.csv): long format iso3,year,variant,metric,value (variant = estimate | projection), about 11 MB
 - [status.json](https://fertility-tracker-live.vercel.app/api/v1/status.json): when the weekly refresh last ran, whether it succeeded, and the deployed commit
@@ -22,6 +23,7 @@ Sources: World Bank World Development Indicators (latest reported year), UN Worl
 - components: demographic balance for the latest UN estimate year (2023): populationChange = births - deaths + netMigration; perThousand = the same per 1,000 people; migrationOffsetPct = net migration as % of the natural decline (deaths minus births), null when births >= deaths
 - migrantStock.immigrants: people living in the country who were born elsewhere (inflow proxy); migrantStock.emigrants: people born there who live abroad (outflow proxy). emigrantsPct = emigrants as % of the current RESIDENT population (UN DESA definition); livingAbroadPct = % of everyone born in the country who lives abroad. Gross annual inflows and outflows are not published globally; use netMigration for the annual flow
 - projection: UN WPP medium variant; change2050Pct / change2100Pct are relative to basePopulation in baseYear (latest UN estimate year, 2023), not to the headline population; peakYear; halfPopulationYear; naturalDeclineSince = start of more deaths than births (past or projected)
+- share65: % of the population aged 65 or over (100+ included)
 - generations.ratio = tfr / 2.1: each ~30-year generation is this fraction of the previous one (100 people -> 100*ratio -> ...)
 - risk.score 0-100 = 35 x fertility gap (2.1 -> 0.8) + 15 x natural decline (+5 -> -7 per 1,000) + 10 x aging (65+ share 7 -> 30%, median age 25 -> 50) + 30 x UN-projected decline (2050: 0 -> -25%, weight 1; 2100: 0 -> -60%, weight 2) + 10 x migration not offsetting the decline; each part is a linear ramp clamped to 0..1
 - risk.tier: Critical >= 70, High >= 55, Elevated >= 40, Moderate >= 20, Low < 20. risk.rank: 1 = highest risk, null when not ranked (WLD, places under 100,000 people)
@@ -30,6 +32,7 @@ Sources: World Bank World Development Indicators (latest reported year), UN Worl
 
 - Highest-risk countries: GET api/v1/risk.json -> .ranking[0:10] -> {rank, name, score, tier, factors}
 - One country now and in 2050: GET api/v1/countries/JPN.json -> .tfr, .components, .series[] where year == 2050
+- A country in 2070 under both scenarios: GET api/v1/scenarios.json -> .places.TWN.medium[2070 - .startYear] and .places.TWN.constant[2070 - .startYear]
 - Where a country's emigrants live: GET api/v1/countries/UKR.json -> .migrationCorridors.topDestinations
 - Spreadsheet: GET api/v1/countries.csv; all years: GET api/v1/timeseries.csv
 - Change detection: GET api/v1/index.json -> compare contentHash with your cached copy
@@ -39,8 +42,9 @@ Sources: World Bank World Development Indicators (latest reported year), UN Worl
 - [Human API docs](https://fertility-tracker-live.vercel.app/api/)
 - [API reference](https://github.com/RostyslavDzhohola/fertility-tracker/blob/main/docs/API.md)
 - [Methodology: sources, decomposition, risk formula, limitations](https://github.com/RostyslavDzhohola/fertility-tracker/blob/main/docs/METHODOLOGY.md)
-- [Live tracker](https://fertility-tracker-live.vercel.app/): per country via #ISO3, e.g. #KOR
+- [Data validation: what is checked against the primary sources, and the results](https://github.com/RostyslavDzhohola/fertility-tracker/blob/main/docs/DATA-VALIDATION.md)
+- [Live tracker](https://fertility-tracker-live.vercel.app/): one page per country at /country/ISO3, e.g. https://fertility-tracker-live.vercel.app/country/KOR (countries/{ISO3}.json links.site)
 
 ## Licence and citation
 
-Code MIT. Data: World Bank (CC BY 4.0); UN WPP 2024 and UN DESA International Migrant Stock 2024 (CC BY 3.0 IGO) via Our World in Data (CC BY 4.0). Cite the original publishers and "Fertility Tracker (github.com/RostyslavDzhohola/fertility-tracker)". Feedback and corrections: https://github.com/RostyslavDzhohola/fertility-tracker/issues or andromedus+fertility@mail.grokbot.com
+Code MIT. Data: World Bank (CC BY 4.0); UN WPP 2024 (CC BY 3.0 IGO); UN DESA International Migrant Stock 2024 (CC BY 3.0 IGO) via Our World in Data (CC BY 4.0). Cite the original publishers and "Fertility Tracker (github.com/RostyslavDzhohola/fertility-tracker)". Feedback and corrections: https://github.com/RostyslavDzhohola/fertility-tracker/issues or andromedus+fertility@mail.grokbot.com

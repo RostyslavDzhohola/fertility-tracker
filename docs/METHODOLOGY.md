@@ -8,30 +8,41 @@ risk score. All of it is computed by `scripts/fetch-data.mjs` (Node 22, no depen
 
 | Id | Source | What we take | Vintage (Oct 2026 build) |
 | --- | --- | --- | --- |
-| `UN-WPP` | UN World Population Prospects 2024, via Our World in Data | Fertility rate, population, births, deaths, net migration, median age, population 65+: estimates 1950-2023 and the medium-variant projection 2024-2100 | 2024-07-12 (next UN update expected 2027) |
+| `UN-WPP` | UN World Population Prospects 2024, read from the UN's own CSV files, with the UN's interim update of 19 January 2026 (Togo) | Population (1 July), births, deaths, net migration, fertility rate, median age, crude birth and death rates, population by 5-year age group (65+ share): estimates 1950-2023 and the medium-variant projection 2024-2100. Total population under the medium and constant-fertility scenarios 2024-2100 (`scenarios.json`) | Files 2024-12-13, interim update 2026-01-19 (next revision: 11 July 2027) |
 | `UN-DESA` | UN DESA International Migrant Stock 2024, via Our World in Data | Immigrant stock and emigrant stock (number and % of population), plus migrant stock by origin and destination (corridors) | 2025-03-12 (corridors 2025-03-18) |
-| `WB` | World Bank World Development Indicators API | Latest reported fertility rate, population, crude birth and death rates, net migration, population growth, 65+ share, migrant stock; region and income group | 2026-10-08 |
+| `WB` | World Bank World Development Indicators API | Latest reported fertility rate, population, crude birth and death rates, net migration, population growth, 65+ share, migrant stock; region and income group | 2026-10-08 (fertility and crude rates to 2024; population, net migration, growth and 65+ share to 2025) |
 
 `index.json` lists the exact URLs fetched, the column names used, each dataset's last-update date and status.
 All sources are free and need no key.
 
 **Exact URLs**
 
-- UN WPP (OWID grapher CSVs, `?v=1&csvType=full&useColumnShortNames=true`): `fertility-rate-with-projections`,
-  `population-with-un-projections`, `births-and-deaths-projected-to-2100`, `median-age`,
-  `population-by-age-group-with-projections`. Net migration comes from the OWID population explorer:
-  `explorers/population-and-demography.csv?indicator=Net+migration&Sex=Both+sexes&Age=Total&Projection+scenario=Medium`.
+- UN WPP, from `https://population.un.org/wpp/assets/Excel%20Files/1_Indicator%20(Standard)/CSV_FILES/` (gzip CSV,
+  streamed): `WPP2024_Demographic_Indicators_Medium.csv.gz` (`TPopulation1July`, `Births`, `Deaths`, `NetMigrations`,
+  `TFR`, `MedianAgePop`, `CBR`, `CDR`), `WPP2024_PopulationByAge5GroupSex_Medium.csv.gz` (65+ share) and
+  `WPP2024_TotalPopulationBySex.csv.gz` (`PopTotal` for the `Medium` and `Constant fertility` variants). Counts are
+  published in thousands with 3 decimals and converted to whole people. The interim update
+  `.../1_Indicator%20(Standard)/WPP2024_CSV_files_update.zip` (release note:
+  `https://population.un.org/wpp/assets/Files/WPP2024_Release-Note-rev1.pdf`) replaces Togo's rows in all three.
 - UN DESA: `grapher/migrant-populations.csv?metric={immigrants|emigrants}&unit={number|share}`;
   corridors from `grapher/migration-origin-destination.csv?country_select={country}&metric={immigrants|emigrants}&gender=all`.
 - World Bank: `https://api.worldbank.org/v2/country/all/indicator/{ID}?format=json&per_page=20000&mrnev=1` for
   `SP.DYN.TFRT.IN, SP.POP.TOTL, SP.DYN.CBRT.IN, SP.DYN.CDRT.IN, SM.POP.NETM, SP.POP.GROW, SP.POP.65UP.TO.ZS,
   SM.POP.TOTL, SM.POP.TOTL.ZS`, and `https://api.worldbank.org/v2/country?format=json&per_page=400`.
 
+**Why the UN files and not Our World in Data (since October 2026).** Until then the UN WPP series came from Our World
+in Data's copies. A full comparison with the UN's files (see [DATA-VALIDATION.md](DATA-VALIDATION.md)) found that OWID
+builds population and deaths by summing the UN's 101 single-age values, each already rounded to a whole person. For
+large countries that is off by a few dozen people. For tiny places it is material: Tokelau's 14 deaths in 2023 became
+2, so its death rate showed 0.8 instead of 5.7 per 1,000. OWID's "65+" group also stops at age 99, which understated
+the 65+ share in old populations (Hong Kong 2100: 56.5% instead of 61.2%). Migrant stocks and corridors still come
+from OWID: they match UN DESA's own tables exactly.
+
 ## Countries covered
 
 Every entity with an ISO 3166 alpha-3 code in UN WPP (236), plus Kosovo (`XKX`, World Bank's code) and the world
-(`WLD`): 238 records. Continents and income-group aggregates are not published. Names follow Our World in Data
-("South Korea", not "Korea, Rep."). Regions are World Bank regions. Taiwan and 20 small territories missing from the
+(`WLD`, UN location 900): 238 records. Continents and income-group aggregates are not published. Names follow Our World
+in Data ("South Korea", not "Republic of Korea" or "Korea, Rep."), frozen in `scripts/lib/names.mjs`. Regions are World Bank regions. Taiwan and 20 small territories missing from the
 World Bank borrow the region of a neighbour (Taiwan takes China's, Réunion takes Mauritius's, and so on); their
 `incomeGroup` is `null`.
 
@@ -40,7 +51,9 @@ World Bank borrow the region of a neighbour (Taiwan takes China's, Réunion take
 Headline fields (`population`, `tfr`, `birthRate`, `deathRate`, `naturalChangeRate`, `netMigration`,
 `populationGrowthPct`, `share65`, `medianAge`) each carry `{value, year, source}`. The pipeline takes the newest
 year available across the World Bank and the latest UN estimate; on a tie, the World Bank wins. Fertility and
-crude rates are usually World Bank 2024, population and 65+ share World Bank 2025, median age UN 2023.
+crude rates are usually World Bank 2024, population and 65+ share World Bank 2025, median age UN 2023. Where the UN
+value is used, crude birth and death rates are the UN's own `CBR` and `CDR` (per 1,000 person-years), and
+`naturalChangeRate` is their difference. `share65` is everyone aged 65 or over, including 100+.
 
 Caveat: for most countries, the World Bank's net migration (and often population) for the latest years are
 themselves UN WPP estimates or projections, republished by the World Bank.
@@ -94,6 +107,26 @@ The summary also gives
 the peak year (1950-2100), the first year the population is half of the baseline (`halfPopulationYear`), and
 `naturalDeclineSince`: the start of the current run of years with more deaths than births, or, if births still lead,
 the first projected year with more deaths.
+
+### Scenarios (`scenarios.json`)
+
+The year slider's two paths are the UN's own scenarios, total population on 1 July, 2024-2100, for every record:
+
+- **UN forecast** = WPP 2024 `Medium`: the projection years of each country's `series`. The UN's definition: fertility,
+  mortality and international migration are "Based on the mean probabilistic projections for fertility and mortality,
+  and median probabilistic projections for net migration."
+- **If birth rates stay the same** = WPP 2024 `Constant fertility`. The UN's definition (WPP 2024 Methodology Report,
+  section on projection scenarios): "As the name implies, under the constant-fertility scenario, fertility in all
+  countries will remain constant at the level projected for 2024. Meanwhile, mortality and migration assumptions are
+  the same as those in the medium fertility scenario." Its table II.4 lists fertility "Constant as of 2024", mortality
+  "Medium", international migration "Medium". In the published data the constant level is each country's 2023
+  estimate (checked for all 237 countries and areas: South Korea stays at 0.72 to 2100), so in plain words: fertility
+  stays at its 2023 level; deaths and migration follow the UN forecast. It is a what-if, not a forecast.
+- **Togo.** The UN's interim update of 19 January 2026 revised Togo's population (its 2010 and 2022 census counts had
+  been adjusted for undercount twice), but only the medium scenario. Fertility and mortality rates did not change, so
+  Togo's constant-fertility path is rescaled year by year by revised ÷ original medium (factor 0.88-0.90). The file
+  lists this under `adjustments`. The world aggregate (`WLD`) was not revised by the UN and still counts Togo's old
+  figures: about 1.1 million more people in 2024, under 0.03% of the world.
 
 ## The "100 people" generations view
 
@@ -154,9 +187,12 @@ rank 6.
 `.github/workflows/refresh-and-deploy.yml` runs every Monday at 06:17 UTC, on manual dispatch and on pushes to `main`:
 
 1. `node --test` runs the unit tests.
-2. `node scripts/fetch-data.mjs` fetches every source (4 attempts with backoff, 60 s timeout per request), builds
-   all files, then refuses to write anything (exit 1, published data untouched) if:
-   - a required source (UN fertility, population, births/deaths, World Bank country list) is down;
+2. `node scripts/fetch-data.mjs` fetches every source (4 attempts with backoff, 60 s timeout per request; the UN CSVs
+   are streamed and restart from scratch on a broken download), builds all files, then refuses to write anything
+   (exit 1, published data untouched) if:
+   - a required source (the UN demographic indicators file, the UN interim update, the World Bank country list) is
+     down, or the interim update is incomplete: each correction file must hold Togo for every year 1950-2100, every
+     indicator field and all 21 age groups. Without a complete update Togo would silently keep the superseded figures;
    - any source that worked in the previous build is down now;
    - sanity checks fail: at least 200 records and 150 ranked; value ranges; `naturalChange = births − deaths` and the
      balance identity hold; world population and record count within 5% of the previous build; spot checks such as
@@ -174,17 +210,25 @@ rank 6.
      go from 1.61 (WB, 2024) to 1.639 (UN, 2023). Policy: **refuse the write** and keep the last published data
      untouched; the failed run is visible in Actions and `status.json`. The pipeline never mixes old and new data in
      one build. A maintainer who has confirmed an upstream change is intentional reruns with `--force`;
+   - `scenarios.json` would lose a place, shrink its year range or lose values, its medium path disagrees with the
+     series population (by more than 0.05%), or its two scenarios start from different populations (more than 1%
+     apart);
    - any JSON file fails its JSON Schema.
-3. Output is idempotent. Unchanged numbers give byte-identical files. `generatedAt` and `contentHash` in `index.json`
+3. The workflow then runs `node scripts/validate-data.mjs`, which compares every published number with the primary
+   sources (UN WPP CSVs, World Bank API, UN DESA tables; see [DATA-VALIDATION.md](DATA-VALIDATION.md)). A mismatch
+   blocks scheduled and manual runs before anything is committed or deployed. A published value with no reference
+   value counts as a mismatch. Exit 2 means only that a primary source could not be fetched; any other failure is
+   exit 3.
+4. Output is idempotent. Unchanged numbers give byte-identical files. `generatedAt` and `contentHash` in `index.json`
    move only when some published value changes, so the workflow commits only real changes.
-4. The migration corridors (about 460 small CSVs) are reused from the previous build while their source vintage is
+5. The migration corridors (about 460 small CSVs) are reused from the previous build while their source vintage is
    unchanged. When the vintage changes, the refresh is all-or-nothing. Any of these count as a country failure:
    a network error; a structurally empty CSV (no data year or World total, or no partner country in either
    direction); a direction whose partner breakdown was published before coming back with only a World total. On any
    failure, the last published corridors are kept as one consistent set with their original vintage. Directions that
    never had a breakdown (UN DESA gives only totals for immigrants into Bonaire and the Vatican) stay valid. Countries
    and directions are never silently dropped.
-5. The workflow verifies the files, then checks that the branch has not moved since checkout. If it moved, the run
+6. The workflow verifies the files, then checks that the branch has not moved since checkout. If it moved, the run
    stops without committing or deploying, and the run triggered by the newer commit refreshes, tests and deploys it
    (no rebase, so untested code is never deployed). Otherwise it commits changes with a plain fast-forward push and
    writes a deploy-time `api/v1/status.json` (not committed). That file holds `checkedAt`, the refresh outcome, the run
@@ -193,7 +237,14 @@ rank 6.
 ## Limitations
 
 - UN WPP 2024 estimates end in 2023. Every later year is a projection, and a sharp recent fertility drop (or rebound)
-  shows up only in the World Bank's latest TFR and the next WPP revision (expected 2027).
+  shows up only in the World Bank's latest TFR and the next WPP revision (postponed by the UN to 11 July 2027).
+  National statistics offices publish newer figures for some countries; [DATA-VALIDATION.md](DATA-VALIDATION.md) lists
+  them for the 30 highest-risk places.
+- Some UN net-migration series are flat or jumpy because the UN publishes them that way: Hong Kong's estimate is
+  -3,427 in each of 2021, 2022 and 2023, then the projection swings (-19,272 in 2024, +17,863 in 2025, -12,576 in
+  2026). 32 places repeat a value for three or more estimate years. We publish the UN's numbers unchanged.
+- The World Bank's latest net migration (2025) and, for many countries, population are UN WPP projections
+  republished: Hong Kong's headline net migration +17,863 (World Bank 2025) is the UN's 2025 projection.
 - Wars and crises (Ukraine, Gaza, Sudan, Myanmar) make estimates and projections less certain.
 - Migrant stocks count people by country of birth, so border changes and refugees are handled as UN DESA defines them.
 - The risk weights are judgement calls, documented above so anyone can recompute or reweight from `risk.json` inputs.
