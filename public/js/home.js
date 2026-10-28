@@ -3,15 +3,15 @@
 
 import { $, h, setText, setAttr, media, focusNoScroll, announce, idle } from "./dom.js";
 import * as L from "./logic.js";
-import { data, state, subscribe, popNow, ratioNow, pctNow, fetchJson, setYear, play, yearInt } from "./store.js";
-import { createGlobe } from "./globe.js";
+import { data, state, subscribe, popNow, ratioNow, pctNow, pct2100, fetchJson, setYear, play, yearInt } from "./store.js";
+import { createGlobe, buildLayerIdle } from "./globe.js";
 import { createTimeControls } from "./controls.js";
 import { peopleRow } from "./people.js";
-import { riskChip } from "./ui.js";
+import { outlookChip } from "./ui.js";
 
 const SEEN_KEY = "ft.seenIntro";
 
-export function createHome({ navigate, onFocusChange }) {
+export function createHome({ navigate, onFocusChange, geoFetch = null }) {
   const el = {
     view: $("view-globe"),
     canvas: $("globe"),
@@ -26,6 +26,7 @@ export function createHome({ navigate, onFocusChange }) {
     dockTime: $("dock-time"),
     counter: $("world-counter"),
     wcYear: $("wc-year"),
+    wcScen: $("wc-scen"),
     wcNum: $("wc-num"),
     wcUnit: $("wc-unit"),
     wcPct: $("wc-pct"),
@@ -33,6 +34,7 @@ export function createHome({ navigate, onFocusChange }) {
     riskBtn: $("risk-btn"),
     riskPanel: $("risk-panel"),
     riskList: $("risk-list"),
+    riskTitle: $("risk-title"),
     card: $("card"),
     cardClose: $("card-close"),
     cardRegion: $("card-region"),
@@ -89,14 +91,17 @@ export function createHome({ navigate, onFocusChange }) {
     occ = rects;
   }
 
+  // Full view: the globe runs under the floating top bar and dock. Desktop: about 94% of the viewport height, centered.
+  // Phones: wider than the screen, centered in the space between the top bar and the dock.
   function frame(W, H) {
-    const top = el.topbar ? Math.round(el.topbar.getBoundingClientRect().bottom) : 64;
-    const dockTop = el.dockWrap ? Math.round(el.dockWrap.getBoundingClientRect().top) : H - 140;
-    const bottom = Math.max(top + 200, Math.min(H, dockTop));
-    const avail = bottom - top;
-    const mobile = W < 700;
-    const r = Math.max(120, Math.min(W / 2 - (mobile ? 8 : 24), avail / 2 + (mobile ? 18 : 40)));
-    return { cx: Math.round(W / 2), cy: Math.round(top + avail / 2 + (mobile ? 4 : 6)), r: Math.round(r) };
+    if (W < 700) {
+      const top = el.topbar ? Math.round(el.topbar.getBoundingClientRect().bottom) : 62;
+      const dockTop = el.dockWrap ? Math.round(el.dockWrap.getBoundingClientRect().top) : H - 170;
+      const cy = Math.round((top + Math.max(top + 200, dockTop)) / 2);
+      return { cx: Math.round(W / 2), cy, r: Math.round(Math.max(W * 0.62, Math.min(H * 0.36, W * 0.75))) };
+    }
+    const r = Math.min(H * 0.47, W * 0.47);
+    return { cx: Math.round(W / 2), cy: Math.round(H * 0.485), r: Math.round(r) };
   }
 
   const globe = createGlobe(el.canvas, {
@@ -107,6 +112,7 @@ export function createHome({ navigate, onFocusChange }) {
     reducedMotion: () => media.reduced(),
     onHover: showTip,
     onPick: (hit, at) => {
+      el.tip.hidden = true;
       if (!hit) return;
       if (!hit.rec) {
         toast(`No data for ${hit.name ?? "this place"}`);
@@ -118,7 +124,6 @@ export function createHome({ navigate, onFocusChange }) {
       closeRiskPanel();
     },
     onViewChange: () => {
-      if (!el.tip.hidden && !media.finePointer()) el.tip.hidden = true;
       syncZoomButtons();
     },
   });
@@ -176,7 +181,8 @@ export function createHome({ navigate, onFocusChange }) {
 
   const controls = createTimeControls({
     prefix: "globe",
-    valueText: (y) => `${y}, world ${L.fmtWords(popNow("WLD", y))}`,
+    valueText: (y) => `${y}, world ${L.fmtWords(popNow("WLD", y))}${state.scenario === "constant" ? ", if birth rates stay the same" : ""}`,
+    hint: true,
   });
   el.dockTime.replaceChildren(controls.root);
 
@@ -186,6 +192,8 @@ export function createHome({ navigate, onFocusChange }) {
     const pct = pctNow("WLD");
     const sp = L.splitWords(v);
     setText(el.wcYear, String(y));
+    const constant = state.scenario === "constant";
+    el.wcScen.hidden = !constant;
     setText(el.wcNum, sp.num);
     setText(el.wcUnit, sp.unit || "people");
     setText(el.wcPct, y === data.today ? "today" : pct == null ? "" : `${L.fmtPct(pct)} vs today`);
@@ -195,18 +203,22 @@ export function createHome({ navigate, onFocusChange }) {
 
   // ---------------------------------------------------------------- legend is static HTML; "Most at risk"
 
-  function topRisk(n = 10) {
+  // "Shrinking most": the 10 places (100,000 people or more) with the biggest fall by 2100 under the selected
+  // scenario, sorted by the number each row shows.
+  function shrinkingMost(n = 10) {
+    const sc = state.scenario;
     return data.list
-      .filter((r) => Number.isInteger(r.risk?.rank))
-      .sort((a, b) => a.risk.rank - b.risk.rank)
+      .filter((r) => r.ranked === true && pct2100(r.iso3, sc) != null)
+      .sort((a, b) => pct2100(a.iso3, sc) - pct2100(b.iso3, sc))
       .slice(0, n);
   }
 
   function renderRiskList() {
-    const y = yearInt();
+    const sc = state.scenario;
+    setText(el.riskTitle, sc === "constant" ? "Shrinking most by 2100, if birth rates stay the same" : "Shrinking most by 2100");
     el.riskList.replaceChildren(
-      ...topRisk(10).map((r, i) => {
-        const pct = pctNow(r.iso3);
+      ...shrinkingMost(10).map((r, i) => {
+        const pct = pct2100(r.iso3, sc);
         const sw = h("span", { class: "swatch", "aria-hidden": "true" });
         const c = L.changeColor(pct);
         if (c) sw.style.setProperty("--sw", c);
@@ -219,7 +231,7 @@ export function createHome({ navigate, onFocusChange }) {
             h("span", { class: "rr-rank" }, String(i + 1)),
             sw,
             h("span", { class: "rr-name" }, r.name),
-            h("span", { class: "rr-pct" }, pct == null ? "" : `${L.fmtPct(pct)} by ${y}`),
+            h("span", { class: "rr-pct" }, pct == null ? "" : `${L.fmtPct(pct)} by 2100`),
           ),
         );
       }),
@@ -307,11 +319,11 @@ export function createHome({ navigate, onFocusChange }) {
   function renderCardStatic(rec) {
     setText(el.cardRegion, rec.iso3 === "WLD" ? "Whole world" : rec.region ?? "");
     setText(el.cardName, rec.name);
-    el.cardRisk.replaceChildren(riskChip(rec));
+    el.cardRisk.replaceChildren(outlookChip(rec));
     const reasons = [L.tfrReason(rec), L.birthsDeathsReason(rec, data.latestEstimateYear)].filter(Boolean);
     el.cardReasons.replaceChildren(...reasons.map((t) => h("li", null, t)));
     setAttr(el.cardCta, "href", L.countryPath(rec.iso3) + currentQuery());
-    el.cardCta.replaceChildren(rec.iso3 === "WLD" ? "See the world's story" : `See ${L.possessive(rec.name)} story`, h("span", { class: "arrow", "aria-hidden": "true" }, " →"));
+    el.cardCta.replaceChildren(`See ${L.possessiveOf(rec)} story`, h("span", { class: "arrow", "aria-hidden": "true" }, " →"));
   }
 
   function currentQuery() {
@@ -373,7 +385,7 @@ export function createHome({ navigate, onFocusChange }) {
 
   // ---------------------------------------------------------------- zoom controls, view mode
 
-  el.zoomIn.addEventListener("click", () => globe.zoomBy(2));
+  el.zoomIn.addEventListener("click", () => globe.zoomToward(selected !== "WLD" ? selected : null, 2));
   el.zoomOut.addEventListener("click", () => globe.zoomBy(0.5));
   el.zoomReset.addEventListener("click", () => globe.reset());
   for (const b of el.modeBtns) {
@@ -402,7 +414,7 @@ export function createHome({ navigate, onFocusChange }) {
     }
     if (typing || t === el.canvas || e.metaKey || e.ctrlKey || e.altKey) return;
     if (t instanceof HTMLElement && t.closest("button, a, [role=slider]") && (e.key === " " || e.key === "Enter")) return;
-    if (e.key === "+" || e.key === "=") globe.zoomBy(2);
+    if (e.key === "+" || e.key === "=") globe.zoomToward(selected !== "WLD" ? selected : null, 2);
     else if (e.key === "-" || e.key === "_") globe.zoomBy(0.5);
   });
 
@@ -414,7 +426,13 @@ export function createHome({ navigate, onFocusChange }) {
       globe.recolor();
       renderCounter();
       if (selected) renderCard();
-      if (!el.riskPanel.hidden && what !== "mix") renderRiskList();
+
+    }
+    if (what === "scenario") {
+      const rec = data.records.get(selected);
+      if (rec) el.cardRisk.replaceChildren(outlookChip(rec));
+      if (!el.riskPanel.hidden) renderRiskList();
+      renderCounter();
     }
     if (what === "scenario" || what === "play" || what === "touched") globe.stopSpin();
   });
@@ -436,29 +454,27 @@ export function createHome({ navigate, onFocusChange }) {
   async function loadGeo() {
     if (geoLoaded) return;
     geoLoaded = true;
-    const [t110, pts] = await Promise.all([fetchJson("/geo/countries-110m.json"), fetchJson("/geo/world-points.json").catch(() => ({}))]);
+    const [t110, pts] = await Promise.all([(geoFetch ? geoFetch.catch(() => fetchJson("/geo/countries-110m.json")) : fetchJson("/geo/countries-110m.json")), fetchJson("/geo/world-points.json").catch(() => ({}))]);
     globe.setData({ topology110: t110, worldPoints: pts, records: data.records });
-    // The detailed outlines load once the page is idle (or right away when zoomed in).
+    // The detailed outlines load once the page is idle and are prepared in small idle slices, so switching to them
+    // never blocks a frame.
     idle(() => {
       fetchJson("/geo/countries-50m.json")
-        .then((t50) => globe.setData({ topology50: t50 }))
+        .then((t50) => buildLayerIdle(t50, data.records))
+        .then((layer50) => globe.setData({ layer50 }))
         .catch((err) => console.warn("[globe] 50m outlines unavailable", err));
     });
   }
 
-  function startIntro(route) {
+  // First visit: play today → 2100 once, starting with the first painted frame. Skipped with reduced motion, a ?year=
+  // link, or later in the session. Any slider, Play or scenario touch stops it at once (store.touch).
+  function introWanted(route) {
     let seen = false;
     try {
       seen = sessionStorage.getItem(SEEN_KEY) === "1";
       sessionStorage.setItem(SEEN_KEY, "1");
     } catch {}
-    const skip = media.reduced() || route.year != null || seen || state.touched;
-    if (!route.focus && !media.reduced()) globe.startSpin();
-    if (skip) return;
-    setYear(data.today, { source: "auto" });
-    setTimeout(() => {
-      if (!state.touched && visible) play({ from: data.today, duration: 5200, source: "auto" });
-    }, 900);
+    return !(media.reduced() || route.year != null || seen || state.touched);
   }
 
   return {
@@ -478,9 +494,12 @@ export function createHome({ navigate, onFocusChange }) {
       } catch {}
       if (!started) {
         started = true;
+        const intro = first && introWanted(route);
+        if (intro) setYear(data.today, { source: "auto" });
         await loadGeo();
         renderCounter();
-        if (first) startIntro(route);
+        if (!route.focus && !media.reduced()) globe.startSpin();
+        if (intro && !state.touched) requestAnimationFrame(() => visible && !state.touched && play({ from: data.today, duration: 5200, source: "auto" }));
       } else {
         globe.recolor();
         renderCounter();

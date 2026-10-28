@@ -1,31 +1,33 @@
 // Search combobox, ARIA 1.2 with list autocomplete. Typo-tolerant (logic.searchPlaces), every place plus the world.
 
 import { h, setAttr, media, focusNoScroll, keepInView } from "./dom.js";
-import { searchPlaces, matchRange, changeColor, fmtPct, riskWord } from "./logic.js";
+import { searchPlaces, matchRange, fmtPct, outlookStep, outlookColor, OUTLOOK, isSmallPlace } from "./logic.js";
 
-// getPct(iso3) → % change vs today at the slider year (for the swatch and the number on each row).
-export function createSearch({ wrap, input, list, clearBtn, status, getPlaces, getRecord, getPct, getYear, topPlaces, onSelect }) {
+// getPct(iso3) → % change from today to 2100 under the selected scenario: the row's word, swatch and number all say
+// the same thing (null on pages without the forecast data: the row then shows the region).
+export function createSearch({ wrap, input, list, clearBtn, status, getPlaces, getRecord, getPct, topPlaces, onSelect }) {
   let options = []; // [{ iso3, el }]
   let active = -1;
   let open = false;
 
   function optionEl(rec, q) {
-    const pct = getPct(rec.iso3);
+    const small = rec.iso3 !== "WLD" && isSmallPlace(rec);
+    const pct = small ? null : getPct(rec.iso3);
+    const step = outlookStep(pct);
     const sw = h("span", { class: "swatch", "aria-hidden": "true" });
-    const c = changeColor(pct);
-    if (c) sw.style.setProperty("--sw", c);
+    if (step >= 0) sw.style.setProperty("--sw", outlookColor(step));
     else sw.setAttribute("data-nodata", "");
     const name = h("span", { class: "opt-name" });
     const r = q ? matchRange(rec.name, q) : null;
     if (r) name.append(rec.name.slice(0, r[0]), h("b", null, rec.name.slice(r[0], r[1])), rec.name.slice(r[1]));
     else name.textContent = rec.name;
-    const sub = rec.iso3 === "WLD" ? "Whole world" : riskWord(rec) ? `Risk of shrinking: ${riskWord(rec)}` : rec.region ?? "";
+    const sub = small ? "Very small population" : step >= 0 ? `${OUTLOOK[step].label} by 2100` : rec.iso3 === "WLD" ? "Whole world" : rec.region ?? "";
     return h(
       "li",
       { role: "option", id: `opt-${rec.iso3.toLowerCase()}`, "aria-selected": "false", "data-iso3": rec.iso3 },
       sw,
       h("span", { class: "opt-text" }, name, h("span", { class: "opt-sub" }, sub)),
-      h("span", { class: "opt-pct", "aria-hidden": "true" }, pct == null ? "" : `${fmtPct(pct)} by ${getYear()}`),
+      h("span", { class: "opt-pct", "aria-hidden": "true" }, pct == null ? "" : fmtPct(pct)),
     );
   }
 
@@ -37,9 +39,9 @@ export function createSearch({ wrap, input, list, clearBtn, status, getPlaces, g
     const nodes = [];
     if (!q.trim()) {
       const top = topPlaces(5);
-      const g1 = h("li", { role: "group", "aria-label": "Most at risk" });
+      const g1 = h("li", { role: "group", "aria-label": "Shrinking most by 2100" });
       const ul1 = h("ul", { role: "presentation" });
-      g1.append(h("div", { class: "group-label", "aria-hidden": "true" }, "Most at risk of shrinking"), ul1);
+      g1.append(h("div", { class: "group-label", "aria-hidden": "true" }, "Shrinking most by 2100"), ul1);
       for (const rec of top) {
         const el = optionEl(rec, "");
         ul1.append(el);

@@ -32,6 +32,7 @@ export const state = {
   scenario: "medium",
   mix: 0,
   playing: false,
+  intro: false, // the first-visit auto-play is running
   touched: false, // the user has moved the slider, pressed Play or switched the scenario
 };
 
@@ -120,6 +121,36 @@ export function pct2100(iso3, scenario = "medium") {
   return L.pctVsToday(data.scen, iso3, data.end, scenario, data.today);
 }
 
+// The 2100 outlook every word and meter on screen describes: the selected scenario, compared with today.
+export function outlookPct(iso3) {
+  return pct2100(iso3, state.scenario);
+}
+
+// Year of the largest population in a scenario's path from today on (today itself when it only falls).
+export function peakYear(iso3, scenario = state.scenario) {
+  const arr = data.scen?.places?.[iso3]?.[L.normScenario(scenario)];
+  if (!arr) return null;
+  let best = -1;
+  let year = null;
+  for (let i = Math.max(0, data.today - data.start); i < arr.length; i++)
+    if (arr[i] != null && arr[i] > best) {
+      best = arr[i];
+      year = data.start + i;
+    }
+  return year;
+}
+
+// The first slider, Play or scenario touch hands control to the user: the intro stops and the hints go away.
+export function touch() {
+  const first = !state.touched;
+  state.touched = true;
+  if (state.intro) {
+    state.intro = false;
+    if (state.playing) pause();
+  }
+  if (first) emit("touched");
+}
+
 export function yearInt() {
   return Math.round(state.year);
 }
@@ -131,7 +162,7 @@ let glide = 0;
 export function setYear(y, { animate = false, source = "user" } = {}) {
   const target = Math.max(data.today, Math.min(data.end, y));
   if (source === "user") {
-    state.touched = true;
+    touch();
     if (state.playing) pause();
   }
   cancelAnimationFrame(glide);
@@ -156,7 +187,7 @@ export function setYear(y, { animate = false, source = "user" } = {}) {
 let mixRaf = 0;
 export function setScenario(s, { source = "user", animate = true } = {}) {
   const sc = L.normScenario(s);
-  if (source === "user") state.touched = true;
+  if (source === "user") touch();
   if (sc === state.scenario) return;
   state.scenario = sc;
   emit("scenario");
@@ -187,7 +218,8 @@ let playLast = 0;
 let playDuration = 6000; // ms for today → 2100
 
 export function play({ from = null, duration = 6000, source = "user" } = {}) {
-  if (source === "user") state.touched = true;
+  if (source === "user") touch();
+  state.intro = source === "auto";
   cancelAnimationFrame(glide);
   playDuration = duration;
   if (from != null) state.year = from;
@@ -210,6 +242,10 @@ function playStep(t) {
   if (state.year >= data.end) {
     state.year = data.end;
     pause();
+    if (state.intro) {
+      state.intro = false;
+      emit("intro-end");
+    }
     return;
   }
   playRaf = requestAnimationFrame(playStep);
@@ -225,6 +261,11 @@ export function pause() {
 }
 
 export function togglePlay() {
+  if (state.intro) {
+    // Pressing Play (or Pause) during the intro takes over: the intro stops where it is.
+    touch();
+    return;
+  }
   if (state.playing) pause();
   else play();
 }

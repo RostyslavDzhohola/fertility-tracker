@@ -133,7 +133,17 @@ export function createPopChart(container, { onScrub } = {}) {
     });
     svg.append(lab);
 
-    // Peak annotation.
+    // Year marker.
+    marker = s("g", { class: "marker" });
+    marker.append(
+      s("line", { class: "m-line", y1: m.top - 8, y2: m.top + ih }),
+      s("circle", { class: "m-dot other", r: 4 }),
+      s("circle", { class: "m-dot main", r: 6 }),
+      s("g", { class: "m-bubble" }, s("rect", { rx: 8, height: 26 }), s("text", { y: 17 })),
+    );
+    svg.append(marker);
+
+    // Peak annotation, drawn over the year marker so the line never strikes through it.
     const pk = model.peak;
     if (pk && pk[0] > Y0 + 2 && pk[0] < Y1 - 2) {
       const px = x(pk[0]);
@@ -144,16 +154,6 @@ export function createPopChart(container, { onScrub } = {}) {
       g.append(s("text", { x: left ? px - 10 : px + 10, y: py - 10, "text-anchor": left ? "end" : "start" }, `Peak: ${fmtCompact(pk[1])} in ${pk[0]}`));
       svg.append(g);
     }
-
-    // Year marker.
-    marker = s("g", { class: "marker" });
-    marker.append(
-      s("line", { class: "m-line", y1: m.top - 8, y2: m.top + ih }),
-      s("circle", { class: "m-dot other", r: 4 }),
-      s("circle", { class: "m-dot main", r: 6 }),
-      s("g", { class: "m-bubble" }, s("rect", { rx: 8, height: 26 }), s("text", { y: 17 })),
-    );
-    svg.append(marker);
 
     hoverG = s("g", { class: "hover", visibility: "hidden" }, s("line", { y1: m.top - 8, y2: m.top + ih }), s("circle", { r: 4 }), s("g", { class: "m-bubble" }, s("rect", { rx: 8, height: 26 }), s("text", { y: 17 })));
     svg.append(hoverG);

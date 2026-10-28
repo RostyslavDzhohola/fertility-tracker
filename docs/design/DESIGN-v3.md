@@ -184,73 +184,99 @@ past (1950–2023) for the country chart comes from `countries/{ISO3}.json` `ser
 9. Light theme throughout; interactive things are the only things in the accent color.
 10. All node tests pass. The browser tests are updated and extended for 2–6 and 8.
 
-## 10. As built (frontend, 2026-10-28)
+## 10. As built (frontend, 2026-10-28; fix round 1 the same day)
 
-What shipped, and where it differs from §§1–8 on purpose. Screenshots and the browser tests (`test/frontend/browser.test.mjs`,
-one test per §9 item 1–6 and 8) are the reference for reviewers.
+What shipped, and where it differs from §§1–8 on purpose. Screenshots and the browser tests (`test/frontend/browser.test.mjs`)
+are the reference for reviewers. There is a test for each of §9 items 1–6 and 8, and for each fix-round item B1–B4, S1–S3,
+S5, S7 and S8.
+
+### One word scale (replaces the risk words of §0 and §3)
+
+The reviewers found the API risk tiers contradicting the numbers next to them: Brazil said "Risk of shrinking: Low" next
+to −24%. Every word and meter on screen now describes **where a place is headed by 2100 under the selected scenario,
+compared with today**. They use five words, and the globe legend uses the same five words and colors:
+
+| Word | % change, today → 2100 (as displayed, rounded like the number beside it) | Color |
+|---|---|---|
+| Growing | more than +5% | ramp at +40% (teal) |
+| About the same | −5% to +5% | sand |
+| Shrinking | below −5% to above −25% | ramp at −15% (orange) |
+| Shrinking fast | −25% to above −50% | ramp at −37% (red) |
+| Half gone | −50% or less | ramp at −70% (gray) |
+
+The word appears on the card chip ("By 2100: Shrinking fast"), in search rows, on rankings rows, and in the country
+meter ("By 2100: Half gone −56% vs today") and verdict. Each re-words when the scenario changes. Places under 100,000
+people get "Very small population" and no verdict word. The composite 0–100 score and the API tier appear only under
+"More numbers", as "Risk score (0–100), how it works →", with a note that it compares with 2023. Rankings has two tabs,
+"Shrinking most by 2100" and "Fewest babies". The globe's "Shrinking most" list shows the top 10 by % change in 2100 under
+the current scenario, sorted by the number it shows.
 
 ### Modules (`public/js/`)
 
 | File | Role |
 |---|---|
-| `main.js` | Boot, routing (`pushState` for page changes, debounced `replaceState` for year, scenario and focus), link interception, `window.FT` debug handle for tests. |
-| `store.js` | Data loading and the shared state: slider year (fractional while playing), scenario and a 0→1 `mix` that glides between the two futures, Play. |
-| `globe.js` | Canvas globe and flat map: drag, inertia, zoom, fly-to, labels, dots, hit testing, 110m/50m switching. |
-| `home.js`, `country.js`, `rankings.js` | The three pages. `controls.js` (slider, Play, scenario) and `people.js` (person icons) are shared by the globe card and the country page. |
-| `topbar.js`, `search.js` | Top bar on every page, including `/api/` (`apipage.js`). |
-| `logic.js` | Pure functions, all under `test/frontend/logic.test.mjs`: ramp, risk words, scenarios, routes, typo search, copy. |
-| `og.js` | The social card (`og.html` → `og.png`), now light, with the globe at 2100. |
+| `main.js` | Boot and routing: `pushState` for page changes, debounced `replaceState` for year, scenario and focus. Also link interception, the 110m fetch on the globe route only, and the `window.FT` debug handle for tests. |
+| `store.js` | Data and shared state: slider year, scenario, the scenario blend (`mix`), Play, the first-visit intro, `touch()` (the first slider, Play or scenario touch hands control to the user) and the 2100 outlook helpers. |
+| `globe.js` | Canvas globe and flat map: drag, inertia, zoom, fly-to, labels, dots, hit testing, and 110m/50m detail. |
+| `home.js`, `country.js`, `rankings.js` | The three pages. `controls.js` (slider, Play, scenario, "Drag me" hint), `people.js` (person icons) and `ui.js` (the outlook chip) are shared. |
+| `topbar.js`, `search.js` | The top bar on every page, including `/api/` (`apipage.js`). |
+| `logic.js` | Pure functions, all under `test/frontend/logic.test.mjs`. |
+| `og.js` | The social card (`og.html` → `og.png`). |
+
+### Layout
+
+- **Full view (B2).** The globe runs under the floating top bar and dock. On desktop its diameter is 94% of the
+  viewport height, centered. On phones it is 124% of the width, centered between the top bar and the dock. The selected
+  country is flown clear of the card.
+- **Top bar (B3).** The search box flexes between the wordmark and the nav (`flex: 1`, at most 600 px). Below 1100 px the
+  nav and Feedback fold into a menu button and the "/" hint hides. Tested at 700, 768, 820, 1000, 1024, 1180 and 1280 px.
+- **Intro (B4).** It starts with the first painted frame and plays today → 2100 in 5.2 s. Any slider, Play or scenario
+  touch stops it at once. Afterwards the thumb pulses and a "Drag me" bubble sits on it until the first touch.
 
 ### Rendering and speed
 
-- The globe is Canvas 2D at up to 2× DPR. d3-geo draws only what crosses the horizon. Everything wholly on the front
-  hemisphere is projected directly from precomputed unit vectors, a 3×3 multiply per point, and so is anything behind
-  the horizon when the rim is off screen (those points are pinned to the rim). Each polygon is culled against the
-  visible cap.
-- 110m while moving at under 2×. 50m at rest, and at 2× or more even while moving. Coastlines (as costly as every fill
-  together) are stroked at rest only once the 50m outlines are in use.
-- Draw time while dragging, headless Chrome with CPU raster at 2× DPR on the dev Mac: about 7 ms at 1×, 7–11 ms at 3×
-  over Europe, and 5 ms at 8× over East Asia. Before the fast path these were 15, 150 and 90 ms.
-- First globe paint is 312 KB gzipped (budget 600). The 50m file adds 224 KB and loads when the page is idle.
+- Canvas 2D at up to 2× DPR. Shapes wholly on the front hemisphere are projected directly from precomputed unit vectors,
+  a 3×3 multiply per point. Polygon fills that cross the horizon are pinned to the rim, and lines are too once the rim is
+  off screen. d3-geo clips only what is left: shapes that reach the far side of the globe. Each polygon is culled against
+  the visible cap.
+- 110m outlines while moving below 2×. 50m at rest, and while moving at 2× or more, unless the device is touch-first or
+  50m frames run over 14 ms; then 110m whenever the globe moves (adaptive). Coastlines are stroked at rest only.
+- The 50m file is prepared in idle slices of about 8 ms. At rest, the detailed frame is also built in idle slices while
+  the coarse one stays on screen, so the switch never blocks a frame. Measured in headless Chrome after load: one long
+  task at boot (about 50–75 ms), none after. Max draw about 20 ms.
+- Drag draw time, headless Chrome at 2× DPR: about 4 ms at 1×, 8 ms at 3× over Europe and 5 ms at 8×. At 4× CPU
+  throttle it is 14–16 ms (adaptive 110m), against 52 ms before the fix.
+- First paint is 312 KB gzipped (budget 600). The 50m file adds 224 KB and loads when the page is idle.
 
 ### Deliberate deviations
 
-1. **North stays up while dragging.** §2 asks for versor drag. The drag solves for a rotation with no roll, so the
-   grabbed point stays exactly under the pointer at every zoom, and labels and the map stay upright. Only near a pole,
-   where no roll-free rotation exists, is it clamped.
-2. **"Today" is the current year's UN forecast for every %**: the globe, the card, the rankings and the hero sentence.
-   Taiwan therefore reads "about 44 of 100 left in 2100", not the 43 in the §3 example, which was measured from 2023.
-   The API's own `change2100Pct` (vs 2023) still appears under "More numbers", labelled with its base year.
-3. **Ranking bars use the people ramp**, so 50% or more lost is gray on the rankings exactly as on the globe, rather
-   than "red to the left". The % text is still red for decline and green for growth.
-4. **No "Which place?" chooser** (v2 §2.9). Zoom to 16×, an 18 px touch radius on dots, and the search replace it.
-5. **Fly-to stops at 12×.** Taiwan then fills about a sixth of the view, with neighbours for context. Wheel, pinch and
-   the buttons still reach 16×.
-6. **Uninhabited areas** (Antarctica, French Southern Lands, Heard, South Georgia, BIOT) are plain light land, not
-   hatched "no data", and can't be clicked. Natural Earth's Åland is drawn as part of Finland.
-7. **Feedback** in the top bar is a small popover (GitHub chooser, email, copy address). The country-prefilled "Report a
-   problem with these numbers" link lives in "More numbers" (v2 §7 rules unchanged: `feedback.json`, no `labels=`, no X
-   link while the handle is `TODO_`).
-8. **Chart scrubbing** sets the shared year only on the forecast side (the slider starts today). Hovering the past
-   shows a readout without moving the slider.
-9. **Phones** use the short scenario label "Rates stay the same". The card sheet shows one reason, not two, so it never
-   covers the slider. "Most at risk" moves to the top left, under the search box.
-10. **Growing places on the country page** add up to 100 green icons (ten more rows), then "+N more for every 100 today".
+1. **North stays up while dragging**, and the view center never passes ±72° latitude. Fly-to stays within ±60°, so there
+   are no polar views and no inertia pinned on a pole. The grabbed point stays exactly under the pointer except at the
+   clamp.
+2. **"Today" is the current year's UN figure for every %**, on every page, including "More numbers". So Taiwan reads
+   "about 44 of 100 left in 2100", not the 43 in the §3 example. Measured figures keep their own year labels. The only
+   thing measured from 2023 is the risk score, and its note says so.
+3. **Ranking bars use the people ramp**, so 50% or more lost is gray on the rankings exactly as on the globe.
+4. **No "Which place?" chooser** (v2 §2.9). Zoom to 16×, an 18 px touch radius on dots, and search replace it.
+5. **Fly-to stops at 7×**, so neighbours stay in view. Wheel, pinch and the buttons still reach 16×.
+6. **+ and − zoom toward something.** They head for the selected country, else land at the center, else the nearest
+   land. Never into empty ocean.
+7. **Uninhabited areas** (Antarctica, French Southern Lands, Heard, South Georgia, BIOT) are plain light land and can't
+   be clicked. Åland is part of Finland.
+8. **Feedback** in the top bar is a small popover. The country-prefilled "Report a problem" link lives in "More numbers".
+9. **Moving in vs out** labels its two arrows with the UN migrant stock: people alive today who moved in, and who moved
+   away. Below them, the yearly net in words. No global source publishes yearly arrivals and departures separately.
+10. **Partial figures fill from the bottom.** A whole figure filled to its share, not a clipped half figure: in the card,
+    the 100 people, and babies per woman (0.87 is 87% of one figure).
+11. **Rankings** shows the top 25, then a "Show all" button. Small places sit in a folded section.
+12. **Phones** use the short labels "Rates stay the same" and "if rates stay the same", and the card sheet shows one
+    reason.
 
 ### Color check (§1)
 
-The ramp leans teal for growth and warm for decline, so the two separate on the blue–yellow axis that survives red–green
-color blindness. Gray starts at half gone and darkens. Machado 2009 simulation, ΔE in OKLab ×100, between the legend's
-representative colors (−65%, −25%, 0, +40%):
-
-| Vision | Smallest pair | ΔE |
-|---|---|---|
-| Normal | Half gone vs More people | 14.4 |
-| Protan | Half gone vs Fewer people | 9.8 |
-| Deutan | Half gone vs More people | 10.8 |
-| Tritan | Half gone vs More people | 16.3 |
-
-All are above v2's bar of 8. The remaining risk: a mid-growth teal (+45–55%) and the lightest "half gone" gray share a
-lightness, so under protan and deutan they differ only slightly (ΔE 1–2). The numbers carry that case: zoomed labels,
-the tooltip, the card, the search rows and the rankings all print the %. The accent `#2457FF` is never a data color
-(enforced in `test/frontend/logic.test.mjs`), and a CSS test checks that every rule painting with it is interactive.
+Growth leans teal and decline warm, so the two separate on the blue–yellow axis that survives red–green color blindness.
+Machado 2009 simulation, ΔE in OKLab ×100, smallest difference between the legend colors at −65%, −25%, 0 and +40%: normal
+14.4, protan 9.8, deutan 10.8, tritan 16.3. All are above v2's bar of 8. The remaining risk: mid-growth teal (+45–55%)
+and the lightest "half gone" gray share a lightness, so under protan and deutan they differ only slightly (ΔE 1–2). The
+printed % carries that case: on zoomed labels, the tooltip, the card, search rows and rankings. The accent `#2457FF` is
+never a data color (enforced in `logic.test.mjs`), and a CSS test checks that every rule painting with it is interactive.

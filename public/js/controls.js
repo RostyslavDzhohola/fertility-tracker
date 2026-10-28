@@ -26,7 +26,8 @@ export const ICONS = {
 };
 
 // valueText(year) → the slider's aria-valuetext, e.g. "2070, world 9.9 billion".
-export function createTimeControls({ prefix, valueText = (y) => String(y), compact = false }) {
+// hint: show a "Drag me" bubble on the thumb until the first slider, Play or scenario touch (not while playing).
+export function createTimeControls({ prefix, valueText = (y) => String(y), compact = false, hint = false }) {
   const playBtn = h("button", { type: "button", class: "tc-play", "aria-label": "Play the years to 2100" }, ICONS.play());
   const yearNum = h("span", { class: "tc-year-num" }, String(yearInt()));
   const yearTag = h("span", { class: "tc-year-tag" }, "");
@@ -41,7 +42,8 @@ export function createTimeControls({ prefix, valueText = (y) => String(y), compa
     value: String(yearInt()),
   });
   const ticks = h("div", { class: "tc-ticks", "aria-hidden": "true" });
-  const slider = h("div", { class: "tc-slider" }, h("label", { class: "visually-hidden", for: `${prefix}-year` }, "Year"), input, ticks);
+  const bubble = h("span", { class: "tc-bubble", "aria-hidden": "true", hidden: true }, "Drag me");
+  const slider = h("div", { class: "tc-slider" }, h("label", { class: "visually-hidden", for: `${prefix}-year` }, "Year"), input, ticks, bubble);
   const segs = ["medium", "constant"].map((sc) =>
     h("button", { type: "button", class: "seg", "data-s": sc, "aria-pressed": String(state.scenario === sc), title: SCENARIO_HINTS[sc] }, h("span", { class: "long" }, SCENARIO_LABELS[sc]), h("span", { class: "short", "aria-hidden": "true" }, SCENARIO_SHORT[sc])),
   );
@@ -72,6 +74,7 @@ export function createTimeControls({ prefix, valueText = (y) => String(y), compa
     const span = data.end - data.today || 1;
     const p = ((state.year - data.today) / span) * 100;
     input.style.setProperty("--pf", String(Math.max(0, Math.min(100, p)) / 100));
+    slider.style.setProperty("--pf", String(Math.max(0, Math.min(100, p)) / 100));
     if (document.activeElement !== input || state.playing) {
       if (input.value !== String(y)) input.value = String(y);
     }
@@ -91,17 +94,21 @@ export function createTimeControls({ prefix, valueText = (y) => String(y), compa
       setAttr(playBtn, "aria-label", playing ? "Pause" : atEnd ? "Play again from today" : "Play the years to 2100");
     }
     for (const b of segs) setAttr(b, "aria-pressed", String(b.dataset.s === state.scenario));
-    input.classList.toggle("hint", !state.touched);
+    // The thumb pulses, and the bubble says "Drag me", until the user takes over (never while the intro plays).
+    const waiting = !state.touched && !state.playing;
+    input.classList.toggle("hint", waiting);
+    if (hint) bubble.hidden = !waiting;
   }
 
-  input.addEventListener("input", () => setYear(Number(input.value), { animate: true }));
+  // The thumb is the year: no glide while dragging, so the readout never trails the thumb.
+  input.addEventListener("input", () => setYear(Number(input.value), { animate: false }));
   playBtn.addEventListener("click", () => togglePlay());
   for (const b of segs) b.addEventListener("click", () => setScenario(b.dataset.s));
 
   buildTicks();
   sync();
   const off = subscribe((what) => {
-    if (what === "year" || what === "play" || what === "scenario" || what === "data" || what === "touched") sync();
+    if (what === "year" || what === "play" || what === "scenario" || what === "mix" || what === "data" || what === "touched" || what === "intro-end") sync();
   });
 
   return { root, input, playBtn, sync, destroy: off };

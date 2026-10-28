@@ -1,15 +1,15 @@
-// The rankings page `/rankings` (DESIGN-v3 §4): visual ranked rows with a % change bar, tabs, region chips and the
-// scenario switch. Every row is a link to the country's story.
+// The rankings page `/rankings` (DESIGN-v3 §4, §10): visual ranked rows with a % change bar, two tabs, region chips and
+// the scenario switch. Every row is a link to the country's story. The top 25 show first; small places are folded away.
 
 import { $, h, setText, setAttr, focusNoScroll } from "./dom.js";
 import * as L from "./logic.js";
 import { data, state, subscribe, pct2100, setScenario } from "./store.js";
-import { riskChip } from "./ui.js";
+import { outlookChip } from "./ui.js";
 
+const TOP = 25;
 const TABS = {
-  shrink: { title: "Shrinking most by 2100", sub: (sc) => `Change in people from today to 2100, ${sc === "constant" ? "if birth rates stay the same" : "UN forecast"}.` },
-  risk: { title: "Highest risk", sub: () => "Ranked by how likely a population is to shrink, and how fast." },
-  babies: { title: "Fewest babies", sub: () => "Babies per woman. It takes about 2.1 to keep a country the same size." },
+  shrink: { sub: (sc) => `Change in people from today to 2100, ${sc === "constant" ? "if birth rates stay the same" : "UN forecast"}.` },
+  babies: { sub: () => "Babies per woman. It takes about 2.1 to keep a country the same size." },
 };
 
 export function createRankings({ navigate }) {
@@ -20,17 +20,25 @@ export function createRankings({ navigate }) {
     scen: $("rk-scen"),
     regions: $("rk-regions"),
     list: $("rk-list"),
+    more: $("rk-more"),
     small: $("rk-small"),
-    smallTitle: $("rk-small-title"),
+    smallWrap: $("rk-small-wrap"),
+    smallCount: $("rk-small-count"),
     count: $("rk-count"),
   };
   let tab = "shrink";
   let region = "all";
+  let showAll = false;
   let built = false;
 
   // Scenario switch (shared state).
   const segs = ["medium", "constant"].map((sc) =>
-    h("button", { type: "button", class: "seg", "data-s": sc, "aria-pressed": String(state.scenario === sc), title: L.SCENARIO_HINTS[sc] }, h("span", { class: "long" }, L.SCENARIO_LABELS[sc]), h("span", { class: "short", "aria-hidden": "true" }, L.SCENARIO_SHORT[sc])),
+    h(
+      "button",
+      { type: "button", class: "seg", "data-s": sc, "aria-pressed": String(state.scenario === sc), title: L.SCENARIO_HINTS[sc] },
+      h("span", { class: "long" }, L.SCENARIO_LABELS[sc]),
+      h("span", { class: "short", "aria-hidden": "true" }, L.SCENARIO_SHORT[sc]),
+    ),
   );
   el.scen.replaceChildren(...segs);
   for (const b of segs) b.addEventListener("click", () => setScenario(b.dataset.s));
@@ -45,12 +53,14 @@ export function createRankings({ navigate }) {
     const b = e.target.closest("button[data-region]");
     if (!b) return;
     region = b.dataset.region;
+    showAll = false;
     for (const c of el.regions.querySelectorAll("button")) setAttr(c, "aria-pressed", String(c.dataset.region === region));
     render();
   });
 
   function selectTab(key, focus = false) {
     tab = key;
+    showAll = false;
     for (const t of el.tabs) {
       const on = t.dataset.tab === key;
       setAttr(t, "aria-selected", String(on));
@@ -71,11 +81,17 @@ export function createRankings({ navigate }) {
     });
   }
 
+  el.more.addEventListener("click", () => {
+    showAll = true;
+    render();
+    // Keep the reader where they were: focus the first newly shown row without scrolling.
+    focusNoScroll(el.list.children[TOP]?.querySelector("a"));
+  });
+
   function sorted(list) {
     const sc = state.scenario;
     const by = {
       shrink: (a, b) => (pct2100(a.iso3, sc) ?? 1e9) - (pct2100(b.iso3, sc) ?? 1e9) || a.name.localeCompare(b.name),
-      risk: (a, b) => (a.risk?.rank ?? 1e9) - (b.risk?.rank ?? 1e9) || (b.risk?.score ?? -1) - (a.risk?.score ?? -1) || a.name.localeCompare(b.name),
       babies: (a, b) => (a.tfr?.value ?? 99) - (b.tfr?.value ?? 99) || a.name.localeCompare(b.name),
     }[tab];
     return [...list].sort(by);
@@ -97,8 +113,7 @@ export function createRankings({ navigate }) {
   }
 
   function row(rec, rank, top) {
-    const sc = state.scenario;
-    const pct = pct2100(rec.iso3, sc);
+    const pct = pct2100(rec.iso3, state.scenario);
     const tfr = rec.tfr?.value;
     return h(
       "li",
@@ -108,7 +123,7 @@ export function createRankings({ navigate }) {
         { class: "rk-row", href: L.countryPath(rec.iso3), "data-nav": "" },
         h("span", { class: "rk-rank" }, rank == null ? "–" : String(rank)),
         h("span", { class: "rk-name" }, h("b", null, rec.name), h("small", null, L.REGION_SHORT[rec.region] ?? rec.region ?? "")),
-        h("span", { class: "rk-risk" }, riskChip(rec, { compact: true })),
+        h("span", { class: "rk-risk" }, outlookChip(rec, { compact: true, pct })),
         h("span", { class: "rk-change" }, bar(pct), h("span", { class: `rk-pct ${pct != null && pct < 0 ? "neg" : "pos"}` }, pct == null ? "–" : L.fmtPct(pct))),
         h("span", { class: "rk-tfr" }, h("b", null, L.fmtTfr(tfr)), h("small", null, "babies per woman")),
       ),
@@ -121,14 +136,17 @@ export function createRankings({ navigate }) {
     setText(el.sub, TABS[tab].sub(sc));
     for (const b of segs) setAttr(b, "aria-pressed", String(b.dataset.s === sc));
     const inRegion = (r) => region === "all" || r.region === region;
-    const ranked = data.list.filter((r) => r.ranked === true && Number.isInteger(r.risk?.rank) && inRegion(r));
-    const unranked = data.list.filter((r) => !(r.ranked === true && Number.isInteger(r.risk?.rank)) && inRegion(r));
-    const list = sorted(ranked);
-    el.list.replaceChildren(...list.map((r, i) => row(r, i + 1, i < 3)));
-    const small = sorted(unranked);
+    const isMain = (r) => r.ranked === true && !L.isSmallPlace(r);
+    const main = sorted(data.list.filter((r) => isMain(r) && inRegion(r)));
+    const shown = showAll ? main : main.slice(0, TOP);
+    el.list.replaceChildren(...shown.map((r, i) => row(r, i + 1, i < 3)));
+    el.more.hidden = main.length <= TOP || showAll;
+    setText(el.more, `Show all ${main.length}`);
+    const small = sorted(data.list.filter((r) => !isMain(r) && inRegion(r)));
     el.small.replaceChildren(...small.map((r) => row(r, null, false)));
-    el.smallTitle.hidden = small.length === 0;
-    setText(el.count, `${list.length} place${list.length === 1 ? "" : "s"}${region === "all" ? "" : ` in ${L.REGION_SHORT[region] ?? region}`}`);
+    el.smallWrap.hidden = small.length === 0;
+    setText(el.smallCount, String(small.length));
+    setText(el.count, `${main.length} place${main.length === 1 ? "" : "s"}${region === "all" ? "" : ` in ${L.REGION_SHORT[region] ?? region}`}`);
   }
 
   el.view.addEventListener("click", (e) => {

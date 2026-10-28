@@ -3,7 +3,7 @@
 
 import { $, h, s, setText, setAttr, media, focusNoScroll, announce, copyText } from "./dom.js";
 import * as L from "./logic.js";
-import { data, state, subscribe, popNow, ratioNow, pctNow, pct2100, loadDetail, cachedDetail, setYear, yearInt } from "./store.js";
+import { data, state, subscribe, popNow, ratioNow, pctNow, pct2100, peakYear, loadDetail, cachedDetail, setYear, yearInt } from "./store.js";
 import { createTimeControls } from "./controls.js";
 import { createPopChart } from "./charts.js";
 import { peopleRow } from "./people.js";
@@ -61,30 +61,30 @@ export function createCountryPage({ navigate, siteUrl }) {
 
   // ---------------------------------------------------------------- hero
 
+  // The meter says where the place is headed by 2100 under the selected scenario, on the globe legend's five words
+  // and colors. The 0–100 risk score lives under "More numbers" only.
   function renderMeter(rec) {
-    const step = L.riskStep(rec);
-    const unranked = rec.iso3 === "WLD" || step < 0 || (rec.ranked !== true && L.isSmallPlace(rec));
-    if (unranked) {
+    const small = rec.iso3 !== "WLD" && L.isSmallPlace(rec);
+    const pct = pct2100(rec.iso3, state.scenario);
+    const step = L.outlookStep(pct);
+    if (small || step < 0) {
+      // Micro-places: the verdict already says why there's no word, so no meter at all.
       el.meter.className = "meter none";
-      el.meter.replaceChildren(
-        h("p", { class: "meter-none" }, rec.iso3 === "WLD" ? "The world as a whole isn't ranked." : L.isSmallPlace(rec) ? "Not ranked: too few people for a fair score." : "Not ranked: some numbers are missing."),
-      );
+      el.meter.replaceChildren(...(small ? [] : [h("p", { class: "meter-none" }, "No forecast for this place.")]));
+      setAttr(el.meter, "role", null);
       setAttr(el.meter, "aria-label", null);
       return;
     }
+    const scen = state.scenario === "constant" ? ", if birth rates stay the same" : "";
     el.meter.className = "meter";
     setAttr(el.meter, "role", "img");
-    setAttr(el.meter, "aria-label", `Risk of shrinking: ${L.RISK_LEVELS[step]}, step ${step + 1} of 5.`);
+    setAttr(el.meter, "aria-label", `By 2100${scen}: ${L.OUTLOOK[step].label}, ${L.fmtPct(pct)} compared with today.`);
     el.meter.replaceChildren(
-      h("p", { class: "meter-title", "aria-hidden": "true" }, "Risk of shrinking: ", h("b", null, L.RISK_LEVELS[step])),
+      h("p", { class: "meter-title", "aria-hidden": "true" }, `By 2100${scen}: `, h("b", null, L.OUTLOOK[step].label), h("span", { class: "meter-pct" }, ` ${L.fmtPct(pct)} vs today`)),
       h(
         "div",
         { class: "meter-track", "aria-hidden": "true" },
-        ...L.RISK_LEVELS.map((word, i) => {
-          const seg = h("span", { class: `meter-seg${i === step ? " on" : ""}` }, h("i", { style: { background: L.RISK_COLORS[i] } }), h("span", { class: "meter-word" }, word));
-          if (i === step) seg.append(h("span", { class: "meter-pin" }));
-          return seg;
-        }),
+        ...L.OUTLOOK.map((o, i) => h("span", { class: `meter-seg${i === step ? " on" : ""}` }, h("i", { style: { background: L.outlookColor(i) } }), h("span", { class: "meter-word" }, o.label))),
       ),
     );
   }
@@ -93,12 +93,14 @@ export function createCountryPage({ navigate, siteUrl }) {
     setText(el.region, rec.iso3 === "WLD" ? "Whole world" : rec.region ?? "");
     setText(el.name, rec.iso3 === "WLD" ? "The world" : rec.name);
     el.name.classList.toggle("long", rec.name.length > 22);
-    const p = pct2100(rec.iso3, "medium");
-    setText(el.verdict, L.verdict(rec, p, data.today));
-    el.verdict.dataset.band = L.changeBand(p) ?? "";
+    const sc = state.scenario;
+    const small = rec.iso3 !== "WLD" && L.isSmallPlace(rec);
+    const p = pct2100(rec.iso3, sc);
+    setText(el.verdict, L.verdict(rec, p, data.today, { scenario: sc, peakYear: peakYear(rec.iso3, sc), small }));
+    el.verdict.dataset.band = small ? "" : L.changeBand(p) ?? "";
     renderMeter(rec);
-    const r = L.ratioVsToday(data.scen, rec.iso3, data.end, "medium", data.today);
-    setText(el.lede, L.hundredSentence(rec, r, "medium"));
+    const r = L.ratioVsToday(data.scen, rec.iso3, data.end, sc, data.today);
+    setText(el.lede, small ? "" : L.hundredSentence(rec, r, sc));
   }
 
   // ---------------------------------------------------------------- 100 people + chart (follow the slider)
@@ -129,7 +131,7 @@ export function createCountryPage({ navigate, siteUrl }) {
   }
 
   function placeName() {
-    return current?.iso3 === "WLD" ? "the world" : current?.name ?? "";
+    return L.theName(current);
   }
 
   function renderChart(rec, detail) {
@@ -180,7 +182,7 @@ export function createCountryPage({ navigate, siteUrl }) {
       h(
         "div",
         { class: "tile-pic babies-pic", "aria-hidden": "true" },
-        h("div", { class: "brow" }, h("span", { class: "brow-label" }, h("b", null, L.fmtTfr(tfr)), h("span", null, placeName() === "the world" ? "World" : current.name)), tfr != null ? babyIcons(tfr, "have") : ""),
+        h("div", { class: "brow" }, h("span", { class: "brow-label" }, h("b", null, L.fmtTfr(tfr)), h("span", null, rec.iso3 === "WLD" ? "World" : current.name)), tfr != null ? babyIcons(tfr, "have") : ""),
         h("div", { class: "brow" }, h("span", { class: "brow-label" }, h("b", null, "2.1"), h("span", null, "Same size")), babyIcons(L.REPLACEMENT, "need")),
       ),
       h("p", { class: "tile-text" }, L.babiesSentence(tfr)),
@@ -202,41 +204,32 @@ export function createCountryPage({ navigate, siteUrl }) {
       h("p", { class: "tile-text" }, L.bornDiedSentence(c)),
     );
 
+    // Moving: arrows labelled with the people who arrived and left (UN migrant stock: everyone alive today who moved),
+    // and the yearly net in words. No global source counts yearly arrivals and departures separately.
+    const m = rec.migrantStock;
     const net = c?.netMigration;
-    const rate = c?.perThousand?.netMigration;
-    const dir = net == null ? "none" : Math.abs(net) < 50 ? "even" : net < 0 ? "out" : "in";
-    const arrows = Math.max(1, Math.min(4, Math.round(Math.abs(rate ?? 0) * 0.8) + 1));
-    const pic = h("div", { class: `tile-pic move-pic ${dir}`, "aria-hidden": "true" });
-    pic.append(moveSvg(dir, arrows));
-    el.move.replaceChildren(
-      h("h3", { class: "tile-title" }, `Moving in vs out${c?.year ? `, ${c.year}` : ""}`),
-      pic,
-      h("p", { class: "tile-text" }, L.migrationSentence(net)),
-    );
-  }
-
-  function moveSvg(dir, n) {
-    const svg = s("svg", { viewBox: "0 0 220 96", width: "100%", height: 96, preserveAspectRatio: "xMidYMid meet" });
-    svg.append(s("rect", { class: "home", x: 80, y: 14, width: 60, height: 68, rx: 12 }));
-    svg.append(s("text", { class: "home-label", x: 110, y: 53, "text-anchor": "middle" }, "here"));
-    const arrow = (y, out, faint) => {
-      const g = s("g", { class: `arr ${out ? "out" : "in"}${faint ? " faint" : ""}` });
-      if (out) {
-        g.append(s("path", { d: `M146 ${y} H204`, class: "shaft" }), s("path", { d: `M196 ${y - 7} L206 ${y} L196 ${y + 7}`, class: "head" }));
-      } else {
-        g.append(s("path", { d: `M16 ${y} H74`, class: "shaft" }), s("path", { d: `M66 ${y - 7} L76 ${y} L66 ${y + 7}`, class: "head" }));
-      }
-      return g;
-    };
-    if (dir === "none") return svg;
-    const ys = Array.from({ length: n }, (_, i) => 48 + (i - (n - 1) / 2) * 16);
-    if (dir === "even") {
-      svg.append(arrow(40, false), arrow(56, true));
-      return svg;
+    const world = rec.iso3 === "WLD";
+    const pic = h("div", { class: "tile-pic move-pic", "aria-hidden": "true" });
+    if (world && m?.immigrants != null) {
+      pic.append(h("p", { class: "move-world" }, h("b", null, L.fmtWords(m.immigrants)), " people live outside the country they were born in."));
+    } else if (m?.immigrants != null || m?.emigrants != null) {
+      const mx = Math.max(m.immigrants ?? 0, m.emigrants ?? 0) || 1;
+      const arrow = (cls, label, v) =>
+        h(
+          "div",
+          { class: `mv-row ${cls}` },
+          h("span", { class: "mv-label" }, label),
+          h("span", { class: "mv-track" }, h("span", { class: "mv-arrow", style: { width: `${Math.max(14, (100 * (v ?? 0)) / mx)}%` } })),
+          h("span", { class: "mv-val" }, v == null ? "–" : L.fmtWords(v)),
+        );
+      pic.append(arrow("in", "Arrived", m.immigrants), arrow("out", "Left", m.emigrants));
+      pic.append(h("p", { class: "mv-note" }, `People alive in ${m.year ?? "2024"} who moved in, and who moved away.`));
     }
-    for (const y of ys) svg.append(arrow(y, dir === "out"));
-    svg.append(arrow(48, dir !== "out", true));
-    return svg;
+    el.move.replaceChildren(
+      h("h3", { class: "tile-title" }, "Moving in vs out"),
+      pic,
+      h("p", { class: "tile-text" }, world ? "Moving doesn't change the world's total." : L.yearlyNetSentence(net)),
+    );
   }
 
   // ---------------------------------------------------------------- generations
@@ -253,14 +246,14 @@ export function createCountryPage({ navigate, siteUrl }) {
   function renderGens(rec) {
     const base = rec.tfr?.value;
     const tfr = whatIf ?? base;
-    setText(el.genSentence, whatIf != null ? `What if ${placeName()} had ${L.fmtTfr(tfr)} babies per woman? ${L.generationsSentence(tfr).replace(/^At [^,]+, /, "")}` : L.generationsSentence(tfr));
+    setText(el.genSentence, whatIf != null ? L.generationsSentence(tfr, { whatIfName: placeName() }) : L.generationsSentence(tfr));
     const counts = L.generationCounts(tfr, 4);
     el.gens.replaceChildren(
       ...counts.map((c, i) =>
         h(
           "li",
           { class: "gen" },
-          h("span", { class: "gen-count" }, L.fmtCount(c)),
+          h("span", { class: "gen-count" }, L.fmtPeople(c)),
           dotGroup(c),
           h("span", { class: "gen-label" }, GEN_LABELS[i], i > 0 ? h("small", null, ` ~${data.today + i * L.GEN_YEARS}`) : ""),
         ),
@@ -270,7 +263,7 @@ export function createCountryPage({ navigate, siteUrl }) {
     el.whatif.style.setProperty("--pf", String(Math.max(0, Math.min(1, ((tfr ?? 2.1) - 0.5) / 3.5))));
     if (document.activeElement !== el.whatif) el.whatif.value = String(tfr ?? 2.1);
     el.whatifReset.hidden = whatIf == null;
-    setText(el.whatifReset, `Back to ${placeName() === "the world" ? "the world's" : L.possessive(current.name)} ${L.fmtTfr(base)}`);
+    setText(el.whatifReset, `Back to ${L.possessiveOf(current)} ${L.fmtTfr(base)}`);
   }
 
   el.whatif.addEventListener("input", () => {
@@ -293,36 +286,58 @@ export function createCountryPage({ navigate, siteUrl }) {
     const p = rec.projection ?? {};
     const c = rec.components ?? {};
     const world = rec.iso3 === "WLD";
+    // Every % here is vs today (this year's UN figure), like the rest of the page. Measured figures keep their year.
+    const today = data.today;
+    const vsToday = (year, sc) => {
+      const v = L.popAt(data.scen, rec.iso3, year, sc);
+      const pct = L.pctVsToday(data.scen, rec.iso3, year, sc, today);
+      return [L.fmtWords(v), pct == null ? "" : `(${L.fmtPct(pct)} vs today)`];
+    };
+    const medArr = data.scen?.places?.[rec.iso3]?.medium ?? [];
+    const base = L.popAt(data.scen, rec.iso3, today, "medium");
+    let halfYear = null;
+    for (let i = Math.max(0, today - data.start); i < medArr.length; i++)
+      if (base && medArr[i] != null && medArr[i] <= base / 2) {
+        halfYear = data.start + i;
+        break;
+      }
     const stats = h(
       "dl",
       { class: "stats" },
       stat("People", L.fmtWords(rec.population?.value), rec.population?.year ? `(${rec.population.year})` : ""),
+      stat(`People today (${today}, UN)`, L.fmtWords(base)),
       stat("Babies per woman", L.fmtTfr(rec.tfr?.value), rec.tfr?.year ? `(${rec.tfr.year})` : ""),
-      stat("Median age", rec.medianAge?.value != null ? `${rec.medianAge.value.toFixed(1)} years` : "–"),
-      stat("65 and older", rec.share65?.value != null ? `${Math.round(rec.share65.value)}%` : "–"),
+      stat("Median age", rec.medianAge?.value != null ? `${rec.medianAge.value.toFixed(1)} years` : "–", rec.medianAge?.year ? `(${rec.medianAge.year})` : ""),
+      stat("65 and older", rec.share65?.value != null ? `${Math.round(rec.share65.value)}%` : "–", rec.share65?.year ? `of people (${rec.share65.year})` : ""),
       stat("Born per year", L.fmtFlow(c.births, { plus: false }), c.year ? `(${c.year})` : ""),
       stat("Died per year", L.fmtFlow(c.deaths, { plus: false }), c.year ? `(${c.year})` : ""),
       stat("Net migration", L.fmtFlow(c.netMigration), c.year ? `(${c.year})` : ""),
-      stat("UN forecast, 2050", L.fmtWords(p.population2050), p.change2050Pct != null ? `(${L.fmtPct(p.change2050Pct)} vs ${p.baseYear ?? 2023})` : ""),
-      stat("UN forecast, 2100", L.fmtWords(p.population2100), p.change2100Pct != null ? `(${L.fmtPct(p.change2100Pct)} vs ${p.baseYear ?? 2023})` : ""),
-      stat("If birth rates stay the same, 2100", L.fmtWords(L.popAt(data.scen, rec.iso3, data.end, "constant"))),
+      stat("UN forecast, 2050", ...vsToday(2050, "medium")),
+      stat("UN forecast, 2100", ...vsToday(data.end, "medium")),
+      stat("If birth rates stay the same, 2100", ...vsToday(data.end, "constant")),
       stat("Peak", p.peakYear != null ? String(p.peakYear) : "–", p.peakYear != null && p.peakYear >= L.END_YEAR ? "(still growing)" : ""),
-      stat("Half of today's people by", p.halfPopulationYear != null ? String(p.halfPopulationYear) : "Not before 2100"),
-      stat("Rank", L.rankLabel(rec, data.rankedN)),
+      stat("Half of today's people by", halfYear != null ? String(halfYear) : "Not before 2100", "(UN forecast)"),
+    );
+
+    // The composite risk score (API) and its inputs, kept apart and labelled: it measures change from 2023.
+    const factors = detail?.risk?.factors ?? rec.risk?.factors ?? [];
+    const factorBlock =
       !world && rec.risk?.score != null
         ? h(
             "div",
-            { class: "stat" },
-            h("dt", null, "Risk score (0–100, ", h("a", { href: "https://github.com/RostyslavDzhohola/fertility-tracker/blob/main/docs/METHODOLOGY.md", target: "_blank", rel: "noopener" }, "how it works →"), ")"),
-            h("dd", null, `${rec.risk.score} / 100`, h("small", null, ` (${L.riskWord(rec)})`)),
+            { class: "cv-more-sec" },
+            h("h3", null, "Risk score (0–100), ", h("a", { href: "https://github.com/RostyslavDzhohola/fertility-tracker/blob/main/docs/METHODOLOGY.md", target: "_blank", rel: "noopener" }, "how it works →")),
+            h(
+              "p",
+              { class: "score-line" },
+              h("b", null, `${rec.risk.score} / 100`),
+              ` · tier ${rec.risk.tier ?? "–"}`,
+              Number.isInteger(rec.risk?.rank) ? ` · ${L.rankLabel(rec, data.rankedN)}` : ` · ${L.rankLabel(rec, data.rankedN)}`,
+            ),
+            h("p", { class: "muted small" }, "A summary of five signals: babies per woman, births vs deaths, age, migration and the UN forecast. Unlike the rest of this page, it compares with 2023."),
+            factors.length ? h("ul", { class: "factors" }, ...factors.map((f) => h("li", null, f))) : "",
           )
-        : "",
-    );
-
-    const factors = detail?.risk?.factors ?? rec.risk?.factors ?? [];
-    const factorBlock = factors.length
-      ? h("div", { class: "cv-more-sec" }, h("h3", null, "What pushes the risk up or down"), h("ul", { class: "factors" }, ...factors.map((f) => h("li", null, f))))
-      : "";
+        : "";
 
     const m = rec.migrantStock;
     const corr = detail?.migrationCorridors;
@@ -420,6 +435,7 @@ export function createCountryPage({ navigate, siteUrl }) {
   subscribe((what) => {
     if (!current || el.view.hidden) return;
     if (what === "year" || what === "mix") renderLive();
+    if (what === "scenario") renderHero(current);
   });
 
   async function show(iso3) {
@@ -444,7 +460,7 @@ export function createCountryPage({ navigate, siteUrl }) {
     }
     const my = ++token;
     renderHero(rec);
-    setText(el.ppTitle, rec.iso3 === "WLD" ? "Start with 100 people" : `Start with 100 people in ${rec.name}`);
+    setText(el.ppTitle, `Start with 100 people in ${L.theName(rec)}`);
     renderLive();
     renderWhy(rec);
     renderGens(rec);

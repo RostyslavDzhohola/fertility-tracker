@@ -23,17 +23,28 @@ test("risk words map the five API tiers to plain words; no score on the label", 
   assert.equal(L.isSmallPlace({ flags: ["small-population"] }), true);
 });
 
-test("people ramp: greens grow, sand stays, orange to red shrinks, gray from half gone; accent never in the ramp", () => {
-  const band = L.changeBand;
-  assert.equal(band(40), "more");
-  assert.equal(band(5.01), "more");
-  assert.equal(band(0), "same");
-  assert.equal(band(-5), "same");
-  assert.equal(band(-5.01), "fewer");
-  assert.equal(band(-49.9), "fewer");
-  assert.equal(band(-50), "half");
-  assert.equal(band(-90), "half");
-  assert.equal(band(null), null);
+test("one five-word scale: the legend, chips, meter and verdicts share bands and colors with the globe ramp", () => {
+  assert.deepEqual(L.OUTLOOK.map((o) => o.label), ["Growing", "About the same", "Shrinking", "Shrinking fast", "Half gone"]);
+  const word = (p) => L.outlookOf(p)?.label ?? null;
+  assert.equal(word(40), "Growing");
+  assert.equal(word(5.6), "Growing");
+  assert.equal(word(5.4), "About the same", "shown as +5%");
+  assert.equal(word(0), "About the same");
+  assert.equal(word(-5), "About the same");
+  assert.equal(word(-6), "Shrinking");
+  assert.equal(word(-24), "Shrinking");
+  assert.equal(word(-25), "Shrinking fast");
+  assert.equal(word(-49.4), "Shrinking fast");
+  assert.equal(word(-49.6), "Half gone", "shown as −50%: the word follows the number people see");
+  assert.equal(word(-90), "Half gone");
+  assert.equal(word(null), null);
+  // Brazil-like: −24% by 2100 is "Shrinking", never a calm word next to a falling number.
+  assert.equal(word(-24), "Shrinking");
+  // Each word's color is the ramp's color inside its band, and a −49.6% place is colored gray like its word.
+  for (const [i, o] of L.OUTLOOK.entries()) assert.equal(L.outlookColor(i), L.changeColor(o.pct));
+  assert.equal(L.changeColor(-49.6), L.changeColor(-50));
+  assert.equal(L.changeBand(-30), "fast");
+  assert.equal(L.changeBand(12), "growing");
   assert.equal(L.changeColor(null), null);
   assert.equal(L.changeColor(0), "#EEE5CD");
   // Gray, darkening as more is lost (no hue: R ≈ G ≈ B).
@@ -57,7 +68,7 @@ test("people ramp: greens grow, sand stays, orange to red shrinks, gray from hal
   assert.ok(lum(L.changeColor(100)) < lum(L.changeColor(30)));
   // The interactive accent (#2457FF) is not a data color.
   for (let p = -100; p <= 250; p += 5) assert.notEqual(L.changeColor(p), "#2457FF");
-  assert.deepEqual(L.LEGEND.map((l) => l.label), ["Half gone", "Fewer people", "About the same", "More people"]);
+
 });
 
 test("scenarios: popAt interpolates fractional years; % is measured against today's UN forecast", () => {
@@ -150,8 +161,12 @@ test("generations: 100 people, each generation × tfr / 2.1", () => {
   assert.deepEqual(L.generationCounts(0.87, 4).map(L.fmtCount), ["100", "41", "17", "7.1"]);
   assert.equal(L.nextGeneration(2.1), 100);
   assert.deepEqual(L.generationCounts(null), []);
-  assert.equal(L.generationsSentence(0.87), "At 0.87 babies per woman, 100 people have 41 children, 17 grandchildren and 7.1 great-grandchildren.");
+  assert.equal(L.generationsSentence(0.87), "At 0.87 babies per woman, 100 people have about 41 children, 17 grandchildren and 7 great-grandchildren.");
   assert.match(L.generationsSentence(6.03), /each generation is bigger/);
+  assert.equal(L.generationsSentence(1.5, { whatIfName: "Taiwan" }), "What if Taiwan had 1.50 babies per woman? 100 people have about 71 children, 51 grandchildren and 36 great-grandchildren.");
+  assert.match(L.generationsSentence(3, { whatIfName: "the Philippines" }), /^What if the Philippines had 3\.00 babies per woman\? Each generation is bigger/);
+  assert.equal(L.fmtPeople(7.1), "7");
+  assert.equal(L.fmtPeople(0.3), "less than 1");
 });
 
 test("routes: clean paths, legacy /#KOR and /KOR, lowercase codes, the shareable query", () => {
@@ -246,6 +261,11 @@ test("search: names, aliases, ISO3 codes, diacritics, typos; ties go to the larg
     ["earth", "WLD"],
     ["germny", "DEU"],
     ["phillipines", "PHL"],
+    ["swiss", "CHE"],
+    ["tw", "TWN"],
+    ["ch", "CHE"],
+    ["gb", "GBR"],
+    ["dutch", "NLD"],
   ])
     assert.equal(first(q), want, `"${q}" should find ${want}, got ${first(q)}`);
   assert.deepEqual(L.searchPlaces(places, "korea").slice(0, 2).map((p) => p.iso3), ["KOR", "PRK"]);
@@ -269,13 +289,23 @@ test("plain verdicts and the 100-people sentence", () => {
   const twn = countries.find((c) => c.iso3 === "TWN");
   const today = L.todayYear(scen);
   const p = L.pctVsToday(scen, "TWN", 2100, "medium", today);
-  assert.equal(L.verdict(twn, p, today), "Taiwan is shrinking fast.");
-  assert.equal(L.verdictShort(p), "shrinking fast");
-  assert.equal(L.verdict({ name: "X", projection: { peakYear: 2060 } }, -20, 2026), "X grows for a while, then shrinks.");
-  assert.equal(L.verdict({ name: "X" }, 0, 2026), "X stays about the same size.");
-  assert.equal(L.verdict({ name: "X" }, 150, 2026), "X keeps growing fast.");
-  assert.equal(L.verdict({ iso3: "WLD", name: "World", projection: { peakYear: 2084 } }, 24, 2026), "The world keeps growing until about 2084.");
+  assert.equal(L.verdict(twn, p, today, { peakYear: 2026 }), "Taiwan loses half its people or more by 2100.");
+  assert.equal(L.verdictShort(p), "half gone by 2100");
+  assert.equal(L.verdict({ name: "X" }, -30, 2026, { peakYear: 2026 }), "X is shrinking fast.");
+  assert.equal(L.verdict({ name: "X" }, -20, 2026, { peakYear: 2060 }), "X grows for a while, then shrinks.");
+  assert.equal(L.verdict({ name: "X" }, 0, 2026, { peakYear: 2026 }), "X stays about the same size.");
+  assert.equal(L.verdict({ name: "X" }, 150, 2026, { peakYear: 2100 }), "X keeps growing fast.");
+  assert.equal(L.verdict({ iso3: "WLD", name: "World" }, 24, 2026, { peakYear: 2084 }), "The world keeps growing until about 2084, then levels off.");
   assert.equal(L.verdict({ name: "X" }, null, 2026), "X: no forecast in our sources.");
+  assert.equal(L.verdict({ iso3: "USA", name: "United States" }, -30, 2026, { scenario: "constant", peakYear: 2026 }), "If birth rates stay the same, the United States is shrinking fast.");
+  assert.equal(L.verdict({ iso3: "VAT", name: "Vatican", flags: ["small-population"] }, 169, 2026), "The Vatican has a very small population: its numbers swing a lot.");
+  // Names that take "the".
+  assert.equal(L.theName({ iso3: "USA", name: "United States" }), "the United States");
+  assert.equal(L.theName({ iso3: "GBR", name: "United Kingdom" }, { start: true }), "The United Kingdom");
+  assert.equal(L.theName({ iso3: "PHL", name: "Philippines" }), "the Philippines");
+  assert.equal(L.possessiveOf({ iso3: "USA", name: "United States" }), "the United States'");
+  assert.equal(L.possessiveOf({ iso3: "TWN", name: "Taiwan" }), "Taiwan's");
+  assert.equal(L.hundredSentence({ iso3: "NLD", name: "Netherlands" }, 0.9), "For every 100 people in the Netherlands today, about 90 will be left in 2100 (UN forecast).");
   assert.equal(L.hundredSentence(twn, 0.43), "For every 100 people in Taiwan today, about 43 will be left in 2100 (UN forecast).");
   assert.equal(L.hundredSentence({ name: "Niger" }, 3.5), "For every 100 people in Niger today, there will be about 350 in 2100 (UN forecast).");
   assert.equal(L.hundredSentence({ name: "X" }, 1.01, "constant"), "For every 100 people in X today, there will still be about 100 in 2100 (If birth rates stay the same).");
@@ -285,7 +315,7 @@ test("plain verdicts and the 100-people sentence", () => {
   assert.equal(L.migrationSentence(87800), "87,800 more people arrive than leave each year.");
   assert.equal(L.migrationSentence(10), "About as many people move in as move out.");
   assert.match(L.bornDiedSentence(twn.components), /^132,000 born and 205,000 died in 2023: more people die than are born\.$/);
-  assert.equal(L.documentTitle("country", twn, p), "Taiwan: shrinking fast · Fertility Tracker");
+  assert.equal(L.documentTitle("country", twn, p), "Taiwan: half gone by 2100 · Fertility Tracker");
   assert.equal(L.documentTitle("rankings"), "Where populations will shrink most · Fertility Tracker");
   assert.equal(L.documentTitle("globe"), L.HOME_TITLE);
   assert.match(L.xPostText(twn, 0.437), /^Taiwan: 0\.87 babies per woman\. For every 100 people today, about 44 will be left in 2100 \(UN forecast\)\.$/);

@@ -124,8 +124,10 @@ console.log(korea.tfr.value, korea.risk.tier, korea.risk.factors[0]);</pre>
   // Progressive enhancement: freshness line + live top 10. The page works without it.
   (async () => {
     try {
+      // status.json is written at deploy time, so it only exists on the live site: don't ask for it locally.
+      const live = !/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
       const [index, status, risk] = await Promise.all(
-        ["/api/v1/index.json", "/api/v1/status.json", "/api/v1/risk.json"].map((p) => fetch(p).then((r) => (r.ok ? r.json() : null)).catch(() => null)),
+        ["/api/v1/index.json", live ? "/api/v1/status.json" : null, "/api/v1/risk.json"].map((p) => (p ? fetch(p).then((r) => (r.ok ? r.json() : null)).catch(() => null) : null)),
       );
       const day = (s) => (s ? new Date(s).toISOString().slice(0, 10) : "unknown");
       if (index) {

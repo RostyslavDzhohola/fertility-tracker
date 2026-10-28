@@ -2,23 +2,26 @@
 
 import { h } from "./dom.js";
 import * as L from "./logic.js";
+import { outlookPct, state } from "./store.js";
 
-// The risk chip: a 5-step mini meter and the word. `compact` drops the "Risk of shrinking:" prefix (rankings rows).
-export function riskChip(rec, { compact = false } = {}) {
-  const step = L.riskStep(rec);
-  if (rec.iso3 === "WLD") return h("span", { class: "risk-chip none" }, compact ? "Not ranked" : "The world as a whole isn't ranked");
-  if (step < 0 || (rec.ranked !== true && L.isSmallPlace(rec)))
-    return h("span", { class: "risk-chip none", title: "Too few people for a fair score" }, compact ? "Not ranked" : "Not ranked: too few people for a fair score");
-  const segs = L.RISK_LEVELS.map((_, i) => {
-    const sgm = h("i", { class: i <= step ? "on" : "" });
-    if (i <= step) sgm.style.background = L.RISK_COLORS[i];
+// The outlook chip: where a place is headed by 2100 under the selected scenario, compared with today, on the same
+// five-word, five-color scale as the globe legend. `compact` drops the "By 2100:" prefix (rankings rows, search).
+export function outlookChip(rec, { compact = false, pct = outlookPct(rec.iso3) } = {}) {
+  if (rec.iso3 !== "WLD" && L.isSmallPlace(rec))
+    return h("span", { class: "risk-chip none", title: "Under 100,000 people: a few births or deaths swing the numbers a lot" }, "Very small population");
+  const step = L.outlookStep(pct);
+  if (step < 0) return h("span", { class: "risk-chip none" }, "No forecast");
+  const segs = L.OUTLOOK.map((o, i) => {
+    const sgm = h("i", { class: i === step ? "on" : "" });
+    sgm.style.background = L.outlookColor(i);
     return sgm;
   });
+  const scen = state.scenario === "constant" ? " if birth rates stay the same" : "";
   return h(
     "span",
-    { class: `risk-chip${compact ? " compact" : ""}`, "data-step": String(step), title: compact ? `Risk of shrinking: ${L.RISK_LEVELS[step]}` : null },
+    { class: `risk-chip${compact ? " compact" : ""}`, "data-step": String(step), title: `By 2100${scen}: ${L.OUTLOOK[step].label} (${L.fmtPct(pct)} vs today)` },
     h("span", { class: "mini-meter", "aria-hidden": "true" }, ...segs),
-    compact ? h("span", { class: "visually-hidden" }, "Risk of shrinking: ") : "Risk of shrinking: ",
-    h("b", null, L.RISK_LEVELS[step]),
+    compact ? h("span", { class: "visually-hidden" }, "By 2100: ") : "By 2100: ",
+    h("b", null, L.OUTLOOK[step].label),
   );
 }

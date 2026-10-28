@@ -15,7 +15,6 @@ export function createTopbar(opts) {
     getPlaces: opts.getPlaces,
     getRecord: opts.getRecord,
     getPct: opts.getPct,
-    getYear: opts.getYear,
     topPlaces: opts.topPlaces,
     onSelect: opts.onSelect,
   });
@@ -23,9 +22,11 @@ export function createTopbar(opts) {
   // A shorter placeholder on phones, so it isn't cut off.
   const input = $("search");
   const mq = matchMedia("(max-width: 699px)");
-  const syncPlaceholder = () => input && (input.placeholder = mq.matches ? "Search a country" : "Search any country or territory");
+  const tiny = matchMedia("(max-width: 379px)");
+  const syncPlaceholder = () => input && (input.placeholder = tiny.matches ? "Search" : mq.matches ? "Search a country" : "Search any country or territory");
   syncPlaceholder();
   mq.addEventListener?.("change", syncPlaceholder);
+  tiny.addEventListener?.("change", syncPlaceholder);
 
   // Mobile menu (nav collapses under 700px).
   const menuBtn = $("menu-btn");

@@ -198,7 +198,7 @@ test("first globe paint stays under 600 KB compressed (DESIGN-v3 §8)", async ()
 test("the accent color only styles interactive things", () => {
   // Every CSS rule that paints with --accent belongs to a control, a link, the slider, the focus ring or the chart's
   // year marker (which follows the slider and scrubs it).
-  const interactive = /(a\b|a:|button|\.btn|\.seg|\.chip|\.tabs|\.tc-|\.search|\.icon-btn|\.pill-btn|\.view-mode|:focus|\.skip-link|\.topnav|\.risk-row|\.risk-all|\.text-btn|\.cv-more summary|\.whatif|\.opt-name b|\.marker|\.m-bubble|\.menu-btn|\.links|\.partners|summary)/;
+  const interactive = /(a\b|a:|button|\.btn|\.seg|\.chip|\.tabs|\.tc-|\.search|\.icon-btn|\.pill-btn|\.view-mode|:focus|\.skip-link|\.topnav|\.risk-row|\.risk-all|\.text-btn|\.cv-more summary|\.whatif|\.opt-name b|\.marker|\.m-bubble|\.menu-btn|\.links|\.partners|summary|\.rk-small|\.rk-more|\.tc-bubble|\.tc-slider)/;
   for (const m of css.matchAll(/([^{}]+)\{([^}]*)\}/g)) {
     const [sel, body] = [m[1].trim(), m[2]];
     if (!/var\(--accent\)|#2457ff/i.test(body) || sel.startsWith(":root") || sel.startsWith("@")) continue;

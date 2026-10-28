@@ -4,7 +4,7 @@
 
 import { $, setAttr, focusNoScroll, idle, debounce } from "./dom.js";
 import * as L from "./logic.js";
-import { data, state, subscribe, fetchJson, applyCountries, applyScenarios, setYear, setScenario, pctNow, yearInt, loadDetail, API } from "./store.js";
+import { data, state, subscribe, fetchJson, applyCountries, applyScenarios, setYear, setScenario, outlookPct, pct2100, yearInt, loadDetail, API } from "./store.js";
 import { createHome } from "./home.js";
 import { createCountryPage } from "./country.js";
 import { createRankings } from "./rankings.js";
@@ -23,6 +23,9 @@ let home = null;
 let country = null;
 let rankings = null;
 let focusIso = route.page === "globe" ? route.focus : null;
+// The globe's outlines are only needed on the globe page: start that download with the data, not on other pages.
+const geoFetch = route.page === "globe" ? fetchJson("/geo/countries-110m.json") : null;
+geoFetch?.catch(() => {});
 
 const siteUrl = () => data.siteUrl;
 
@@ -103,7 +106,7 @@ function render({ first = false, nav = false, pop = false } = {}) {
   if (nav && prev !== null) {
     // A new page starts at the top; focus its title for keyboard and screen-reader users.
     window.scrollTo(0, 0);
-    const h1 = document.querySelector(`#view-${page} h1`);
+    const h1 = [...document.querySelectorAll(`#view-${page} h1`)].find((x) => !x.closest("[hidden]"));
     if (h1) {
       if (!h1.hasAttribute("tabindex")) h1.setAttribute("tabindex", "-1");
       focusNoScroll(h1);
@@ -121,12 +124,11 @@ function setCanonical(path) {
 const topbar = createTopbar({
   getPlaces: () => data.searchPlaces,
   getRecord: (iso3) => data.records.get(iso3),
-  getPct: (iso3) => pctNow(iso3),
-  getYear: () => yearInt(),
+  getPct: (iso3) => outlookPct(iso3),
   topPlaces: (n) =>
     data.list
-      .filter((r) => Number.isInteger(r.risk?.rank))
-      .sort((a, b) => a.risk.rank - b.risk.rank)
+      .filter((r) => r.ranked === true && pct2100(r.iso3, state.scenario) != null)
+      .sort((a, b) => pct2100(a.iso3, state.scenario) - pct2100(b.iso3, state.scenario))
       .slice(0, n),
   onSelect: (iso3) => {
     if (page === "globe" && home) home.selectFromSearch(iso3);
@@ -157,6 +159,7 @@ function startPages() {
   state.year = route.year != null ? Math.max(data.today, Math.min(data.end, route.year)) : data.end;
   home = createHome({
     navigate,
+    geoFetch,
     onFocusChange: (iso3) => {
       focusIso = iso3;
       syncUrl();

@@ -254,12 +254,12 @@ test("§9.2 the first drag rotates at once and keeps the grabbed point under the
     await page.mouse("mouseMoved", x0, y0);
     await page.mouse("mousePressed", x0, y0);
     // The very first move past the 5px click slop already turns the globe; no second click, no activation step.
-    await page.mouse("mouseMoved", x0 + 12, y0 + 4, { buttons: 1 });
+    await page.mouse("mouseMoved", x0 + 12, y0 + 4, { button: "left", buttons: 1 });
     await sleep(60);
     const rot1 = await page.eval(`${G}.rotation`);
     assert.notDeepEqual(rot1, rot0, "first drag rotates immediately");
     for (let i = 2; i <= 10; i++) {
-      await page.mouse("mouseMoved", x0 + 12 * i, y0 + 4 * i, { buttons: 1 });
+      await page.mouse("mouseMoved", x0 + 12 * i, y0 + 4 * i, { button: "left", buttons: 1 });
       await sleep(16);
     }
     const under = await page.eval(`${G}.lonLatAt(${x0 + 120}, ${y0 + 40})`);
@@ -315,10 +315,11 @@ test("§9.3 wheel zoom goes toward the pointer; Taiwan is visible and clickable 
     await page.eval(`${G}.flyTo("TWN", { zoom: 16 }), 0`);
     await settle(page, 8000);
     await sleep(300);
-    assert.equal(await page.eval(`${G}.k`), 12, "fly-to caps at 12×");
-    await page.eval(`${G}.zoomBy(2, { animate: false }), 0`);
+    assert.ok(Math.abs((await page.eval(`${G}.k`)) - 7) < 1e-6, "fly-to caps at 7× so neighbours stay in view");
+    await page.eval(`${G}.zoomBy(16 / 7, { animate: false }), 0`);
+    await sleep(100);
     await sleep(400);
-    assert.equal(await page.eval(`${G}.k`), 16, "zoom goes to 16×");
+    assert.ok(Math.abs((await page.eval(`${G}.k`)) - 16) < 1e-6, "zoom goes to 16×");
     assert.equal(await page.eval(`${G}.detail`), 50, "50m outlines at rest");
     const p = await page.eval(`${G}.screenOf("TWN")`);
     assert.ok(p && p.x > 0 && p.y > 0 && p.x < 1440 && p.y < 900, JSON.stringify(p));
@@ -449,9 +450,9 @@ test("§9.5 zoomed-in labels show each country's population and % for the slider
     await sleep(700);
     const de2 = (await page.eval(`${G}.labels`)).find((l) => l.iso3 === "DEU");
     assert.ok(de2 && de2.line !== de.line, `label updated: ${de.line} → ${de2?.line}`);
-    // Labels never sit under the dock or the top bar.
-    const dockTop = await page.eval(`document.getElementById("dock-wrap").getBoundingClientRect().top`);
-    for (const l of await page.eval(`${G}.labels`)) assert.ok(l.y < dockTop - 10 && l.y > 60, `${l.name} at y=${l.y}`);
+    // Labels never sit under the dock, the zoom buttons or the search box.
+    const blocks = await page.eval(`["dock-wrap", "zoom-ctrl", "search-wrap"].map((id) => { const b = document.getElementById(id).getBoundingClientRect(); return [b.left, b.top, b.right, b.bottom]; })`);
+    for (const l of await page.eval(`${G}.labels`)) for (const [x0, y0, x1, y1] of blocks) assert.ok(!(l.x > x0 && l.x < x1 && l.y > y0 && l.y < y1), `${l.name} at ${Math.round(l.x)},${Math.round(l.y)} is under a control`);
     assert.deepEqual(page.errors, []);
   } finally {
     await page.close();
@@ -507,7 +508,7 @@ test("§9.8 deep links survive a reload: /country/TWN, /rankings, /api/, /#KOR a
   const cases = [
     ["/country/TWN", "/country/TWN", `document.getElementById("cv-name").textContent === "Taiwan"`],
     ["/country/twn?year=2070", "/country/TWN", `document.getElementById("cv-name").textContent === "Taiwan" && document.getElementById("pp-year").textContent === "2070"`],
-    ["/rankings", "/rankings", `document.querySelectorAll("#rk-list li").length >= 150`],
+    ["/rankings", "/rankings", `document.querySelectorAll("#rk-list li").length === 25 && document.querySelectorAll("#rk-small li").length >= 20`],
     ["/#KOR", "/country/KOR", `document.getElementById("cv-name").textContent === "South Korea"`],
     ["/KOR", "/country/KOR", `document.getElementById("cv-name").textContent === "South Korea"`],
     ["/fertility-tracker/JPN", "/country/JPN", `document.getElementById("cv-name").textContent === "Japan"`],
@@ -540,6 +541,7 @@ test("§9.8 Back and Forward move between pages; the year and scenario travel in
     assert.equal(cta, "/country/TWN?year=2070&scenario=constant");
     await page.eval(`document.getElementById("card-cta").click(), 0`);
     await page.waitFor(`location.pathname === "/country/TWN" && document.getElementById("cv-name").textContent === "Taiwan"`);
+    assert.equal(await page.eval("document.activeElement.id"), "cv-name", "focus moves to the story's title");
     assert.equal(await page.eval("location.search"), "?year=2070&scenario=constant");
     assert.equal(await page.eval(`document.getElementById("view-globe").hidden`), true);
     assert.equal(await page.eval(`document.getElementById("pp-year").textContent`), "2070");
@@ -558,6 +560,7 @@ test("§9.8 Back and Forward move between pages; the year and scenario travel in
     await page.eval(`(() => { const i = document.getElementById("search"); i.focus({ preventScroll: true }); i.value = "japan"; i.dispatchEvent(new Event("input", { bubbles: true })); })()`);
     await page.key("Enter", { text: "\r", vk: 13 });
     await page.waitFor(`location.pathname === "/country/JPN" && document.getElementById("cv-name").textContent === "Japan"`);
+    assert.equal(await page.eval("document.activeElement.id"), "cv-name", "focus moves to the new title after a search");
     assert.match(await page.eval("document.title"), /^Japan: .* · Fertility Tracker$/);
     assert.deepEqual(page.errors, []);
   } finally {
@@ -572,8 +575,9 @@ test("country page: the 100 people and the chart marker follow the shared slider
   try {
     await page.waitFor(`document.querySelector("#pop-chart svg .marker")`);
     const meter = await page.eval(`(() => ({ words: [...document.querySelectorAll("#cv-meter .meter-word")].map((w) => w.textContent), on: document.querySelector("#cv-meter .meter-seg.on .meter-word")?.textContent, text: document.querySelector(".hero").textContent }))()`);
-    assert.deepEqual(meter.words, ["Very low", "Low", "Medium", "High", "Very high"]);
-    assert.equal(meter.on, "Very high");
+    assert.deepEqual(meter.words, ["Growing", "About the same", "Shrinking", "Shrinking fast", "Half gone"]);
+    assert.equal(meter.on, "Half gone");
+    assert.match(meter.text, /By 2100: Half gone −5\d% vs today/);
     assert.ok(!/\b\d{1,3} ?\/ ?100\b/.test(meter.text), "no 0–100 score in the hero");
     assert.match(await page.eval(`document.getElementById("cv-lede").textContent`), /^For every 100 people in Taiwan today, about \d+ will be left in 2100 \(UN forecast\)\.$/);
     const gone = `[...document.querySelectorAll("#pp-grid .pp-base .person")].filter((i) => Number(getComputedStyle(i).getPropertyValue("--f")) < 0.5).length`;
@@ -587,7 +591,7 @@ test("country page: the 100 people and the chart marker follow the shared slider
     assert.equal(await page.eval(`document.getElementById("pp-year").textContent`), "2040");
     // The 0–100 score only appears under "More numbers".
     assert.equal(await page.eval(`document.getElementById("more").open`), false);
-    assert.match(await page.eval(`document.getElementById("more-body").textContent`), /Risk score \(0–100, how it works →\)/);
+    assert.match(await page.eval(`document.getElementById("more-body").textContent`), /Risk score \(0–100\), how it works →/);
     // A growing place gains green icons.
     await page.eval(`FT.navigate("/country/NER"), 0`);
     await page.waitFor(`document.getElementById("cv-name").textContent === "Niger"`);
@@ -602,14 +606,15 @@ test("country page: the 100 people and the chart marker follow the shared slider
   }
 });
 
-test("small places show 'Not ranked' instead of the meter; the world isn't ranked", opts, async () => {
+test("micro-places get no verdict word; the world gets the outlook meter", opts, async () => {
   for (const [code, re] of [
-    ["VAT", /Not ranked: too few people for a fair score/],
-    ["WLD", /The world as a whole isn't ranked/],
+    ["VAT", /^$/],
+    ["WLD", /By 2100: Growing/],
   ]) {
     const page = await openPage({ path: `/country/${code}` });
     try {
       assert.match(await page.eval(`document.getElementById("cv-meter").textContent`), re);
+      if (code === "VAT") assert.equal(await page.eval(`document.getElementById("cv-verdict").textContent`), "The Vatican has a very small population: its numbers swing a lot.");
       assert.deepEqual(page.errors, []);
     } finally {
       await page.close();
@@ -660,13 +665,16 @@ test("phones: no horizontal overflow on any page; the card sheet never covers th
   }
 });
 
-test("every control is at least 44px; focus rings show", opts, async () => {
-  const page = await openPage({});
-  try {
-    const small = await page.eval(`[...document.querySelectorAll("#view-globe button, .topbar button, .topbar a, .topbar input, #globe-year")].filter((b) => b.offsetParent).map((b) => [b.id || b.textContent.trim().slice(0, 20), Math.round(b.getBoundingClientRect().height)]).filter(([, hh]) => hh < 40)`);
-    assert.deepEqual(small, []);
-  } finally {
-    await page.close();
+test("every control is at least 44px, on desktop and on phones", opts, async () => {
+  for (const vp of [{}, { width: 390, height: 844, mobile: true }]) {
+    const page = await openPage({ ...vp, path: "/?year=2100&focus=TWN" });
+    try {
+      await page.waitFor(`!document.getElementById("card").hidden`);
+      const small = await page.eval(`[...document.querySelectorAll("#view-globe button, #view-globe a, .topbar button, .topbar a, .topbar input, #globe-year")].filter((b) => b.offsetParent && getComputedStyle(b).visibility !== "hidden").map((b) => [b.id || b.textContent.trim().slice(0, 20), Math.round(b.getBoundingClientRect().height)]).filter(([, hh]) => hh < 44)`);
+      assert.deepEqual(small, [], `${vp.width ?? 1440}px`);
+    } finally {
+      await page.close();
+    }
   }
 });
 
@@ -716,6 +724,222 @@ test("retry after a failed countries.json brings the whole app up", opts, async 
     assert.equal(await page.eval(`document.getElementById("load-banner").hidden`), true);
   } finally {
     listeners.delete(onPaused);
+    await page.close();
+  }
+});
+
+// ------------------------------------------------------------------ fix round 1 (review findings)
+
+const BUCKET = `((p) => p == null ? null : p <= -50 ? "Half gone" : p <= -25 ? "Shrinking fast" : p < -5 ? "Shrinking" : p <= 5 ? "About the same" : "Growing")`;
+const PCT = `((t) => { const m = /([+−-])?(\\d+(?:\\.\\d)?)%/.exec(t); return m ? (m[1] === "−" || m[1] === "-" ? -1 : 1) * Number(m[2]) : null; })`;
+
+test("B1 every word on screen matches the number beside it: card, search, Shrinking most, rankings, country meter", opts, async () => {
+  const page = await openPage({ path: "/?year=2070&focus=BRA" });
+  try {
+    await page.eval(`${G}.stopSpin(), 0`);
+    await page.waitFor(`FT.home.selected === "BRA"`);
+    // The card chip says where Brazil is headed by 2100 (UN forecast): −24% → Shrinking.
+    const card = await page.eval(`(() => { const p = ((FT.data.scen.places.BRA.medium[2100 - FT.data.scen.startYear] / FT.data.scen.places.BRA.medium[FT.data.today - FT.data.scen.startYear]) - 1) * 100; return { word: document.querySelector("#card-risk b")?.textContent, text: document.getElementById("card-risk").textContent, want: ${BUCKET}(p), p }; })()`);
+    assert.equal(card.word, card.want, JSON.stringify(card));
+    assert.match(card.text, /^By 2100: /);
+    // Search rows: word and number agree.
+    await page.eval(`(() => { const i = document.getElementById("search"); i.focus({ preventScroll: true }); i.value = "korea"; i.dispatchEvent(new Event("input", { bubbles: true })); })()`);
+    const rows = await page.eval(`[...document.querySelectorAll("#search-results [role=option][data-iso3]")].map((o) => ({ sub: o.querySelector(".opt-sub").textContent, pct: o.querySelector(".opt-pct").textContent }))`);
+    assert.ok(rows.length >= 2);
+    for (const r of rows) assert.equal(r.sub.replace(/ by 2100$/, ""), await page.eval(`${BUCKET}(${PCT}(${JSON.stringify(r.pct)}))`), JSON.stringify(r));
+    await page.eval(`document.getElementById("search").blur(), 0`);
+    // "Shrinking most": sorted by the number each row shows; the old label is gone.
+    assert.equal(await page.eval(`document.getElementById("risk-btn").textContent.trim()`), "Shrinking most");
+    await page.eval(`document.getElementById("risk-btn").click(), 0`);
+    const list = await page.eval(`[...document.querySelectorAll("#risk-list .rr-pct")].map((x) => ${PCT}(x.textContent))`);
+    assert.equal(list.length, 10);
+    for (let i = 1; i < list.length; i++) assert.ok(list[i] >= list[i - 1], `sorted by shown %: ${list}`);
+    // No "risk" wording outside "More numbers" on the globe page.
+    assert.ok(!/Risk of shrinking|Most at risk/i.test(await page.eval(`document.getElementById("view-globe").textContent`)));
+    // Switching the scenario re-words the chip.
+    await page.eval(`document.querySelector('#dock .seg[data-s="constant"]').click(), 0`);
+    await sleep(300);
+    assert.match(await page.eval(`document.getElementById("card-risk").getAttribute("title") ?? document.querySelector("#card-risk .risk-chip").title`), /if birth rates stay the same/);
+  } finally {
+    await page.close();
+  }
+  const rk = await openPage({ path: "/rankings" });
+  try {
+    assert.deepEqual(await rk.eval(`[...document.querySelectorAll("#rk-tabs [role=tab]")].map((t) => t.textContent)`), ["Shrinking most by 2100", "Fewest babies"]);
+    const rows = await rk.eval(`[...document.querySelectorAll("#rk-list .rk-row")].map((r) => ({ word: r.querySelector(".rk-risk b")?.textContent, pct: ${PCT}(r.querySelector(".rk-pct").textContent) }))`);
+    assert.equal(rows.length, 25, "top 25 first");
+    for (const r of rows) assert.equal(r.word, await rk.eval(`${BUCKET}(${r.pct})`), JSON.stringify(r));
+    for (let i = 1; i < rows.length; i++) assert.ok(rows[i].pct >= rows[i - 1].pct);
+    await rk.eval(`document.getElementById("rk-more").click(), 0`);
+    assert.ok((await rk.eval(`document.querySelectorAll("#rk-list .rk-row").length`)) >= 150, "Show all");
+    assert.equal(await rk.eval(`document.getElementById("rk-small-wrap").open`), false, "small places start folded");
+    assert.ok(!/Very high|Medium|Moderate|Critical/.test(await rk.eval(`document.getElementById("rk-list").textContent`)), "no API tier words in the rows");
+  } finally {
+    await rk.close();
+  }
+  const cv = await openPage({ path: "/country/JAM" });
+  try {
+    const m = await cv.eval(`({ on: document.querySelector("#cv-meter .meter-seg.on .meter-word").textContent, title: document.querySelector("#cv-meter .meter-title").textContent, verdict: document.getElementById("cv-verdict").textContent, hero: document.querySelector(".hero").textContent })`);
+    assert.equal(m.on, await cv.eval(`${BUCKET}(${PCT}(${JSON.stringify(m.title)}))`), JSON.stringify(m));
+    assert.ok(!/risk/i.test(m.hero), "no risk wording in the hero");
+    assert.match(await cv.eval(`document.getElementById("more-body").textContent`), /Risk score \(0–100\), how it works →/);
+  } finally {
+    await cv.close();
+  }
+});
+
+test("B2 the globe is full view: about the viewport height on desktop, edge to edge on phones", opts, async () => {
+  for (const [vp, check] of [
+    [{ width: 1440, height: 900 }, (f) => f.r * 2 >= 0.9 * 900 && Math.abs(f.cx - 720) < 2],
+    [{ width: 1280, height: 720 }, (f) => f.r * 2 >= 0.9 * 720],
+    [{ width: 390, height: 844, mobile: true }, (f) => f.r * 2 >= 390],
+  ]) {
+    const page = await openPage(vp);
+    try {
+      const f = await page.eval(`${G}.frame`);
+      assert.ok(check(f), `${vp.width}×${vp.height}: ${JSON.stringify(f)}`);
+    } finally {
+      await page.close();
+    }
+  }
+});
+
+test("B3 the top bar never overlaps itself from 700 to 1280 px", opts, async () => {
+  for (const width of [700, 768, 820, 1000, 1024, 1180, 1280]) {
+    for (const path of ["/?year=2100", "/rankings"]) {
+      const page = await openPage({ width, height: 800, path });
+      try {
+        const r = await page.eval(`(() => {
+          const box = (el) => { if (!el || getComputedStyle(el).display === "none") return null; const b = el.getBoundingClientRect(); return b.width ? b : null; };
+          const items = { word: box(document.querySelector(".wordmark")), search: box(document.getElementById("search-wrap")), nav: box(document.getElementById("topnav")), menu: box(document.getElementById("menu-btn")), kbd: box(document.querySelector(".search-kbd")) };
+          const bad = [];
+          const keys = Object.keys(items).filter((k) => items[k] && k !== "kbd");
+          for (const a of keys) for (const b of keys) if (a < b && items[a].right > items[b].left && items[b].right > items[a].left) bad.push(a + "/" + b);
+          if (items.kbd) for (const k of ["nav", "menu", "word"]) if (items[k] && items.kbd.right > items[k].left && items[k].right > items.kbd.left) bad.push("kbd/" + k);
+          return { bad, navOrMenu: !!(items.nav || items.menu), sw: document.documentElement.scrollWidth };
+        })()`);
+        assert.deepEqual(r.bad, [], `${width}px ${path}`);
+        assert.ok(r.navOrMenu, `${width}px: nav or menu reachable`);
+        assert.ok(r.sw <= width, `${width}px: horizontal overflow`);
+      } finally {
+        await page.close();
+      }
+    }
+  }
+});
+
+test("B4 the intro starts with the first painted frame, stops on the first touch, then hands over with a hint", opts, async () => {
+  const page = await openPage({ path: "/", ready: `!!window.FT && FT.home && FT.home.globe.ready` });
+  try {
+    await page.waitFor(`FT.state.playing && FT.state.intro`, 600);
+    // Touching the slider during the intro stops it at once and hands over.
+    const y = await page.eval(`Math.round(FT.state.year)`);
+    await page.eval(`(() => { const r = document.getElementById("globe-year"); r.value = String(${y}); r.dispatchEvent(new Event("input", { bubbles: true })); })()`);
+    await sleep(120);
+    assert.deepEqual(await page.eval(`({ playing: FT.state.playing, intro: FT.state.intro, touched: FT.state.touched })`), { playing: false, intro: false, touched: true });
+    assert.equal(await page.eval(`document.querySelector("#dock .tc-bubble").hidden`), true);
+  } finally {
+    await page.close();
+  }
+  // Left alone, the intro ends at 2100 and the slider asks to be dragged until Play is pressed.
+  const idle = await openPage({ path: "/", ready: `!!window.FT && FT.home && FT.home.globe.ready` });
+  try {
+    await idle.waitFor(`!FT.state.playing && Math.round(FT.state.year) === 2100`, 12000);
+    const hint = await idle.eval(`({ bubble: !document.querySelector("#dock .tc-bubble").hidden, text: document.querySelector("#dock .tc-bubble").textContent, pulse: document.getElementById("globe-year").classList.contains("hint"), anim: getComputedStyle(document.querySelector("#dock .tc-slider"), "::after").animationName, touched: FT.state.touched })`);
+    assert.deepEqual(hint, { bubble: true, text: "Drag me", pulse: true, anim: "hint-ring", touched: false });
+    // The year label clears the thumb's halo at the start of the track.
+    const gap = await idle.eval(`(() => { const r = document.getElementById("globe-year"); r.value = "2026"; r.dispatchEvent(new Event("input", { bubbles: true })); return document.querySelector("#dock .tc-slider").getBoundingClientRect().left - document.querySelector("#dock .tc-year-num").getBoundingClientRect().right; })()`);
+    assert.ok(gap >= 20, `year label clears the thumb halo: ${gap}px`);
+    await idle.eval(`document.querySelector(".tc-play").click(), 0`);
+    await sleep(100);
+    assert.equal(await idle.eval(`document.querySelector("#dock .tc-bubble").hidden`), true);
+    assert.equal(await idle.eval(`FT.state.touched`), true);
+  } finally {
+    await idle.close();
+  }
+});
+
+test("S3 the hover tooltip goes away on a click and while the globe flies, and comes back on the next move", opts, async () => {
+  const page = await openPage({ path: "/?year=2070" });
+  try {
+    await page.eval(`${G}.stopSpin(), 0`);
+    await settle(page);
+    const p = await page.eval(`${G}.screenOf("IND")`);
+    await page.mouse("mouseMoved", p.x, p.y);
+    await page.waitFor(`!document.getElementById("globe-tip").hidden`, 2000);
+    await page.click(p.x, p.y);
+    await sleep(80);
+    assert.equal(await page.eval(`document.getElementById("globe-tip").hidden`), true, "hidden on pick");
+    await sleep(300);
+    assert.equal(await page.eval(`document.getElementById("globe-tip").hidden`), true, "hidden while flying");
+    await settle(page);
+    const q = await page.eval(`${G}.screenOf("IND")`);
+    await page.mouse("mouseMoved", q.x + 2, q.y + 2);
+    await page.waitFor(`!document.getElementById("globe-tip").hidden && document.querySelector("#globe-tip .tip-name").textContent === "India"`, 2000);
+  } finally {
+    await page.close();
+  }
+});
+
+test("S5 flicks never pin the globe on a pole, and fly-to stays north up", opts, async () => {
+  const page = await openPage({ path: "/?year=2100" });
+  try {
+    await page.eval(`${G}.stopSpin(), 0`);
+    const f = await page.eval(`${G}.frame`);
+    await page.drag(f.cx, f.cy - 100, f.cx + 40, f.cy + 300, 5, 8); // fast flick pulling the north pole into view
+    const t0 = Date.now();
+    await settle(page, 2500);
+    const settled = Date.now() - t0;
+    const rot = await page.eval(`${G}.rotation`);
+    assert.ok(Math.abs(rot[1]) <= 72.001, `center latitude ${-rot[1]}`);
+    assert.ok(settled < 1500, `came to rest in ${settled} ms`);
+    await page.eval(`${G}.flyTo("RUS"), 0`);
+    await settle(page, 6000);
+    const r2 = await page.eval(`${G}.rotation`);
+    assert.ok(Math.abs(r2[1]) <= 60.001, `Russia fly-to center latitude ${-r2[1]}`);
+  } finally {
+    await page.close();
+  }
+});
+
+test("S8 flying to a small place keeps its neighbours in view", opts, async () => {
+  const page = await openPage({ path: "/?year=2100&focus=SGP" });
+  try {
+    await page.waitFor(`FT.home.selected === "SGP"`);
+    await settle(page, 6000);
+    const k = await page.eval(`${G}.k`);
+    assert.ok(k <= 7.001, `k=${k}`);
+    const near = await page.eval(`["MYS", "IDN"].map((c) => ${G}.screenOf(c)).filter((p) => p && p.x > 0 && p.x < innerWidth && p.y > 0 && p.y < innerHeight).length`);
+    assert.ok(near >= 1, "Malaysia or Indonesia stays on screen");
+  } finally {
+    await page.close();
+  }
+});
+
+test("S1 S2 S7: no focus ring after a mouse drag; + never zooms into empty ocean; the readout follows the thumb", opts, async () => {
+  const page = await openPage({ path: "/?year=2100" });
+  try {
+    await page.eval(`${G}.stopSpin(), 0`);
+    const f = await page.eval(`${G}.frame`);
+    await page.drag(f.cx, f.cy, f.cx + 80, f.cy, 6, 16);
+    await settle(page);
+    assert.equal(await page.eval(`getComputedStyle(document.getElementById("globe")).boxShadow`), "none", "no ring around the viewport after a mouse drag");
+    // Point the center at open ocean, then press + four times: there is land in the middle of the view.
+    await page.eval(`${G}.flyTo("MDV", { zoom: 1 }), 0`);
+    await settle(page, 6000);
+    for (let i = 0; i < 4; i++) {
+      await page.eval(`document.getElementById("zoom-in").click(), 0`);
+      await sleep(500);
+    }
+    await settle(page);
+    const hit = await page.eval(`${G}.centerPick()`);
+    assert.ok(hit && hit.rec, `land at the center after zooming: ${JSON.stringify(hit && hit.iso3)}`);
+    const kk = await page.eval(`${G}.k`);
+    assert.ok(kk >= 15.9, `k after four + clicks: ${kk}`);
+    // Dragging the range thumb: the readout is the thumb's year, with no lag.
+    await page.eval(`(() => { const r = document.getElementById("globe-year"); r.value = "2047"; r.dispatchEvent(new Event("input", { bubbles: true })); })()`);
+    assert.equal(await page.eval(`document.querySelector("#dock .tc-year-num").textContent`), "2047");
+  } finally {
     await page.close();
   }
 });

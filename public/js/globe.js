@@ -11,9 +11,12 @@ const DEG = 180 / Math.PI;
 const K_MIN = 1;
 const K_MAX = 16;
 const LABEL_K = 2.4; // labels from about 2.5×
+const MAX_LAT = 72; // the view center never goes past this latitude: no polar views, no pinning on a pole
+const FLY_MAX_K = 7; // fly-to keeps neighbours in view; wheel, pinch and buttons still reach K_MAX
 const DOT_AREA = 40; // px²: polygons smaller than this on screen are drawn as dots
 const CLICK_SLOP = 5; // px: movement under this is a click
-const INERTIA_TAU = 340; // ms
+const INERTIA_TAU = 260; // ms
+const INERTIA_STOP = 0.02; // px/ms on screen: slower than this, the glide is over
 const NAME_FALLBACK = { Kosovo: "XKX", Somaliland: "SOM", "N. Cyprus": "CYP" };
 const ID_ALIAS = { "248": "FIN" }; // Åland is part of Finland in the data
 const UNINHABITED = new Set(["010", "260", "334", "239", "086"]); // Antarctica, French Southern Lands, Heard, S. Georgia, BIOT
@@ -25,15 +28,6 @@ const easeOut = (t) => 1 - Math.pow(1 - t, 3);
 const now = () => performance.now();
 
 // ------------------------------------------------------------------ geometry prep
-
-function forEachPoint(geometry, fn) {
-  const walk = (c, depth) => {
-    if (depth === 0) fn(c);
-    else for (const x of c) walk(x, depth - 1);
-  };
-  if (geometry.type === "Polygon") walk(geometry.coordinates, 2);
-  else if (geometry.type === "MultiPolygon") walk(geometry.coordinates, 3);
-}
 
 // Fast-path geometry: each polygon or line as packed unit vectors (x, y, z), with a bounding cap
 // (unit center vector + angular radius) so it can be culled, and projected without d3 when it sits wholly on the
@@ -91,8 +85,9 @@ function prepLines(mls) {
   });
 }
 
-// Join a world-atlas topology to the data: ISO numeric id, then a name fallback. Returns the drawable layer.
-export function buildLayer(topology, records) {
+// Join a world-atlas topology to the data: ISO numeric id, then a name fallback. A generator, so the 50m layer can be
+// built in small idle slices without a long main-thread task; buildLayer() runs it to the end in one go.
+function* layerSteps(topology, records) {
   const D = d3();
   const T = topo();
   const byNumeric = new Map();
@@ -114,7 +109,9 @@ export function buildLayer(topology, records) {
     const geometry = geoms.length === 1 ? T.feature(topology, geoms[0]).geometry : T.merge(topology, geoms);
     if (!geometry) continue;
     const feature = { type: "Feature", id: key, properties: { name }, geometry };
+    const polys = prepPolygons(geometry);
     let largest = geometry;
+    let largestArea = 0;
     if (geometry.type === "MultiPolygon") {
       let best = -1;
       for (const coords of geometry.coordinates) {
@@ -125,16 +122,25 @@ export function buildLayer(topology, records) {
           largest = poly;
         }
       }
-    }
+      largestArea = best;
+    } else largestArea = D.geoArea(geometry);
     const anchor = D.geoCentroid(largest);
     const center = D.geoCentroid(feature);
+    // Angular radius from the polygons' bounding caps (cheap), not from every vertex.
+    const c = [Math.cos(center[1] * RAD) * Math.cos(center[0] * RAD), Math.cos(center[1] * RAD) * Math.sin(center[0] * RAD), Math.sin(center[1] * RAD)];
     let radius = 0;
-    forEachPoint(geometry, (p) => (radius = Math.max(radius, D.geoDistance(center, p))));
-    feats.set(key, { key, name, feature, area: D.geoArea(feature), anchor, center, radius, largestArea: D.geoArea(largest), polys: prepPolygons(geometry) });
+    for (const pg of polys) radius = Math.max(radius, Math.acos(clamp(pg.c[0] * c[0] + pg.c[1] * c[1] + pg.c[2] * c[2], -1, 1)) + pg.radius);
+    feats.set(key, { key, name, feature, area: D.geoArea(feature), anchor, center, radius: Math.min(Math.PI, radius), largestArea, polys });
+    yield;
   }
   const obj = topology.objects.countries;
   const borders = T.mesh(topology, obj, (a, b) => a !== b);
+  yield;
   const coast = T.mesh(topology, obj, (a, b) => a === b);
+  yield;
+  const borderLines = prepLines(borders);
+  const coastLines = prepLines(coast);
+  yield;
   const neutralGeom = neutral.length ? T.merge(topology, neutral) : null;
   return {
     feats,
@@ -142,9 +148,39 @@ export function buildLayer(topology, records) {
     neutralPolys: neutralGeom ? prepPolygons(neutralGeom) : [],
     borders,
     coast,
-    borderLines: prepLines(borders),
-    coastLines: prepLines(coast),
+    borderLines,
+    coastLines,
+    topology,
   };
+}
+
+export function buildLayer(topology, records) {
+  const it = layerSteps(topology, records);
+  for (;;) {
+    const r = it.next();
+    if (r.done) return r.value;
+  }
+}
+
+// Build in idle slices of about `budget` ms, so no single task blocks a frame.
+export function buildLayerIdle(topology, records, { budget = 8 } = {}) {
+  const it = layerSteps(topology, records);
+  const ric = globalThis.requestIdleCallback ?? ((fn) => setTimeout(() => fn({ timeRemaining: () => budget }), 1));
+  return new Promise((resolve, reject) => {
+    const step = (deadline) => {
+      try {
+        const t0 = performance.now();
+        while (performance.now() - t0 < Math.max(4, Math.min(budget, deadline?.timeRemaining?.() ?? budget))) {
+          const r = it.next();
+          if (r.done) return resolve(r.value);
+        }
+        ric(step, { timeout: 200 });
+      } catch (err) {
+        reject(err);
+      }
+    };
+    ric(step, { timeout: 200 });
+  });
 }
 
 // ------------------------------------------------------------------ the globe
@@ -196,9 +232,9 @@ export function createGlobe(canvas, opts = {}) {
   let restTimer = 0;
 
   // Draw cache (Path2D per feature in screen space), rebuilt when the view changes.
-  let cache = { sig: "", paths: new Map(), dots: [], borders: null, coast: null, neutral: null, grat: null, sphere: null, layer: null };
+  let cache = { sig: "", view: "", paths: new Map(), dots: [], borders: null, coast: null, neutral: null, grat: null, sphere: null, layer: null };
   let lastLabels = [];
-  const stats = { draws: 0, total: 0, max: 0, build: 0 };
+  const stats = { draws: 0, total: 0, max: 0, build: 0, slow: [] };
   let hatch = null;
 
   // ---------------------------------------------------------------- data
@@ -220,17 +256,16 @@ export function createGlobe(canvas, opts = {}) {
     cache.sig = "";
   }
 
-  function setData({ topology110, topology50, worldPoints, records: recs } = {}) {
+  function setData({ topology110, topology50, layer50, worldPoints, records: recs } = {}) {
     if (recs) records = recs;
     if (worldPoints) points = worldPoints;
     if (topology110) layers[110] = buildLayer(topology110, records);
     if (topology50) layers[50] = buildLayer(topology50, records);
-    if (recs && !topology110 && layers[110]) {
+    if (layer50) layers[50] = layer50;
+    if (recs && !topology110 && layers[110]?.topology) {
       // Records changed (retry after a failed load): rebuild the joins from the raw topologies.
-      if (layers[110].topology) layers[110] = buildLayer(layers[110].topology, records);
+      layers[110] = buildLayer(layers[110].topology, records);
     }
-    if (topology110) layers[110].topology = topology110;
-    if (topology50) layers[50].topology = topology50;
     rebuildPlaces();
     flatBase = null;
     requestDraw();
@@ -316,7 +351,7 @@ export function createGlobe(canvas, opts = {}) {
       phi = Math.atan2(Math.sin(phi), Math.cos(phi));
       const ok = Math.abs(phi) <= Math.PI / 2 + 1e-9;
       const lam = wrap180((a - lon0) * DEG);
-      const ph = clamp(phi * DEG, -90, 90);
+      const ph = clamp(phi * DEG, -MAX_LAT, MAX_LAT);
       const cost = Math.abs(wrap180(lam - cur[0])) + Math.abs(ph - cur[1]) + (ok ? 0 : 1000);
       if (!best || cost < best.cost) best = { cost, r: [lam, ph] };
     }
@@ -364,10 +399,13 @@ export function createGlobe(canvas, opts = {}) {
     return hatch;
   }
 
+  // 110m while moving at low zoom, and at any zoom on touch devices or when 50m frames run slow; 50m at rest.
+  let coarseWhileMoving = !!globalThis.matchMedia?.("(pointer: coarse)").matches;
+  let slowEma = 0;
   function activeLayer() {
     const hi = layers[50];
     if (!hi) return { layer: layers[110], level: 110 };
-    if (moving && k < 2) return { layer: layers[110], level: 110 };
+    if (moving && (k < 2 || coarseWhileMoving)) return { layer: layers[110], level: 110 };
     return { layer: hi, level: 50 };
   }
 
@@ -425,19 +463,21 @@ export function createGlobe(canvas, opts = {}) {
       }
       if (close) target.closePath();
     }
-    function classify(item) {
+    // fill: polygons may pin to the rim even when it is on screen (the fill edge then runs along the rim, which is
+    // where the true clipped edge is); lines may not, or they would draw strokes along the rim.
+    function classify(item, fill = false) {
       const d = Math.acos(Math.max(-1, Math.min(1, item.c[0] * v[0] + item.c[1] * v[1] + item.c[2] * v[2])));
       if (d - item.radius > visAngle) return 0; // off screen or on the back
       if (d + item.radius < front) return 2; // wholly in front: fast
       // 3: fast, pinned to the off-screen rim. Safe while no point comes within ~30° of the far side of the globe, where
       // neighbouring points would land far apart on the rim. 1: d3 clips at the horizon.
-      return rimOff && d + item.radius < 2.6 ? 3 : 1;
+      return (rimOff || fill) && d + item.radius < 2.6 ? 3 : 1;
     }
     return {
       polygons(polys, target) {
         let any = false;
         for (const pg of polys) {
-          const c = classify(pg);
+          const c = classify(pg, true);
           if (!c) continue;
           any = true;
           if (c === 1) path.context(target)(pg.geo);
@@ -456,7 +496,20 @@ export function createGlobe(canvas, opts = {}) {
     };
   }
 
+  // The draw cache as a generator: run to the end for a frame that must change now, or step through it in idle slices
+  // when only the detail changes at rest (110m → 50m), so that switch never blocks a frame.
   function rebuildCache(proj, layer, level) {
+    const it = cacheSteps(proj, layer, level);
+    for (;;) {
+      const r = it.next();
+      if (r.done) {
+        cache = r.value;
+        return;
+      }
+    }
+  }
+
+  function* cacheSteps(proj, layer, level) {
     const path = D.geoPath(proj);
     const paths = new Map();
     const center = viewCenter();
@@ -473,17 +526,21 @@ export function createGlobe(canvas, opts = {}) {
     let neutral;
     if (mode === "globe") {
       const fp = fastProjector(path, Math.min(Math.PI / 2, vis));
+      let n = 0;
       for (const f of layer.feats.values()) {
         if (D.geoDistance(f.center, center) - f.radius > Math.min(Math.PI / 2, vis)) continue;
         const p = new Path2D();
         if (fp.polygons(f.polys, p)) paths.set(f.key, p);
+        if (++n % 24 === 0) yield;
       }
       borders = new Path2D();
       fp.lines(layer.borderLines, borders);
+      yield;
       // Coastlines cost as much as every fill and matter least in motion: drawn at rest only.
       if (!moving || level === 110) {
         coast = new Path2D();
         fp.lines(layer.coastLines, coast);
+        yield;
       } else coast = null;
       neutral = new Path2D();
       fp.polygons(layer.neutralPolys, neutral);
@@ -509,8 +566,9 @@ export function createGlobe(canvas, opts = {}) {
       if (!xy || xy[0] < -10 || xy[1] < -10 || xy[0] > W + 10 || xy[1] > H + 10) continue;
       dots.push({ iso3: pl.iso3, x: xy[0], y: xy[1] });
     }
-    cache = {
+    return {
       sig: cache.sig,
+      view: viewSignature(),
       paths,
       dots,
       borders,
@@ -524,6 +582,37 @@ export function createGlobe(canvas, opts = {}) {
     };
   }
 
+  function viewSignature() {
+    return [mode, rot[0].toFixed(3), rot[1].toFixed(3), k.toFixed(4), pan[0].toFixed(1), pan[1].toFixed(1), W, H, places.size].join("|");
+  }
+
+  // Background build of the detailed frame for the current (resting) view.
+  let bg = null; // { sig, it }
+  function startBackground(sig, proj, layer, level) {
+    if (bg?.sig === sig) return;
+    bg = { sig, it: cacheSteps(proj, layer, level) };
+    const job = bg;
+    const ric = globalThis.requestIdleCallback ?? ((fn) => setTimeout(() => fn({ timeRemaining: () => 8 }), 1));
+    const step = () => {
+      if (bg !== job) return;
+      const t0 = performance.now();
+      while (performance.now() - t0 < 7) {
+        const r = job.it.next();
+        if (r.done) {
+          bg = null;
+          if (viewSignature() === r.value.view) {
+            cache = r.value;
+            cache.sig = job.sig;
+            requestDraw();
+          }
+          return;
+        }
+      }
+      ric(step, { timeout: 100 });
+    };
+    ric(step, { timeout: 100 });
+  }
+
   function signature(level) {
     return [mode, rot[0].toFixed(3), rot[1].toFixed(3), k.toFixed(4), pan[0].toFixed(1), pan[1].toFixed(1), W, H, level, places.size, moving ? 1 : 0].join("|");
   }
@@ -535,10 +624,16 @@ export function createGlobe(canvas, opts = {}) {
     const proj = projection({ precision: moving ? 0 : 0.6 });
     const sig = signature(level);
     if (sig !== cache.sig) {
-      const b0 = performance.now();
-      rebuildCache(proj, layer, level);
-      stats.build += performance.now() - b0;
-      cache.sig = sig;
+      if (mode === "globe" && level === 50 && !moving && cache.layer && cache.view === viewSignature() && cache.level !== 50) {
+        // Same view, only more detail wanted: keep this frame and build the detailed one in the background.
+        startBackground(sig, proj, layer, level);
+      } else {
+        bg = null;
+        const b0 = performance.now();
+        rebuildCache(proj, layer, level);
+        stats.build += performance.now() - b0;
+        cache.sig = sig;
+      }
     }
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, W, H);
@@ -678,8 +773,13 @@ export function createGlobe(canvas, opts = {}) {
   }
 
   const FONT_STACK = 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
-  const NAME_FONT = `700 14px ${FONT_STACK}`;
-  const LINE_FONT = `600 12.5px ${FONT_STACK}`;
+  // Labels grow with zoom: 14 px at 2.4×, about 20 px at 16×.
+  function labelSizes() {
+    const t = clamp(Math.log(k / LABEL_K) / Math.log(K_MAX / LABEL_K), 0, 1);
+    const name = Math.round((14 + 6 * t) * 2) / 2;
+    const line = Math.round((12.5 + 5 * t) * 2) / 2;
+    return { name, line, nameFont: `700 ${name}px ${FONT_STACK}`, lineFont: `750 ${line}px ${FONT_STACK}` };
+  }
 
   function drawLabels(proj) {
     lastLabels = [];
@@ -710,28 +810,31 @@ export function createGlobe(canvas, opts = {}) {
     ctx.textAlign = "center";
     ctx.textBaseline = "alphabetic";
     ctx.lineJoin = "round";
+    const fs = labelSizes();
+    const NAME_FONT = fs.nameFont;
+    const LINE_FONT = fs.lineFont;
     for (const c of cands) {
       if (placed.length >= 60) break;
       const lab = labelOf(c.pl.iso3);
       if (!lab) continue;
       const w = Math.max(textW(NAME_FONT, lab.name), textW(LINE_FONT, lab.line)) + 10;
-      const h = 36;
+      const h = fs.name + fs.line + 10;
       const box = { l: c.xy[0] - w / 2, t: c.xy[1] - h / 2, r: c.xy[0] + w / 2, b: c.xy[1] + h / 2 };
       if (box.l < 2 || box.r > W - 2 || box.t < 2 || box.b > H - 2) continue;
       if (hit(box)) continue;
       placed.push(box);
-      lastLabels.push({ iso3: c.pl.iso3, name: lab.name, line: lab.line, x: c.xy[0], y: c.xy[1] });
+      lastLabels.push({ iso3: c.pl.iso3, name: lab.name, line: lab.line, x: c.xy[0], y: c.xy[1], size: fs.name });
       const y1 = c.xy[1] - 2;
-      const y2 = c.xy[1] + 13;
+      const y2 = c.xy[1] + fs.line + 1;
       ctx.strokeStyle = "rgba(255,255,255,0.92)";
-      ctx.lineWidth = 4;
+      ctx.lineWidth = 4 + (fs.name - 14) / 3;
       ctx.font = NAME_FONT;
       ctx.strokeText(lab.name, c.xy[0], y1);
       ctx.fillStyle = "#1F2328";
       ctx.fillText(lab.name, c.xy[0], y1);
       ctx.font = LINE_FONT;
       ctx.strokeText(lab.line, c.xy[0], y2);
-      ctx.fillStyle = "#3D4651";
+      ctx.fillStyle = "#1F2328";
       ctx.fillText(lab.line, c.xy[0], y2);
     }
   }
@@ -748,13 +851,16 @@ export function createGlobe(canvas, opts = {}) {
     raf = requestAnimationFrame(tick);
   }
 
+  // "At rest" 140 ms after the last moving frame. The timer is not restarted by frames that don't move (Play recolors
+  // every frame), so recoloring never keeps the globe in its coarse moving mode.
   function setMoving(on) {
     if (on) {
       clearTimeout(restTimer);
+      restTimer = 0;
       moving = true;
-    } else if (moving) {
-      clearTimeout(restTimer);
+    } else if (moving && !restTimer) {
       restTimer = setTimeout(() => {
+        restTimer = 0;
         moving = false;
         requestDraw();
       }, 140);
@@ -791,15 +897,17 @@ export function createGlobe(canvas, opts = {}) {
     if (inertia && !drag) {
       const decay = Math.exp(-dt / INERTIA_TAU);
       if (mode === "globe") {
-        rot = [wrap180(rot[0] + inertia.vl * dt), clamp(rot[1] + inertia.vp * dt, -90, 90)];
+        const ph = rot[1] + inertia.vp * dt;
+        rot = [wrap180(rot[0] + inertia.vl * dt), clamp(ph, -MAX_LAT, MAX_LAT)];
+        if (Math.abs(ph) >= MAX_LAT) inertia.vp = 0; // at the clamp: no vertical drift left to decay
         inertia.vl *= decay;
         inertia.vp *= decay;
-        if (Math.abs(inertia.vl) + Math.abs(inertia.vp) < 0.0006) inertia = null;
+        if ((Math.abs(inertia.vl) + Math.abs(inertia.vp)) * RAD * R() < INERTIA_STOP) inertia = null;
       } else {
         pan = clampPan([pan[0] + inertia.vx * dt, pan[1] + inertia.vy * dt]);
         inertia.vx *= decay;
         inertia.vy *= decay;
-        if (Math.abs(inertia.vx) + Math.abs(inertia.vy) < 0.01) inertia = null;
+        if (Math.abs(inertia.vx) + Math.abs(inertia.vy) < INERTIA_STOP) inertia = null;
       }
       viewChanged = true;
       if (inertia) active = true;
@@ -814,6 +922,12 @@ export function createGlobe(canvas, opts = {}) {
     else setMoving(false);
     if (viewChanged) {
       dirty = true;
+      // Whatever was under the pointer has moved: drop the hover until the next real pointer move.
+      if (hover && !drag) {
+        hover = null;
+        canvas.style.cursor = "";
+        onHover(null);
+      }
       onViewChange();
     }
     if (dirty && visible) {
@@ -824,6 +938,12 @@ export function createGlobe(canvas, opts = {}) {
       stats.draws++;
       stats.total += ms;
       stats.max = Math.max(stats.max, ms);
+      if (ms > 25 && stats.slow.length < 20) stats.slow.push({ t: Math.round(t), ms: Math.round(ms), level: cache.level, k: Math.round(k * 10) / 10, moving });
+      // A device that can't draw 50m in motion within a frame keeps 110m while moving from then on.
+      if (moving && cache.level === 50) {
+        slowEma = slowEma ? slowEma * 0.8 + ms * 0.2 : ms;
+        if (slowEma > 14) coarseWhileMoving = true;
+      }
     }
     if (active || dirty || pulseT0 >= 0) loop();
     else lastFrame = 0;
@@ -870,7 +990,8 @@ export function createGlobe(canvas, opts = {}) {
 
   function zoomBy(factor, { x = F.cx, y = F.cy, animate = true } = {}) {
     stopIdle();
-    const target = clamp(k * factor, K_MIN, K_MAX);
+    const base = zoomGoal ? Math.exp(zoomGoal.logk) : tween?.k1 ?? k;
+    const target = clamp(base * factor, K_MIN, K_MAX);
     const anchor = anchorAt(x, y);
     if (!animate || reducedMotion()) {
       zoomGoal = null;
@@ -882,6 +1003,44 @@ export function createGlobe(canvas, opts = {}) {
     tween = null;
     zoomGoal = { logk: Math.log(target), anchor, tau: 90 };
     loop();
+  }
+
+  // The place nearest a screen point, among those facing the viewer.
+  function nearestPlace(x, y) {
+    const proj = projection();
+    let best = null;
+    let bd = Infinity;
+    for (const pl of places.values()) {
+      if (!isFront(pl.anchor)) continue;
+      const xy = proj(pl.anchor);
+      if (!xy) continue;
+      const d = Math.hypot(xy[0] - x, xy[1] - y);
+      if (d < bd) {
+        bd = d;
+        best = pl;
+      }
+    }
+    return best;
+  }
+
+  // + and −: zoom in toward a place (the selection, else land at the center, else the nearest land), never into
+  // empty ocean. Zooming out stays centered.
+  function zoomToward(iso3, factor) {
+    stopIdle();
+    if (factor < 1 || mode !== "globe") return zoomBy(factor);
+    let pl = iso3 ? places.get(iso3) : null;
+    if (!pl || !isFront(pl.anchor)) {
+      pl = null;
+      const hit = pick(F.cx, F.cy, { touch: true });
+      if (!hit?.rec) pl = nearestPlace(F.cx, F.cy);
+    }
+    if (!pl) return zoomBy(factor);
+    // Quick repeated presses build on the zoom already on its way, not on the zoom mid-animation.
+    const k1 = clamp((tween?.k1 ?? k) * factor, K_MIN, K_MAX);
+    const c1 = D.geoInterpolate(viewCenter(), pl.anchor)(0.65);
+    tween = null;
+    zoomGoal = null;
+    animateTo({ rot: [wrap180(-c1[0]), clamp(-c1[1], -MAX_LAT, MAX_LAT)], k: k1 }, 420);
   }
 
   function reset() {
@@ -912,10 +1071,11 @@ export function createGlobe(canvas, opts = {}) {
       tween = {
         t0: now(),
         dur,
+        k1,
         step(p) {
           const e = easeInOut(p);
           const c = interp(e);
-          rot = [wrap180(-c[0]), clamp(-c[1], -90, 90)];
+          rot = [wrap180(-c[0]), clamp(-c[1], -MAX_LAT, MAX_LAT)];
           k = clamp(Math.exp(Math.log(k0) + (Math.log(k1) - Math.log(k0)) * e - dip * Math.sin(Math.PI * e)), K_MIN, K_MAX);
         },
         done,
@@ -953,10 +1113,11 @@ export function createGlobe(canvas, opts = {}) {
       const want = minDim * (W < 600 ? 0.2 : 0.14);
       k1 = want / (F.r * Math.sin(Math.min(Math.PI / 2, ang)));
     }
-    k1 = clamp(k1, 1, 12);
+    k1 = clamp(k1, 1, FLY_MAX_K);
     if (mode === "globe") {
       const r1 = F.r * k1;
       const target = solveRotation(pl.anchor, F.cx + offset.x, F.cy + offset.y, r1, [-pl.anchor[0], -pl.anchor[1]]);
+      target[1] = clamp(target[1], -60, 60); // north up, never a polar view
       const dist = D.geoDistance(viewCenter(), [-target[0], -target[1]]);
       const dur = 650 + 650 * Math.min(1, dist / Math.PI) + 120 * Math.abs(Math.log(k1 / k));
       animateTo({ rot: target, k: k1 }, dur);
@@ -1041,7 +1202,9 @@ export function createGlobe(canvas, opts = {}) {
   canvas.addEventListener("pointerdown", (e) => {
     if (e.pointerType === "mouse" && e.button !== 0) return;
     e.preventDefault();
-    if (document.activeElement !== canvas) canvas.focus({ preventScroll: true });
+    // Mouse and touch never show the focus ring; Tab and keys do (data-input drives :focus-visible styling).
+    canvas.dataset.input = e.pointerType;
+    if (document.activeElement !== canvas) canvas.focus({ preventScroll: true, focusVisible: false });
     try {
       canvas.setPointerCapture(e.pointerId);
     } catch {}
@@ -1105,7 +1268,7 @@ export function createGlobe(canvas, opts = {}) {
       if (drag.ll) rot = solveRotation(drag.ll, x, y, R());
       else {
         const s = DEG / R();
-        rot = [wrap180(drag.rot0[0] + dx * s), clamp(drag.rot0[1] - dy * s, -90, 90)];
+        rot = [wrap180(drag.rot0[0] + dx * s), clamp(drag.rot0[1] - dy * s, -MAX_LAT, MAX_LAT)];
       }
     } else {
       pan = clampPan([drag.pan0[0] + dx, drag.pan0[1] + dy]);
@@ -1223,7 +1386,13 @@ export function createGlobe(canvas, opts = {}) {
     requestDraw();
   }
 
+  // Keyboard use shows the focus ring again.
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "Tab") canvas.dataset.input = "key";
+  }, true);
+
   canvas.addEventListener("keydown", (e) => {
+    canvas.dataset.input = "key";
     const step = 12 / Math.sqrt(k);
     const keys = {
       ArrowLeft: [step, 0],
@@ -1236,11 +1405,11 @@ export function createGlobe(canvas, opts = {}) {
       stopIdle();
       onInteract("key");
       const [a, b] = keys[e.key];
-      if (mode === "globe") animateTo({ rot: [wrap180(rot[0] + a), clamp(rot[1] + b, -90, 90)], k }, 220);
+      if (mode === "globe") animateTo({ rot: [wrap180(rot[0] + a), clamp(rot[1] + b, -MAX_LAT, MAX_LAT)], k }, 220);
       else animateTo({ k, pan: clampPan([pan[0] + a * 8, pan[1] + b * 8]) }, 220);
     } else if (e.key === "+" || e.key === "=") {
       e.preventDefault();
-      zoomBy(2);
+      zoomToward(selected, 2);
     } else if (e.key === "-" || e.key === "_") {
       e.preventDefault();
       zoomBy(0.5);
@@ -1281,6 +1450,7 @@ export function createGlobe(canvas, opts = {}) {
     setSelected,
     flyTo,
     zoomBy,
+    zoomToward,
     zoomTo: (target, o) => zoomBy(target / k, o),
     reset,
     setMode,
@@ -1295,6 +1465,9 @@ export function createGlobe(canvas, opts = {}) {
       }
     },
     // For tests and debugging.
+    get dragging() {
+      return drag ? { moved: drag.moved, pinch: !!drag.pinch, ll: drag.ll, pointers: pointers.size } : null;
+    },
     get ready() {
       return !!layers[110] && places.size > 0 && cache.sig !== "";
     },
@@ -1317,6 +1490,9 @@ export function createGlobe(canvas, opts = {}) {
       },
       get build() {
         return stats.draws ? stats.build / stats.draws : 0;
+      },
+      get slow() {
+        return stats.slow.slice();
       },
       reset() {
         stats.build = 0;

@@ -121,9 +121,16 @@ function rgbToHex([r, g, b]) {
 
 const RAMP_RGB = RAMP.map(([p, c]) => [p, hexToRgb(c)]);
 
+// The % as people read it: whole numbers, one decimal under 1% (fmtPct). Colors and words use this value, so a place
+// shown as "−50%" is always "Half gone", never "Shrinking fast".
+export function shownPct(pct) {
+  if (!isNum(pct)) return null;
+  return Math.abs(pct) < 1 ? Math.round(pct * 10) / 10 : Math.round(pct);
+}
+
 export function changeColor(pct) {
   if (!isNum(pct)) return null;
-  const p = clamp(pct, RAMP[0][0], RAMP[RAMP.length - 1][0]);
+  const p = clamp(shownPct(pct), RAMP[0][0], RAMP[RAMP.length - 1][0]);
   for (let i = 1; i < RAMP_RGB.length; i++) {
     const [p1, c1] = RAMP_RGB[i];
     if (p <= p1) {
@@ -135,20 +142,41 @@ export function changeColor(pct) {
   return RAMP[RAMP.length - 1][1];
 }
 
-// The four words of the legend, worst first (left to right on screen).
-export const LEGEND = [
-  { key: "half", label: "Half gone", from: -100, to: -50, stops: [-90, -50] },
-  { key: "fewer", label: "Fewer people", from: -50, to: -5, stops: [-49.999, -35, -20, -10, -5] },
-  { key: "same", label: "About the same", from: -5, to: 5, stops: [-4, 0, 4] },
-  { key: "more", label: "More people", from: 5, to: Infinity, stops: [5, 12, 30, 60, 120] },
+// The legend, worst first (left to right on screen).
+// One five-word scale for every word and meter on screen: the globe legend, the card chip, the country meter and
+// verdict, search rows and rankings. Each word covers a band of the ramp above; its color is the ramp's color in the
+// middle of that band. Chips and meters describe 2100 under the selected scenario, compared with today.
+export const OUTLOOK = [
+  { key: "growing", label: "Growing", from: 5, to: Infinity, pct: 40 },
+  { key: "same", label: "About the same", from: -5, to: 5, pct: 0 },
+  { key: "shrinking", label: "Shrinking", from: -25, to: -5, pct: -15 },
+  { key: "fast", label: "Shrinking fast", from: -50, to: -25, pct: -37 },
+  { key: "half", label: "Half gone", from: -100, to: -50, pct: -70 },
 ];
 
+// 0 growing … 4 half gone; -1 without a figure. Boundaries: > +5, −5…+5, −25…−5, −50…−25, ≤ −50.
+export function outlookStep(pct) {
+  if (!isNum(pct)) return -1;
+  pct = shownPct(pct);
+  if (pct <= -50) return 4;
+  if (pct <= -25) return 3;
+  if (pct < -5) return 2;
+  if (pct <= 5) return 1;
+  return 0;
+}
+
+export function outlookOf(pct) {
+  const i = outlookStep(pct);
+  return i < 0 ? null : OUTLOOK[i];
+}
+
 export function changeBand(pct) {
-  if (!isNum(pct)) return null;
-  if (pct <= -50) return "half";
-  if (pct < -5) return "fewer";
-  if (pct <= 5) return "same";
-  return "more";
+  return outlookOf(pct)?.key ?? null;
+}
+
+export function outlookColor(step) {
+  const o = OUTLOOK[step];
+  return o ? changeColor(o.pct) : NODATA_COLOR;
 }
 
 // ---------------------------------------------------------------- number formatting
@@ -457,17 +485,32 @@ export function xProfileUrl(feedback) {
 
 // ---------------------------------------------------------------- search (typo-tolerant)
 
+// ISO 3166-1 alpha-2 → alpha-3 for every place in the data ("tw" finds Taiwan).
+export const ISO2 = {"AD":"AND","AE":"ARE","AF":"AFG","AG":"ATG","AI":"AIA","AL":"ALB","AM":"ARM","AO":"AGO","AR":"ARG","AS":"ASM","AT":"AUT","AU":"AUS","AW":"ABW","AZ":"AZE","BA":"BIH","BB":"BRB","BD":"BGD","BE":"BEL","BF":"BFA","BG":"BGR","BH":"BHR","BI":"BDI","BJ":"BEN","BL":"BLM","BM":"BMU","BN":"BRN","BO":"BOL","BQ":"BES","BR":"BRA","BS":"BHS","BT":"BTN","BW":"BWA","BY":"BLR","BZ":"BLZ","CA":"CAN","CD":"COD","CF":"CAF","CG":"COG","CH":"CHE","CI":"CIV","CK":"COK","CL":"CHL","CM":"CMR","CN":"CHN","CO":"COL","CR":"CRI","CU":"CUB","CV":"CPV","CW":"CUW","CY":"CYP","CZ":"CZE","DE":"DEU","DJ":"DJI","DK":"DNK","DM":"DMA","DO":"DOM","DZ":"DZA","EC":"ECU","EE":"EST","EG":"EGY","EH":"ESH","ER":"ERI","ES":"ESP","ET":"ETH","FI":"FIN","FJ":"FJI","FK":"FLK","FM":"FSM","FO":"FRO","FR":"FRA","GA":"GAB","GB":"GBR","GD":"GRD","GE":"GEO","GF":"GUF","GG":"GGY","GH":"GHA","GI":"GIB","GL":"GRL","GM":"GMB","GN":"GIN","GP":"GLP","GQ":"GNQ","GR":"GRC","GT":"GTM","GU":"GUM","GW":"GNB","GY":"GUY","HK":"HKG","HN":"HND","HR":"HRV","HT":"HTI","HU":"HUN","ID":"IDN","IE":"IRL","IL":"ISR","IM":"IMN","IN":"IND","IQ":"IRQ","IR":"IRN","IS":"ISL","IT":"ITA","JE":"JEY","JM":"JAM","JO":"JOR","JP":"JPN","KE":"KEN","KG":"KGZ","KH":"KHM","KI":"KIR","KM":"COM","KN":"KNA","KP":"PRK","KR":"KOR","KW":"KWT","KY":"CYM","KZ":"KAZ","LA":"LAO","LB":"LBN","LC":"LCA","LI":"LIE","LK":"LKA","LR":"LBR","LS":"LSO","LT":"LTU","LU":"LUX","LV":"LVA","LY":"LBY","MA":"MAR","MC":"MCO","MD":"MDA","ME":"MNE","MF":"MAF","MG":"MDG","MH":"MHL","MK":"MKD","ML":"MLI","MM":"MMR","MN":"MNG","MO":"MAC","MP":"MNP","MQ":"MTQ","MR":"MRT","MS":"MSR","MT":"MLT","MU":"MUS","MV":"MDV","MW":"MWI","MX":"MEX","MY":"MYS","MZ":"MOZ","NA":"NAM","NC":"NCL","NE":"NER","NG":"NGA","NI":"NIC","NL":"NLD","NO":"NOR","NP":"NPL","NR":"NRU","NU":"NIU","NZ":"NZL","OM":"OMN","PA":"PAN","PE":"PER","PF":"PYF","PG":"PNG","PH":"PHL","PK":"PAK","PL":"POL","PM":"SPM","PR":"PRI","PS":"PSE","PT":"PRT","PW":"PLW","PY":"PRY","QA":"QAT","RE":"REU","RO":"ROU","RS":"SRB","RU":"RUS","RW":"RWA","SA":"SAU","SB":"SLB","SC":"SYC","SD":"SDN","SE":"SWE","SG":"SGP","SH":"SHN","SI":"SVN","SK":"SVK","SL":"SLE","SM":"SMR","SN":"SEN","SO":"SOM","SR":"SUR","SS":"SSD","ST":"STP","SV":"SLV","SX":"SXM","SY":"SYR","SZ":"SWZ","TC":"TCA","TD":"TCD","TG":"TGO","TH":"THA","TJ":"TJK","TK":"TKL","TL":"TLS","TM":"TKM","TN":"TUN","TO":"TON","TR":"TUR","TT":"TTO","TV":"TUV","TW":"TWN","TZ":"TZA","UA":"UKR","UG":"UGA","US":"USA","UY":"URY","UZ":"UZB","VA":"VAT","VC":"VCT","VE":"VEN","VG":"VGB","VI":"VIR","VN":"VNM","VU":"VUT","WF":"WLF","WS":"WSM","XK":"XKX","YE":"YEM","YT":"MYT","ZA":"ZAF","ZM":"ZMB","ZW":"ZWE"};
+
 export const ALIASES = {
-  KOR: ["Korea", "Republic of Korea", "S Korea"],
+  CHE: ["Swiss", "Swiss Confederation"],
+  DEU: ["German", "Deutschland"],
+  FRA: ["French"],
+  ESP: ["Spanish", "Espana"],
+  ITA: ["Italian"],
+  JPN: ["Japanese", "Nippon"],
+  CHN: ["Chinese", "PRC"],
+  IND: ["Indian", "Bharat"],
+  BRA: ["Brazilian", "Brasil"],
+  MEX: ["Mexican"],
+  POL: ["Polish"],
+  UKR: ["Ukrainian"],
+  KOR: ["Korea", "Republic of Korea", "S Korea", "Korean"],
   PRK: ["North Korea", "DPRK"],
-  GBR: ["UK", "Britain", "Great Britain", "England", "Scotland", "Wales"],
-  USA: ["US", "USA", "America", "United States of America"],
+  GBR: ["UK", "Britain", "Great Britain", "England", "Scotland", "Wales", "British"],
+  USA: ["US", "USA", "America", "United States of America", "American"],
   RUS: ["Russian Federation"],
   TUR: ["Türkiye", "Turkiye", "Turkey"],
   CZE: ["Czech Republic", "Czechia", "Czech"],
   CIV: ["Ivory Coast", "Côte d'Ivoire"],
   MMR: ["Burma"],
-  NLD: ["Holland"],
+  NLD: ["Holland", "Dutch"],
   MAC: ["Macau"],
   HKG: ["Hongkong"],
   TWN: ["Republic of China", "Chinese Taipei"],
@@ -561,6 +604,7 @@ function scorePlace(place, nq) {
   const code = place.iso3.toLowerCase();
   const aliases = (ALIASES[place.iso3] ?? []).map(normalizeText);
   if (name === nq || code === nq || aliases.includes(nq)) return 0;
+  if (nq.length === 2 && ISO2[nq.toUpperCase()] === place.iso3) return 0.5;
   if (name.startsWith(nq)) return 1;
   if (name.split(" ").some((w) => w.startsWith(nq))) return 2;
   if (aliases.some((a) => a.startsWith(nq) || a.split(" ").some((w) => w.startsWith(nq)))) return 3;
@@ -595,39 +639,58 @@ export function possessive(name) {
   return /s$/i.test(name) ? `${name}'` : `${name}'s`;
 }
 
+// "Taiwan's", "the United States'", "the world's".
+export function possessiveOf(rec, opts) {
+  return possessive(theName(rec, opts));
+}
+
 export function displayName(rec) {
   return rec?.iso3 === "WLD" ? "The world" : rec?.name ?? "";
 }
 
-// Plain verdict from the UN forecast: % change from today to 2100 and whether the peak is still ahead.
-export function verdict(rec, pct2100, today) {
-  const name = displayName(rec);
+// Places whose name takes "the" in a sentence.
+const THE = new Set(["USA", "GBR", "NLD", "PHL", "BHS", "GMB", "CAF", "DOM", "COD", "MDV", "MHL", "SLB", "ARE", "COM", "COK", "CYM", "FLK", "FRO", "MNP", "TCA", "VGB", "VIR", "IMN", "VAT", "SYC"]);
+
+// "the United States", "Taiwan", "the world"; `start` capitalises for the start of a sentence.
+export function theName(rec, { start = false } = {}) {
+  if (!rec) return "";
+  if (rec.iso3 === "WLD") return start ? "The world" : "the world";
+  if (THE.has(rec.iso3)) return `${start ? "The" : "the"} ${rec.name}`;
+  return rec.name;
+}
+
+function cap(s) {
+  return s ? s[0].toUpperCase() + s.slice(1) : s;
+}
+
+// Plain verdict for 2100 under a scenario. It always agrees with outlookStep(pct): the same five bands.
+// peakYear (of the scenario's path) adds "grows for a while, then …" when the peak is still ahead.
+export function verdict(rec, pct2100, today, { scenario = "medium", peakYear = rec?.projection?.peakYear, small = isSmallPlace(rec) } = {}) {
+  const name = theName(rec, { start: true });
+  if (small) return `${name} has a very small population: its numbers swing a lot.`;
   if (!isNum(pct2100)) return `${name}: no forecast in our sources.`;
-  const peak = rec?.projection?.peakYear;
-  const rising = isNum(peak) && peak > today + 3 && peak < END_YEAR;
-  if (pct2100 <= -40) return rising ? `${name} grows a little longer, then shrinks fast.` : `${name} is shrinking fast.`;
-  if (pct2100 <= -15) return rising ? `${name} grows for a while, then shrinks.` : `${name} is shrinking.`;
-  if (pct2100 < -5) return rising ? `${name} grows for a while, then shrinks a little.` : `${name} is slowly shrinking.`;
-  if (pct2100 <= 5) return rising ? `${name} grows, then falls back to about today's size.` : `${name} stays about the same size.`;
-  if (pct2100 < 30) return rising ? `${name} keeps growing until about ${peak}.` : `${name} keeps growing slowly.`;
-  return `${name} keeps growing fast.`;
+  const rising = isNum(peakYear) && peakYear > today + 3 && peakYear < END_YEAR;
+  const step = outlookStep(pct2100);
+  let v;
+  if (step === 4) v = rising ? `${name} grows a little longer, then loses half its people or more.` : `${name} loses half its people or more by 2100.`;
+  else if (step === 3) v = rising ? `${name} grows a little longer, then shrinks fast.` : `${name} is shrinking fast.`;
+  else if (step === 2) v = rising ? `${name} grows for a while, then shrinks.` : `${name} is shrinking.`;
+  else if (step === 1) v = rising ? `${name} grows, then falls back to about today's size.` : `${name} stays about the same size.`;
+  else v = pct2100 >= 30 ? `${name} keeps growing fast.` : rising ? `${name} keeps growing until about ${peakYear}, then levels off.` : `${name} keeps growing.`;
+  if (normScenario(scenario) === "constant") return `If birth rates stay the same, ${v[0].toLowerCase() === v[0] ? v : (THE.has(rec.iso3) || rec.iso3 === "WLD" ? v[0].toLowerCase() + v.slice(1) : v)}`;
+  return v;
 }
 
 // Short form for titles: "shrinking fast".
 export function verdictShort(pct2100) {
-  if (!isNum(pct2100)) return "population outlook";
-  if (pct2100 <= -40) return "shrinking fast";
-  if (pct2100 <= -15) return "shrinking";
-  if (pct2100 < -5) return "slowly shrinking";
-  if (pct2100 <= 5) return "about the same size";
-  if (pct2100 < 30) return "growing slowly";
-  return "growing fast";
+  const o = outlookOf(pct2100);
+  return o ? `${o.label.toLowerCase()} by 2100` : "population outlook";
 }
 
 // "For every 100 people in Taiwan today, about 43 will be left in 2100 (UN forecast)."
 export function hundredSentence(rec, ratio2100, scenario = "medium") {
   if (!isNum(ratio2100)) return "";
-  const where = rec?.iso3 === "WLD" ? "the world" : rec?.name;
+  const where = theName(rec);
   const n = Math.round(100 * ratio2100);
   const tag = `(${SCENARIO_LABELS[normScenario(scenario)]})`;
   if (n >= 97 && n <= 103) return `For every 100 people in ${where} today, there will still be about 100 in 2100 ${tag}.`;
@@ -658,6 +721,14 @@ export function migrationSentence(net) {
   return net < 0 ? `${n} more people leave than arrive each year.` : `${n} more people arrive than leave each year.`;
 }
 
+// "Each year, 32,800 more people leave than arrive."
+export function yearlyNetSentence(net) {
+  if (!isNum(net)) return "No recent figure for people moving in and out.";
+  if (Math.abs(net) < 50) return "Each year, about as many people arrive as leave.";
+  const n = fmtFlow(Math.abs(net), { plus: false });
+  return net < 0 ? `Each year, ${n} more people leave than arrive.` : `Each year, ${n} more people arrive than leave.`;
+}
+
 export function bornDiedSentence(c) {
   if (!c || !isNum(c.births) || !isNum(c.deaths)) return "No recent births and deaths figure.";
   const b = fmtFlow(c.births, { plus: false });
@@ -673,14 +744,28 @@ export function babiesSentence(tfr) {
   return `${fmtTfr(tfr)} babies per woman: more than the 2.1 that keeps a country the same size.`;
 }
 
-export function generationsSentence(tfr) {
+// Whole people: "41", "7", "less than 1".
+export function fmtPeople(v) {
+  if (!isNum(v)) return "–";
+  const r = Math.round(v);
+  return r < 1 ? "less than 1" : nf.format(r);
+}
+
+// The generations sentence, without the "At 0.87 babies per woman, " lead-in (whatIf adds its own question).
+export function generationsBody(tfr) {
   const g = generationCounts(tfr, 4);
   if (!g.length) return "No births-per-woman figure.";
   const r = tfr / REPLACEMENT;
-  if (Math.abs(r - 1) < 0.01) return `At ${fmtTfr(tfr)} babies per woman, each generation is about the same size.`;
-  if (r < 1)
-    return `At ${fmtTfr(tfr)} babies per woman, 100 people have ${fmtCount(g[1])} children, ${fmtCount(g[2])} grandchildren and ${fmtCount(g[3])} great-grandchildren.`;
-  return `At ${fmtTfr(tfr)} babies per woman, each generation is bigger: 100 people have ${fmtCount(g[1])} children and ${fmtCount(g[2])} grandchildren.`;
+  if (Math.abs(r - 1) < 0.01) return "each generation is about the same size.";
+  if (r < 1) return `100 people have about ${fmtPeople(g[1])} children, ${fmtPeople(g[2])} grandchildren and ${fmtPeople(g[3])} great-grandchildren.`;
+  return `each generation is bigger: 100 people have about ${fmtPeople(g[1])} children and ${fmtPeople(g[2])} grandchildren.`;
+}
+
+export function generationsSentence(tfr, { whatIfName = null } = {}) {
+  const body = generationsBody(tfr);
+  if (!generationCounts(tfr, 1).length) return body;
+  if (whatIfName) return `What if ${whatIfName} had ${fmtTfr(tfr)} babies per woman? ${cap(body)}`;
+  return `At ${fmtTfr(tfr)} babies per woman, ${body}`;
 }
 
 // The baseline the API's projected % is measured against (UN population in projection.baseYear).

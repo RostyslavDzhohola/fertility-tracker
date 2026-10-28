@@ -31,7 +31,6 @@
 <link rel="help" href="/api/" title="API documentation">
 <link rel="preload" href="/api/v1/countries.json" as="fetch" type="application/json" crossorigin>
 <link rel="preload" href="/api/v1/scenarios.json" as="fetch" type="application/json" crossorigin>
-<link rel="preload" href="/geo/countries-110m.json" as="fetch" type="application/json" crossorigin>
 <link rel="modulepreload" href="/js/logic.js">
 <link rel="modulepreload" href="/js/dom.js">
 <link rel="modulepreload" href="/js/store.js">
@@ -161,26 +160,27 @@
         <div class="risk-pop">
           <button type="button" class="pill-btn" id="risk-btn" aria-expanded="false" aria-controls="risk-panel">
             <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true" focusable="false"><path d="M4 5h12M4 10h8M4 15h5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
-            Most at risk
+            Shrinking most
           </button>
           <div class="risk-panel" id="risk-panel" hidden>
-            <p class="risk-panel-title">Most at risk of shrinking</p>
+            <p class="risk-panel-title" id="risk-title">Shrinking most by 2100</p>
             <ol class="risk-list" id="risk-list"></ol>
             <a class="risk-all" href="/rankings">All rankings →</a>
           </div>
         </div>
-        <div class="legend" id="legend" role="img" aria-label="Colors compare each country with today: green, more people; sand, about the same; orange to red, fewer people; gray, half or more gone.">
+        <div class="legend" id="legend" role="img" aria-label="Colors compare each country with today: green, growing; sand, about the same; orange, shrinking; red, shrinking fast; gray, half or more gone.">
           <span class="lg-cap" aria-hidden="true">vs today</span>
-          <span class="lg-item" aria-hidden="true"><i class="lg-sw lg-more"></i>More people</span>
+          <span class="lg-item" aria-hidden="true"><i class="lg-sw lg-growing"></i>Growing</span>
           <span class="lg-item" aria-hidden="true"><i class="lg-sw lg-same"></i>About the same</span>
-          <span class="lg-item" aria-hidden="true"><i class="lg-sw lg-fewer"></i>Fewer people</span>
+          <span class="lg-item" aria-hidden="true"><i class="lg-sw lg-shrinking"></i>Shrinking</span>
+          <span class="lg-item" aria-hidden="true"><i class="lg-sw lg-fast"></i>Shrinking fast</span>
           <span class="lg-item" aria-hidden="true"><i class="lg-sw lg-half"></i>Half gone</span>
         </div>
       </div>
       <div class="dock" id="dock">
         <div class="dock-time" id="dock-time"></div>
         <div class="counter" id="world-counter">
-          <p class="counter-label"><span class="swatch" id="wc-swatch" aria-hidden="true"></span>World in <span id="wc-year"></span></p>
+          <p class="counter-label"><span class="swatch" id="wc-swatch" aria-hidden="true"></span><span>World in <span id="wc-year"></span><span class="wc-scen" id="wc-scen" hidden><span class="long"> · if birth rates stay the same</span><span class="short">if rates stay the same</span></span></span></p>
           <p class="counter-big"><span class="num" id="wc-num"></span> <span class="unit" id="wc-unit"></span></p>
           <p class="counter-pct" id="wc-pct"></p>
         </div>
@@ -260,17 +260,19 @@
       <div class="rk-controls">
         <div class="tabs" id="rk-tabs" role="tablist" aria-label="Sort by">
           <button type="button" role="tab" data-tab="shrink" aria-selected="true" aria-controls="rk-list" tabindex="0">Shrinking most by 2100</button>
-          <button type="button" role="tab" data-tab="risk" aria-selected="false" aria-controls="rk-list" tabindex="-1">Highest risk</button>
           <button type="button" role="tab" data-tab="babies" aria-selected="false" aria-controls="rk-list" tabindex="-1">Fewest babies</button>
         </div>
         <div class="segmented rk-scen" id="rk-scen" role="group" aria-label="Scenario"></div>
       </div>
       <div class="chips" id="rk-regions" role="group" aria-label="Region"></div>
-      <div class="rk-cols" aria-hidden="true"><span>#</span><span>Place</span><span>Risk</span><span>Today → 2100</span><span>Babies</span></div>
+      <div class="rk-cols" aria-hidden="true"><span>#</span><span>Place</span><span>By 2100</span><span>today → 2100</span><span>Babies</span></div>
       <p class="visually-hidden" id="rk-count" aria-live="polite"></p>
       <ol class="rk-list" id="rk-list" role="tabpanel" aria-label="Ranked places"></ol>
-      <h2 class="rk-small-title" id="rk-small-title">Small places, not ranked: too few people for a fair score</h2>
-      <ol class="rk-list rk-small" id="rk-small"></ol>
+      <button type="button" class="btn btn-secondary rk-more" id="rk-more" hidden>Show all</button>
+      <details class="rk-small-wrap" id="rk-small-wrap">
+        <summary class="rk-small-title"><span>Small places, under 100,000 people</span> <small><span id="rk-small-count"></span> places · not ranked: a few births or deaths swing their numbers</small></summary>
+        <ol class="rk-list rk-small" id="rk-small"></ol>
+      </details>
     </div>
   </section>
 </main>

@@ -9,7 +9,6 @@ createTopbar({
   getPlaces: () => state.places,
   getRecord: (iso3) => state.records.get(iso3),
   getPct: () => null,
-  getYear: () => 2100,
   topPlaces: (n) =>
     [...state.records.values()]
       .filter((r) => Number.isInteger(r.risk?.rank))
