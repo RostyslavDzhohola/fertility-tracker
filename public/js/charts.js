@@ -1,413 +1,289 @@
-// SVG charts for the country view (DESIGN §5.1, §5.5–5.7, §5.10). viewBox in CSS pixels; re-rendered on resize.
+// The country page's population chart, 1950–2100 (DESIGN-v3 §3 block 3): past as a solid line, the two futures labelled
+// at their ends, the peak annotated, and a marker that follows the shared year. Hover or tap scrubs the year.
+// Plain SVG; viewBox in CSS pixels, re-rendered on resize.
 
-import { s, h, media } from "./dom.js";
-import { niceTicks, fmtTick, spreadLabels } from "./logic.js";
+import { s } from "./dom.js";
+import { niceTicks, axisUnit, fmtCompact, fmtWords, spreadLabels, SCENARIO_LABELS, SCENARIO_SHORT } from "./logic.js";
 
 const Y0 = 1950;
 const Y1 = 2100;
-const CHAR_W = 6.9; // 12px semibold label, average glyph width
-const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
-function labelWidth(text) {
-  return Math.ceil(String(text).length * CHAR_W);
-}
-
-function pathFrom(points) {
+function pathFrom(points, x, y) {
   let d = "";
   let pen = false;
   for (const p of points) {
-    if (p == null || p[1] == null || !Number.isFinite(p[1])) {
+    if (!p || p[1] == null || !Number.isFinite(p[1])) {
       pen = false;
       continue;
     }
-    d += `${pen ? "L" : "M"}${p[0].toFixed(1)},${p[1].toFixed(1)}`;
+    d += `${pen ? "L" : "M"}${x(p[0]).toFixed(1)},${y(p[1]).toFixed(1)}`;
     pen = true;
   }
   return d;
 }
 
-function containerWidth(container) {
-  return Math.max(240, Math.round(container.getBoundingClientRect().width || container.clientWidth || 320));
-}
-
-function mount(container, svg, fade) {
-  const keep = [...container.children].filter((c) => c.classList?.contains("chart-error"));
-  container.replaceChildren(svg, ...keep.map((k) => ((k.hidden = true), k)));
-  if (fade && !media.reduced()) svg.classList.add("fade-in");
-}
-
-// ------------------------------------------------------------------ skeleton, error, empty
-
-export function chartSkeleton(container, height) {
-  const W = containerWidth(container);
-  const m = { top: 22, right: 8, bottom: 22 };
-  const ih = height - m.top - m.bottom;
-  const svg = s("svg", { viewBox: `0 0 ${W} ${height}`, width: W, height, "aria-hidden": "true" });
-  const grid = s("g", { class: "grid" });
-  for (let i = 0; i <= 4; i++) {
-    const y = Math.round(m.top + (ih * i) / 4) + 0.5;
-    grid.append(s("line", { x1: 0, x2: W - m.right, y1: y, y2: y }));
-  }
-  svg.append(grid);
-  svg.append(
-    s("rect", {
-      class: `skeleton-band${media.reduced() ? "" : " shimmer"}`,
-      x: 0,
-      y: m.top + ih * 0.35,
-      width: W - m.right,
-      height: ih * 0.3,
-      rx: 6,
-    }),
-  );
-  mount(container, svg, false);
-}
-
-export function chartMessage(container, height, text) {
-  const W = containerWidth(container);
-  const svg = s("svg", { viewBox: `0 0 ${W} ${height}`, width: W, height, role: "img", "aria-label": text });
-  const grid = s("g", { class: "grid" });
-  grid.append(s("line", { x1: 0, x2: W, y1: height - 21.5, y2: height - 21.5 }));
-  svg.append(grid, s("text", { x: W / 2, y: height / 2, "text-anchor": "middle", class: "annot-muted" }, text));
-  mount(container, svg, false);
-}
-
-export function chartError(container, height, text, onRetry) {
-  chartSkeleton(container, height);
-  container.querySelector("svg .shimmer")?.classList.remove("shimmer");
-  let box = [...container.children].find((c) => c.classList?.contains("chart-error"));
-  if (!box) {
-    box = h("div", { class: "chart-error", role: "status" });
-    container.append(box);
-  }
-  box.replaceChildren(h("span", null, text), h("button", { type: "button", class: "btn btn-secondary btn-small", onclick: onRetry }, "Try again"));
-  box.hidden = false;
-}
-
-// ------------------------------------------------------------------ line chart
-
-// cfg: {
-//   height, boundary (last estimate year), ariaLabel, yKind: "count" | "tfr" | "flow",
-//   yDomain: [min, max] (optional), series: [{ key, label, color, width, values: [[year, v]], area, endLabel, crossLabel }],
-//   fillBetween: { a, b, aboveColor, belowColor }, refLines: [{ v, label, dash }], annotations: [{ year, v, text, dot }],
-//   startLabel: { year, v, text }, fmt: (v, key) => string, emphasizeZero
-// }
-export function lineChart(container, cfg) {
-  const W = containerWidth(container);
-  const H = cfg.height;
-  const ends = cfg.series.filter((sr) => sr.endLabel).map((sr) => sr.endLabel);
-  const right = Math.min(110, Math.max(cfg.minRight ?? 8, ...ends.map((t) => labelWidth(t) + 10)));
-  const m = { top: 22, right, bottom: 22, left: 0 };
-  const iw = W - m.left - m.right;
-  const ih = H - m.top - m.bottom;
-
-  let lo = Infinity;
-  let hi = -Infinity;
-  for (const sr of cfg.series)
-    for (const [, v] of sr.values)
-      if (v != null && Number.isFinite(v)) {
-        lo = Math.min(lo, v);
-        hi = Math.max(hi, v);
-      }
-  for (const r of cfg.refLines ?? []) {
-    lo = Math.min(lo, r.v);
-    hi = Math.max(hi, r.v);
-  }
-  if (!Number.isFinite(lo)) {
-    lo = 0;
-    hi = 1;
-  }
-  if (cfg.yDomain) {
-    lo = cfg.yDomain[0] ?? lo;
-    hi = cfg.yDomain[1] ?? hi;
-  }
-  if (cfg.zeroBased !== false) lo = Math.min(0, lo);
-  const ticks = niceTicks(lo, hi, cfg.tickCount ?? 4);
-  const y0 = Math.min(ticks[0], lo);
-  const y1 = Math.max(ticks[ticks.length - 1], hi);
-
-  const x = (yr) => m.left + ((yr - Y0) / (Y1 - Y0)) * iw;
-  const y = (v) => m.top + (1 - (v - y0) / (y1 - y0 || 1)) * ih;
-  const xb = x(cfg.boundary + 0.5);
-
-  const svg = s("svg", { viewBox: `0 0 ${W} ${H}`, width: W, height: H, role: "img", "aria-label": cfg.ariaLabel ?? "" });
-
-  // projection zone + boundary + zone labels
-  svg.append(s("rect", { class: "proj-zone", x: xb, y: m.top, width: Math.max(0, x(Y1) - xb), height: ih }));
-
-  // grid + y ticks (labels inside the plot, above their gridline)
-  const grid = s("g", { class: "grid" });
-  const axis = s("g", { class: "axis" });
-  const tickLabels = [];
-  for (const t of ticks) {
-    const yy = Math.round(y(t)) + 0.5;
-    if (t === 0 && cfg.emphasizeZero) svg.append(s("line", { class: "zero-line", x1: m.left, x2: m.left + iw, y1: yy, y2: yy }));
-    else grid.append(s("line", { x1: m.left, x2: m.left + iw, y1: yy, y2: yy }));
-    tickLabels.push({ t, y: yy - 4 });
-  }
-  svg.prepend(grid);
-
-  // x ticks
-  const xt = W >= 560 ? [1950, 1975, 2000, 2025, 2050, 2075, 2100] : [1950, 2000, 2050, 2100];
-  for (const yr of xt) {
-    const anchor = yr === Y0 ? "start" : yr === Y1 ? "end" : "middle";
-    axis.append(s("text", { x: x(yr), y: H - 6, "text-anchor": anchor }, String(yr)));
-  }
-
-  svg.append(s("line", { class: "boundary", x1: Math.round(xb) + 0.5, x2: Math.round(xb) + 0.5, y1: m.top - 4, y2: m.top + ih }));
-  svg.append(s("text", { class: "zone-label", x: xb - 5, y: 13, "text-anchor": "end" }, "Recorded"));
-  svg.append(s("text", { class: "zone-label", x: xb + 5, y: 13, "text-anchor": "start" }, "UN projection"));
-
-  // fill between two series
-  if (cfg.fillBetween) {
-    const A = cfg.series.find((sr) => sr.key === cfg.fillBetween.a)?.values ?? [];
-    const B = cfg.series.find((sr) => sr.key === cfg.fillBetween.b)?.values ?? [];
-    const bMap = new Map(B);
-    let up = "";
-    let dn = "";
-    for (let i = 0; i < A.length - 1; i++) {
-      const [ya, a0] = A[i];
-      const [yb, a1] = A[i + 1];
-      const b0 = bMap.get(ya);
-      const b1 = bMap.get(yb);
-      if ([a0, a1, b0, b1].some((v) => v == null)) continue;
-      const X0 = x(ya);
-      const X1 = x(yb);
-      const d0 = a0 - b0;
-      const d1 = a1 - b1;
-      const quad = (xa, ya1, xb1, yb1, xc, yc, xd, yd) =>
-        `M${xa.toFixed(1)},${ya1.toFixed(1)}L${xb1.toFixed(1)},${yb1.toFixed(1)}L${xc.toFixed(1)},${yc.toFixed(1)}L${xd.toFixed(1)},${yd.toFixed(1)}Z`;
-      if (d0 >= 0 && d1 >= 0) up += quad(X0, y(a0), X1, y(a1), X1, y(b1), X0, y(b0));
-      else if (d0 <= 0 && d1 <= 0) dn += quad(X0, y(a0), X1, y(a1), X1, y(b1), X0, y(b0));
-      else {
-        const t = d0 / (d0 - d1);
-        const xc = X0 + t * (X1 - X0);
-        const yc = y(a0 + t * (a1 - a0));
-        const tri = (pts) => `M${pts.map((p) => `${p[0].toFixed(1)},${p[1].toFixed(1)}`).join("L")}Z`;
-        const first = tri([
-          [X0, y(a0)],
-          [xc, yc],
-          [X0, y(b0)],
-        ]);
-        const second = tri([
-          [xc, yc],
-          [X1, y(a1)],
-          [X1, y(b1)],
-        ]);
-        if (d0 > 0) {
-          up += first;
-          dn += second;
-        } else {
-          dn += first;
-          up += second;
-        }
-      }
-    }
-    svg.append(s("path", { d: up, fill: cfg.fillBetween.aboveColor, stroke: "none" }));
-    svg.append(s("path", { d: dn, fill: cfg.fillBetween.belowColor, stroke: "none" }));
-  }
-
-  // reference lines
-  for (const r of cfg.refLines ?? []) {
-    const yy = Math.round(y(r.v)) + 0.5;
-    svg.append(s("line", { x1: m.left, x2: m.left + iw, y1: yy, y2: yy, stroke: "var(--text-muted)", "stroke-width": 1, "stroke-dasharray": r.dash ?? "2 4" }));
-    if (r.label) svg.append(s("text", { class: "annot-muted", x: m.left + iw - 4, y: yy - 5, "text-anchor": "end" }, r.label));
-  }
-
-  // series (areas first, then lines; solid up to the boundary, dashed after)
-  for (const sr of cfg.series) {
-    if (!sr.area) continue;
-    const pts = sr.values.filter(([, v]) => v != null);
-    if (!pts.length) continue;
-    const top = pts.map(([yr, v]) => `${x(yr).toFixed(1)},${y(v).toFixed(1)}`).join("L");
-    const base = y(Math.max(y0, 0));
-    svg.append(s("path", { d: `M${x(pts[0][0]).toFixed(1)},${base}L${top}L${x(pts[pts.length - 1][0]).toFixed(1)},${base}Z`, fill: sr.area }));
-  }
-  const lineG = s("g", { class: "lines" });
-  for (const sr of cfg.series) {
-    const rec = sr.values.filter(([yr]) => yr <= cfg.boundary).map(([yr, v]) => [x(yr), v == null ? null : y(v)]);
-    const proj = sr.values.filter(([yr]) => yr >= cfg.boundary).map(([yr, v]) => [x(yr), v == null ? null : y(v)]);
-    const common = { class: "line", stroke: sr.color, "stroke-width": sr.width ?? 2 };
-    lineG.append(s("path", { ...common, d: pathFrom(rec) }));
-    lineG.append(s("path", { ...common, d: pathFrom(proj), "stroke-dasharray": "5 4" }));
-  }
-  svg.append(lineG);
-
-  // annotations
-  for (const a of cfg.annotations ?? []) {
-    if (a.v == null) continue;
-    const ax = x(a.year);
-    const ay = y(a.v);
-    if (a.dot) svg.append(s("circle", { cx: ax, cy: ay, r: a.r ?? 3.5, fill: a.dotColor ?? "var(--text)", stroke: "var(--bg)", "stroke-width": 1.5 }));
-    if (a.text) {
-      const tw = labelWidth(a.text);
-      let anchor = "middle";
-      let tx = ax;
-      if (ax - tw / 2 < m.left + 2) {
-        anchor = "start";
-        tx = Math.max(m.left + 2, ax - 6);
-      } else if (ax + tw / 2 > m.left + iw - 2) {
-        anchor = "end";
-        tx = Math.min(m.left + iw - 2, ax + 6);
-      }
-      let ty = a.below ? ay + 18 : ay - 9;
-      ty = clamp(ty, m.top + 10, m.top + ih - 4);
-      svg.append(s("text", { class: "annot", x: tx, y: ty, "text-anchor": anchor }, a.text));
-      a._box = { x0: anchor === "start" ? tx : anchor === "end" ? tx - tw : tx - tw / 2, y: ty };
+function valueAt(points, year) {
+  if (!points?.length) return null;
+  if (year <= points[0][0]) return points[0][1];
+  for (let i = 1; i < points.length; i++) {
+    const [y1, v1] = points[i];
+    if (year <= y1) {
+      const [y0, v0] = points[i - 1];
+      if (v0 == null || v1 == null) return v0 ?? v1;
+      return v0 + ((v1 - v0) * (year - y0)) / (y1 - y0 || 1);
     }
   }
-  const start = cfg.startLabel;
-  let startBox = null;
-  if (start && start.v != null) {
-    const sy = clamp(y(start.v) - 7, m.top + 10, m.top + ih - 4);
-    svg.append(s("text", { class: "direct-label", x: x(start.year) + 2, y: sy, fill: start.color ?? "var(--text)" }, start.text));
-    startBox = { x0: 0, x1: labelWidth(start.text) + 4, y: sy };
-  }
-
-  // y tick labels, skipping any that would collide with the start label
-  for (const tl of tickLabels) {
-    if (startBox && Math.abs(tl.y - startBox.y) < 14) continue;
-    axis.append(s("text", { x: m.left + 2, y: tl.y }, fmtTick(tl.t, { kind: cfg.yKind === "tfr" ? "tfr" : "count" })));
-  }
-  svg.append(axis);
-
-  // direct labels at the line ends, at least 14px apart
-  const endItems = cfg.series.filter((sr) => sr.endLabel).map((sr) => {
-    const last = [...sr.values].reverse().find(([, v]) => v != null);
-    return { sr, y: last ? y(last[1]) + 4 : m.top + ih / 2 };
-  });
-  const ys = spreadLabels(
-    endItems.map((e) => e.y),
-    14,
-    m.top + 8,
-    m.top + ih + 4,
-  );
-  endItems.forEach((e, i) => {
-    svg.append(s("text", { class: "direct-label", x: m.left + iw + 6, y: ys[i], fill: e.sr.labelColor ?? e.sr.color }, e.sr.endLabel));
-  });
-
-  // crosshair
-  attachCrosshair(svg, { x, y, m, iw, ih, W, cfg });
-  mount(container, svg, cfg.fade);
-  return svg;
+  return points[points.length - 1][1];
 }
 
-function attachCrosshair(svg, { x, y, m, iw, ih, W, cfg }) {
-  const g = s("g", { class: "xh", visibility: "hidden", "pointer-events": "none" });
-  const line = s("line", { class: "xh-line", y1: m.top, y2: m.top + ih });
-  const dots = cfg.series.map((sr) => s("circle", { r: 3.5, fill: sr.color, stroke: "var(--bg)", "stroke-width": 1.5 }));
-  const box = s("g", { class: "xh-box" });
-  const rect = s("rect", { rx: 6, height: 22, y: 0 });
-  const text = s("text", { y: 15 });
-  box.append(rect, text);
-  g.append(line, ...dots, box);
-  svg.append(g);
-  const overlay = s("rect", { x: m.left, y: 0, width: iw, height: m.top + ih, fill: "transparent", "pointer-events": "all" });
-  svg.append(overlay);
+// opts: { onScrub(year) } for the future; the past only shows a readout.
+export function createPopChart(container, { onScrub } = {}) {
+  let model = null; // { past, medium, constant, today, peak, name }
+  let geo = null;
+  let svg = null;
+  let marker = null;
+  let hoverG = null;
+  let lastYear = null;
+  let lastMix = 0;
 
-  const maps = cfg.series.map((sr) => new Map(sr.values));
-  let hideT = 0;
+  function width() {
+    return Math.max(280, Math.round(container.getBoundingClientRect().width || 320));
+  }
 
-  function show(clientX) {
-    clearTimeout(hideT);
+  function render() {
+    if (!model) return;
+    const W = width();
+    const narrow = W < 560;
+    const H = narrow ? 300 : 380;
+    const m = { top: 34, right: narrow ? 96 : 150, bottom: 34, left: narrow ? 34 : 44 };
+    const iw = W - m.left - m.right;
+    const ih = H - m.top - m.bottom;
+    const all = [...model.past, ...model.medium, ...model.constant].map((p) => p[1]).filter((v) => v != null);
+    const maxV = Math.max(...all, 1);
+    const unit = axisUnit(maxV);
+    const ticks = niceTicks(0, maxV / unit.div, 4).map((t) => t * unit.div);
+    const top = ticks[ticks.length - 1] || maxV;
+    const x = (yr) => m.left + ((yr - Y0) / (Y1 - Y0)) * iw;
+    const y = (v) => m.top + ih - (v / top) * ih;
+    geo = { W, H, m, iw, ih, x, y, top, unit, narrow };
+
+    svg = s("svg", { viewBox: `0 0 ${W} ${H}`, width: W, height: H, class: "chart-svg", role: "img", "aria-label": ariaLabel() });
+    // Forecast zone.
+    const tx = x(model.today);
+    svg.append(s("rect", { class: "zone", x: tx, y: m.top - 8, width: x(Y1) - tx, height: ih + 8 }));
+    svg.append(s("text", { class: "zone-label", x: tx + 8, y: m.top + ih - 8 }, "Forecast"));
+    // Grid and y ticks.
+    const grid = s("g", { class: "grid" });
+    ticks.forEach((t, i) => {
+      const yy = Math.round(y(t)) + 0.5;
+      grid.append(s("line", { x1: m.left, x2: m.left + iw, y1: yy, y2: yy }));
+      const lab = t === 0 ? "0" : i === ticks.length - 1 ? `${trim(t / unit.div)} ${unit.unit}` : trim(t / unit.div);
+      grid.append(s("text", { class: "tick y", x: m.left - 8, y: yy + 4, "text-anchor": "end" }, lab));
+    });
+    // The top tick's unit runs to the right of the axis so it never clips.
+    const lastTick = grid.lastChild;
+    if (lastTick) {
+      lastTick.setAttribute("x", m.left);
+      lastTick.setAttribute("y", Math.round(y(top)) - 8);
+      lastTick.setAttribute("text-anchor", "start");
+      lastTick.classList.add("unit");
+    }
+    svg.append(grid);
+    // X ticks.
+    const xt = s("g", { class: "xaxis" });
+    for (const yr of narrow ? [1950, model.today, 2100] : [1950, 2000, model.today, 2050, 2100]) {
+      const t = s("text", { class: `tick x${yr === model.today ? " today" : ""}`, x: x(yr), y: H - 10, "text-anchor": yr === 1950 ? "start" : yr === 2100 ? "end" : "middle" }, yr === model.today ? "Today" : String(yr));
+      xt.append(t);
+    }
+    svg.append(xt);
+
+    // Lines.
+    const lines = s("g", { class: "lines" });
+    const pastPts = model.past.filter((p) => p[0] <= model.today);
+    const join = valueAt(model.medium, model.today);
+    if (join != null && pastPts.length && pastPts[pastPts.length - 1][0] < model.today) pastPts.push([model.today, join]);
+    const futM = model.medium.filter((p) => p[0] >= model.today);
+    const futC = model.constant.filter((p) => p[0] >= model.today);
+    lines.append(s("path", { class: "line constant", d: pathFrom(futC, x, y), "data-s": "constant" }));
+    lines.append(s("path", { class: "line medium", d: pathFrom(futM, x, y), "data-s": "medium" }));
+    lines.append(s("path", { class: "line past", d: pathFrom(pastPts, x, y) }));
+    svg.append(lines);
+
+    // End labels (no legend lookup).
+    const endM = futM[futM.length - 1];
+    const endC = futC[futC.length - 1];
+    const names = narrow ? SCENARIO_SHORT : SCENARIO_LABELS;
+    const ends = [];
+    if (endM) ends.push({ key: "medium", y: y(endM[1]), v: endM[1], name: names.medium });
+    if (endC) ends.push({ key: "constant", y: y(endC[1]), v: endC[1], name: names.constant });
+    const nLines = ends.map((e) => wrapWords(e.name, narrow ? 12 : 22).length);
+    const ys = spreadLabels(
+      ends.map((e) => e.y),
+      Math.max(...nLines, 1) * 14 + 24,
+      m.top,
+      m.top + ih,
+    );
+    const lab = s("g", { class: "end-labels" });
+    ends.forEach((e, i) => {
+      const g = s("g", { class: `end ${e.key}`, transform: `translate(${x(Y1) + 10},${ys[i]})` });
+      const words = wrapWords(e.name, narrow ? 12 : 22);
+      words.forEach((w, j) => g.append(s("text", { class: "end-name", y: -4 + j * 14 - (words.length - 1) * 7 }, w)));
+      g.append(s("text", { class: "end-val", y: 12 + (words.length - 1) * 7 }, fmtCompact(e.v)));
+      lab.append(g);
+    });
+    svg.append(lab);
+
+    // Peak annotation.
+    const pk = model.peak;
+    if (pk && pk[0] > Y0 + 2 && pk[0] < Y1 - 2) {
+      const px = x(pk[0]);
+      const py = y(pk[1]);
+      const g = s("g", { class: "peak" });
+      g.append(s("circle", { cx: px, cy: py, r: 4.5 }));
+      const left = px > m.left + iw * 0.6;
+      g.append(s("text", { x: left ? px - 10 : px + 10, y: py - 10, "text-anchor": left ? "end" : "start" }, `Peak: ${fmtCompact(pk[1])} in ${pk[0]}`));
+      svg.append(g);
+    }
+
+    // Year marker.
+    marker = s("g", { class: "marker" });
+    marker.append(
+      s("line", { class: "m-line", y1: m.top - 8, y2: m.top + ih }),
+      s("circle", { class: "m-dot other", r: 4 }),
+      s("circle", { class: "m-dot main", r: 6 }),
+      s("g", { class: "m-bubble" }, s("rect", { rx: 8, height: 26 }), s("text", { y: 17 })),
+    );
+    svg.append(marker);
+
+    hoverG = s("g", { class: "hover", visibility: "hidden" }, s("line", { y1: m.top - 8, y2: m.top + ih }), s("circle", { r: 4 }), s("g", { class: "m-bubble" }, s("rect", { rx: 8, height: 26 }), s("text", { y: 17 })));
+    svg.append(hoverG);
+
+    const hit = s("rect", { class: "hit", x: m.left, y: 0, width: iw, height: H });
+    svg.append(hit);
+    hit.addEventListener("pointermove", onMove);
+    hit.addEventListener("pointerdown", onMove);
+    hit.addEventListener("pointerleave", () => hoverG.setAttribute("visibility", "hidden"));
+
+    container.replaceChildren(svg);
+    lastYear = null;
+    update(model.year ?? model.today, model.mix ?? 0, true);
+  }
+
+  function onMove(e) {
+    if (!geo) return;
     const r = svg.getBoundingClientRect();
-    const px = ((clientX - r.left) * W) / (r.width || W);
-    const yr = clamp(Math.round(Y0 + ((px - m.left) / iw) * (Y1 - Y0)), Y0, Y1);
-    const xx = Math.round(x(yr)) + 0.5;
+    const px = ((e.clientX - r.left) * geo.W) / r.width;
+    const yr = Math.round(Y0 + ((px - geo.m.left) / geo.iw) * (Y1 - Y0));
+    if (yr >= model.today) {
+      hoverG.setAttribute("visibility", "hidden");
+      if (e.type === "pointerdown" || e.pointerType === "mouse" || e.buttons) onScrub?.(Math.min(Y1, yr));
+    } else {
+      const v = valueAt(model.past, yr);
+      if (v == null) return;
+      placeBubble(hoverG, geo.x(yr), geo.y(v), `${yr}: ${fmtCompact(v)}`);
+      hoverG.querySelector("line").setAttribute("x1", geo.x(yr));
+      hoverG.querySelector("line").setAttribute("x2", geo.x(yr));
+      hoverG.querySelector("circle").setAttribute("cx", geo.x(yr));
+      hoverG.querySelector("circle").setAttribute("cy", geo.y(v));
+      hoverG.setAttribute("visibility", "visible");
+    }
+  }
+
+  function placeBubble(g, cx, cy, text) {
+    const t = g.querySelector(".m-bubble text");
+    const rect = g.querySelector(".m-bubble rect");
+    t.textContent = text;
+    const w = Math.ceil(text.length * 7.4) + 18;
+    let bx = cx - w / 2;
+    bx = Math.max(geo.m.left - 4, Math.min(geo.W - w - 2, bx));
+    const by = Math.max(2, Math.min(cy - 40, geo.m.top - 34 + 2));
+    rect.setAttribute("x", bx);
+    rect.setAttribute("y", by);
+    rect.setAttribute("width", w);
+    t.setAttribute("x", bx + w / 2);
+    t.setAttribute("y", by + 17);
+    t.setAttribute("text-anchor", "middle");
+  }
+
+  function update(year, mix, force = false) {
+    if (!geo || !marker) return;
+    if (!force && year === lastYear && mix === lastMix) return;
+    lastYear = year;
+    lastMix = mix;
+    const yr = Math.max(model.today, Math.min(Y1, year));
+    const vm = valueAt(model.medium, yr);
+    const vc = valueAt(model.constant, yr);
+    const v = vm == null ? vc : vc == null ? vm : vm + (vc - vm) * mix;
+    const vo = mix < 0.5 ? vc : vm;
+    const xx = geo.x(yr);
+    const line = marker.querySelector(".m-line");
     line.setAttribute("x1", xx);
     line.setAttribute("x2", xx);
-    text.replaceChildren(s("tspan", { "font-weight": "600" }, String(yr)));
-    cfg.series.forEach((sr, i) => {
-      const v = maps[i].get(yr);
-      if (v == null) {
-        dots[i].setAttribute("visibility", "hidden");
-        return;
-      }
-      dots[i].setAttribute("visibility", "visible");
-      dots[i].setAttribute("cx", xx);
-      dots[i].setAttribute("cy", y(v));
-      const label = cfg.fmt ? cfg.fmt(v, sr.key) : String(v);
-      if (cfg.series.length > 1) text.append(s("tspan", { fill: sr.color, dx: 8 }, "●"), s("tspan", { dx: 3 }, label));
-      else text.append(s("tspan", null, ` · ${label}`));
-    });
-    g.setAttribute("visibility", "visible");
-    let tw = 80;
-    try {
-      tw = text.getComputedTextLength() + 16;
-    } catch {}
-    const bx = clamp(xx - tw / 2, 0, W - tw);
-    rect.setAttribute("x", bx);
-    rect.setAttribute("width", tw);
-    text.setAttribute("x", bx + 8);
+    const main = marker.querySelector(".m-dot.main");
+    const other = marker.querySelector(".m-dot.other");
+    if (v != null) {
+      main.setAttribute("cx", xx);
+      main.setAttribute("cy", geo.y(v));
+    }
+    if (vo != null) {
+      other.setAttribute("cx", xx);
+      other.setAttribute("cy", geo.y(vo));
+    }
+    placeBubble(marker, xx, v != null ? geo.y(v) : geo.m.top, `${Math.round(yr)}: ${fmtCompact(v)}`);
+    svg.classList.toggle("constant", mix >= 0.5);
+    for (const p of svg.querySelectorAll(".line[data-s]")) p.style.opacity = p.dataset.s === "medium" ? String(1 - 0.45 * mix) : String(0.55 + 0.45 * mix);
   }
-  function hide(delay = 0) {
-    clearTimeout(hideT);
-    hideT = setTimeout(() => g.setAttribute("visibility", "hidden"), delay);
+
+  function ariaLabel() {
+    const pk = model.peak;
+    const last = model.medium[model.medium.length - 1];
+    const lastC = model.constant[model.constant.length - 1];
+    return `Population of ${model.name}, 1950 to 2100.${pk ? ` Peak ${fmtWords(pk[1])} in ${pk[0]}.` : ""}${last ? ` UN forecast for 2100: ${fmtWords(last[1])}.` : ""}${lastC ? ` If birth rates stay the same: ${fmtWords(lastC[1])}.` : ""}`;
   }
-  overlay.addEventListener("pointermove", (e) => show(e.clientX));
-  overlay.addEventListener("pointerdown", (e) => show(e.clientX));
-  overlay.addEventListener("pointerleave", () => hide());
-  overlay.addEventListener("pointercancel", () => hide());
-  overlay.addEventListener("pointerup", (e) => {
-    if (e.pointerType !== "mouse") hide(1500);
-  });
-}
 
-// ------------------------------------------------------------------ waterfall (C5a)
-
-const WF_COLORS = { births: "var(--c-births)", deaths: "var(--c-deaths)", migration: "var(--c-migration)", total: "var(--c-total)" };
-
-export function waterfallChart(container, rows, { height = 168, fmtValue, fmtRate, ariaLabel, fade } = {}) {
-  const W = containerWidth(container);
-  const showRates = W >= 400 && !media.mobile();
-  const labelCol = 108;
-  const texts = rows.map((r) => fmtValue(r.value) + (showRates && r.rate != null ? ` · ${fmtRate(r.rate)} per 1,000` : ""));
-  const R = Math.min(190, Math.max(...texts.map((t) => labelWidth(t))) + 12);
-  const x0 = labelCol + 8;
-  const x1 = W - R;
-  let lo = 0;
-  let hi = 0;
-  for (const r of rows) {
-    lo = Math.min(lo, r.from, r.to);
-    hi = Math.max(hi, r.from, r.to);
-  }
-  if (hi === lo) hi = lo + 1;
-  const x = (v) => x0 + ((v - lo) / (hi - lo)) * (x1 - x0);
-  const rowH = 36;
-  const barH = 18;
-  const top = 4;
-
-  const svg = s("svg", { viewBox: `0 0 ${W} ${height}`, width: W, height, role: "img", "aria-label": ariaLabel ?? "" });
-  const zx = Math.round(x(0)) + 0.5;
-  svg.append(s("line", { class: "zero-line", x1: zx, x2: zx, y1: top - 2, y2: top + rows.length * rowH + 2 }));
-  svg.append(s("text", { class: "annot-muted", x: zx, y: top + rows.length * rowH + 16, "text-anchor": "middle" }, "0"));
-
-  rows.forEach((r, i) => {
-    const cy = top + i * rowH + rowH / 2;
-    const a = x(Math.min(r.from, r.to));
-    const b = x(Math.max(r.from, r.to));
-    svg.append(s("text", { x: 0, y: cy + 4, fill: "var(--text)", "font-size": 13, "font-weight": r.key === "total" ? 650 : 400 }, r.label));
-    svg.append(
-      s("rect", {
-        x: a,
-        y: cy - barH / 2,
-        width: Math.max(1, b - a),
-        height: barH,
-        rx: 2,
-        fill: WF_COLORS[r.key],
-        stroke: r.key === "total" ? "var(--border-strong)" : "none",
-        "stroke-width": 1,
-      }),
-    );
-    const t = s("text", { x: b + 6, y: cy + 4, class: "direct-label", fill: "var(--text)" }, s("tspan", null, fmtValue(r.value)));
-    if (showRates && r.rate != null) t.append(s("tspan", { fill: "var(--text-muted)", "font-weight": 400 }, ` · ${fmtRate(r.rate)} per 1,000`));
-    svg.append(t);
-    if (i < rows.length - 1) {
-      const nx = Math.round(x(r.to)) + 0.5;
-      svg.append(
-        s("line", { x1: nx, x2: nx, y1: cy + barH / 2, y2: cy + rowH - barH / 2, stroke: "var(--border-strong)", "stroke-width": 1 }),
-      );
+  let lastW = 0;
+  const ro = new ResizeObserver(() => {
+    const w = width();
+    if (w !== lastW) {
+      lastW = w;
+      render();
     }
   });
-  mount(container, svg, fade);
-  return svg;
+  ro.observe(container);
+
+  return {
+    setData(m) {
+      model = m;
+      lastW = width();
+      render();
+    },
+    update(year, mix) {
+      if (model) {
+        model.year = year;
+        model.mix = mix;
+      }
+      update(year, mix);
+    },
+  };
 }
+
+function trim(v) {
+  const r = Math.round(v * 10) / 10;
+  return Number.isInteger(r) ? String(r) : r.toFixed(1);
+}
+
+function wrapWords(text, max) {
+  const words = text.split(" ");
+  const lines = [];
+  let cur = "";
+  for (const w of words) {
+    if (cur && (cur + " " + w).length > max) {
+      lines.push(cur);
+      cur = w;
+    } else cur = cur ? `${cur} ${w}` : w;
+  }
+  if (cur) lines.push(cur);
+  return lines;
+}
+
+export { valueAt };

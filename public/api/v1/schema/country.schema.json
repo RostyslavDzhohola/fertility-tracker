@@ -1346,7 +1346,7 @@
         },
         "site": {
           "type": "string",
-          "description": "This country on the live tracker."
+          "description": "This country's page on the live tracker: https://fertility-tracker-live.vercel.app/country/{ISO3}."
         }
       },
       "additionalProperties": false

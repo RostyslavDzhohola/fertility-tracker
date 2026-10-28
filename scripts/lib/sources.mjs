@@ -1,68 +1,20 @@
 // Upstream sources: exact URLs, what we take from each, and fetchers that return parsed data + a status manifest.
 import { getJson, getText, mapLimit } from "./http.mjs";
 import { nameIndex, parseCorridorCsv, parseMdimChoices, parseOwidCsv, parseOwidMetadata, parseWbCountries, parseWbLatest } from "./parse.mjs";
+import { fetchUnWpp } from "./unwpp.mjs";
 
 const OWID = "https://ourworldindata.org";
 const Q = "v=1&csvType=full&useColumnShortNames=true";
 export const owidCsvUrl = (path, params = "") => `${OWID}/${path}.csv?${Q}${params ? `&${params}` : ""}`;
 export const owidMetaUrl = (path, params = "") => `${OWID}/${path}.metadata.json?${Q}${params ? `&${params}` : ""}`;
 
-const v = (metric) => ({
-  est: `${metric}__sex_all__age_all__variant_estimates`,
-  proj: `${metric}__sex_all__age_all__variant_medium`,
-});
-
-/** UN World Population Prospects 2024 (estimates 1950-2023 + medium projection 2024-2100), via Our World in Data. */
-export const WPP_DATASETS = [
-  {
-    id: "fertility",
-    title: "Fertility rate (births per woman)",
-    path: "grapher/fertility-rate-with-projections",
-    spec: { tfrEst: v("fertility_rate").est, tfrProj: v("fertility_rate").proj },
-    required: true,
-  },
-  {
-    id: "population",
-    title: "Population (1 July)",
-    path: "grapher/population-with-un-projections",
-    spec: { popEst: v("population").est, popProj: v("population").proj },
-    required: true,
-  },
-  {
-    id: "birthsDeaths",
-    title: "Births and deaths per year",
-    path: "grapher/births-and-deaths-projected-to-2100",
-    spec: { birthsEst: v("births").est, birthsProj: v("births").proj, deathsEst: v("deaths").est, deathsProj: v("deaths").proj },
-    required: true,
-  },
-  {
-    id: "netMigration",
-    title: "Net migration (immigrants minus emigrants per year)",
-    path: "explorers/population-and-demography",
-    params: "indicator=Net+migration&Sex=Both+sexes&Age=Total&Projection+scenario=Medium",
-    spec: { netMigEst: v("net_migration").est, netMigProj: v("net_migration").proj },
-    required: false,
-  },
-  {
-    id: "medianAge",
-    title: "Median age",
-    path: "grapher/median-age",
-    spec: { medianAgeEst: v("median_age").est, medianAgeProj: v("median_age").proj },
-    required: false,
-  },
-  {
-    id: "ageStructure",
-    title: "Population aged 65+ (for share65)",
-    path: "grapher/population-by-age-group-with-projections",
-    spec: {
-      pop65Est: "population__sex_all__age_65plus__variant_estimates",
-      pop65Proj: "population__sex_all__age_65plus__variant_medium",
-      popAllEst: v("population").est,
-      popAllProj: v("population").proj,
-    },
-    required: false,
-  },
-];
+/**
+ * UN World Population Prospects 2024 comes straight from the UN's CSV files (scripts/lib/unwpp.mjs): estimates
+ * 1950-2023, medium projection 2024-2100, the Constant-fertility scenario, and the 2026-01-19 interim update (Togo).
+ * Until October 2026 it came from Our World in Data's copies, which sum the UN's single-age figures (each rounded to a
+ * whole person: Tokelau's 14 deaths in 2023 became 2) and whose "65+" group stops at 99. See docs/DATA-VALIDATION.md.
+ */
+export { WPP_CSV, WPP_UPDATE } from "./unwpp.mjs";
 
 /** UN DESA International Migrant Stock 2024 (1990-2024, every 5 years + 2024), via Our World in Data. */
 export const IMS_DATASETS = [
@@ -109,10 +61,11 @@ async function fetchOwidDataset(d) {
 
 /** Fetch every bulk source. Never throws for a single dataset; callers decide based on entry.status/required. */
 export async function fetchSources(log = () => {}) {
-  const owidJobs = [...WPP_DATASETS.map((d) => ["wpp", d]), ...IMS_DATASETS.map((d) => ["ims", d])];
+  const owidJobs = IMS_DATASETS.map((d) => ["ims", d]);
   const wbJobs = Object.entries(WB_INDICATORS);
 
-  const [owidResults, wbResults, wbCountries] = await Promise.all([
+  const [un, owidResults, wbResults, wbCountries] = await Promise.all([
+    fetchUnWpp({ log }),
     mapLimit(owidJobs, 4, async ([group, d]) => ({ group, ...(await fetchOwidDataset(d)) })),
     mapLimit(wbJobs, 4, async ([key, id]) => {
       const url = wbIndicatorUrl(id);
@@ -130,14 +83,13 @@ export async function fetchSources(log = () => {}) {
     ),
   ]);
 
-  const wpp = {};
   const ims = {};
-  const manifest = { wpp: [], ims: [], wb: [] };
+  const manifest = { wpp: un.entries, ims: [], wb: [] };
   for (const r of owidResults) {
-    const { group, entry, data } = r.value;
-    (group === "wpp" ? wpp : ims)[entry.id] = data;
-    manifest[group].push(entry);
-    log(`${entry.status === "ok" ? "ok  " : "FAIL"} ${group}/${entry.id}${entry.error ? ` (${entry.error})` : ""}`);
+    const { entry, data } = r.value;
+    ims[entry.id] = data;
+    manifest.ims.push(entry);
+    log(`${entry.status === "ok" ? "ok  " : "FAIL"} ims/${entry.id}${entry.error ? ` (${entry.error})` : ""}`);
   }
   const latest = {};
   for (const r of wbResults) {
@@ -156,7 +108,7 @@ export async function fetchSources(log = () => {}) {
     error: wbCountries.ok ? null : wbCountries.error,
   });
   log(`${wbCountries.ok ? "ok  " : "FAIL"} wb/countries${wbCountries.ok ? "" : ` (${wbCountries.error})`}`);
-  return { wpp, ims, wb: { countries: wbCountries.ok ? wbCountries.data : new Map(), latest }, manifest };
+  return { wpp: un.wpp ?? {}, scenarios: un.scenarios, ims, wb: { countries: wbCountries.ok ? wbCountries.data : new Map(), latest }, manifest };
 }
 
 /**

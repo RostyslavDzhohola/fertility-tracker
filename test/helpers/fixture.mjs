@@ -82,13 +82,30 @@ export function fixtureRaw() {
   const corridors = new Map([
     ["SHR", { year: 2024, source: "UN-DESA", immigrantsTotal: 1_000_000, emigrantsTotal: 2_600_000, topOrigins: [{ iso3: "GRO", name: "Growland", people: 400_000 }], topDestinations: [] }],
   ]);
-  return { wpp, ims, wb, corridors };
+  return { wpp, ims, wb, corridors, scenarios: fixtureScenarios() };
+}
+
+/** Population scenarios 2024-2100 shaped like fetchUnWpp().scenarios: medium = the fixture series, constant drifts away. */
+export function fixtureScenarios({ startYear = 2024, endYear = 2100 } = {}) {
+  const places = new Map();
+  for (const [code, shape] of Object.entries(SHAPES)) {
+    const years = Array.from({ length: endYear - startYear + 1 }, (_, i) => startYear + i);
+    const medium = years.map((y) => Math.round(shape(y).pop));
+    places.set(code, { medium, constant: medium.map((v, i) => Math.round(v * (1 - 0.002 * i))) });
+  }
+  return { startYear, endYear, places, adjustments: [], vintage: { lastModified: "2024-12-13", updateLastModified: "2026-01-22" } };
 }
 
 export function fixtureManifest() {
   const ds = (id) => ({ id, title: id, url: `https://example.test/${id}.csv`, metadataUrl: null, required: true, status: "ok", vintage: { lastUpdated: "2024-07-12" }, columns: [id], error: null });
+  const un = (id, required) => ({ ...ds(id), required, vintage: { lastUpdated: "2024-12-13", timespan: "1950-2100" } });
   return {
-    wpp: ["fertility", "population", "birthsDeaths", "netMigration", "medianAge", "ageStructure"].map(ds),
+    wpp: [
+      un("demographicIndicators", true),
+      un("ageGroups", false),
+      un("populationScenarios", false),
+      { ...un("interimUpdate", true), released: "2026-01-19", releaseNote: "https://example.test/note.pdf", updated: ["TGO"] },
+    ],
     ims: ["immigrants", "immigrantsShare", "emigrants", "emigrantsShare", "migrationCorridors"].map(ds),
     wb: [{ id: "countries", key: "countries", title: "Countries", url: "https://example.test/wb", status: "ok", lastUpdated: null, error: null }],
   };

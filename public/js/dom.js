@@ -52,8 +52,7 @@ export const media = {
   reduced: () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
   coarse: () => window.matchMedia("(pointer: coarse)").matches,
   finePointer: () => window.matchMedia("(hover: hover) and (pointer: fine)").matches,
-  desktop: () => window.matchMedia("(min-width: 1100px)").matches,
-  mobile: () => window.matchMedia("(max-width: 599px)").matches,
+  mobile: () => window.matchMedia("(max-width: 699px)").matches,
 };
 
 // Every programmatic focus in the app goes through here (DESIGN §3.4 G3).
@@ -77,15 +76,6 @@ export function keepInView(container, el, pad = 4) {
   const bottom = el.offsetTop + el.offsetHeight + pad;
   if (top < container.scrollTop) container.scrollTop = top;
   else if (bottom > container.scrollTop + container.clientHeight) container.scrollTop = bottom - container.clientHeight;
-}
-
-// The only window scrolls in the app: explicit jump controls (DESIGN §3.4 G8).
-export function jumpTo(target, focusEl) {
-  if (!target) return;
-  const topbar = 56;
-  const y = window.scrollY + target.getBoundingClientRect().top - topbar - 12;
-  window.scrollTo({ top: Math.max(0, y), behavior: media.reduced() ? "auto" : "smooth" });
-  focusNoScroll(focusEl ?? target);
 }
 
 export async function copyText(text) {

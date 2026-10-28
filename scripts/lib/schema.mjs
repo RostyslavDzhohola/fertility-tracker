@@ -211,7 +211,7 @@ const detail = obj("Everything about one country.", {
     countries: T("string", "All countries."),
     risk: T("string", "Risk ranking."),
     docs: T("string", "Human documentation."),
-    site: T("string", "This country on the live tracker."),
+    site: T("string", "This country's page on the live tracker: https://fertility-tracker-live.vercel.app/country/{ISO3}."),
   }),
 });
 
@@ -226,8 +226,56 @@ const header = (title, id, description) => ({
   description,
 });
 
+const scenarioArray = (label) =>
+  arr(`${label}: people on 1 July for each year startYear..endYear (index = year - startYear); null = missing.`, T(nul("integer"), "People.", { minimum: 0 }), { minItems: 1 });
+const scenarioMeta = (label, variant) =>
+  obj(`The ${label} scenario.`, {
+    label: T("string", "Plain-language label for the UI.", { const: label }),
+    unVariant: T("string", "UN WPP variant name in the source file.", { const: variant }),
+    description: T("string", "What the scenario means."),
+    unDefinition: T("string", "The UN's own definition, quoted."),
+  });
+
+const scenariosSchema = obj("scenarios.json", {
+  apiVersion: T("string", "API version.", { const: "v1" }),
+  generatedAt: T("string", "When the numbers last changed (ISO 8601).", { format: "date-time" }),
+  source: T("object", "UN WPP 2024 file, interim update, vintage, licence and citation."),
+  unit: T("string", "Unit of every number in places.", { const: "people" }),
+  startYear: int("First year in each array (index 0)."),
+  endYear: int("Last year in each array."),
+  scenarios: obj("The two scenarios.", {
+    medium: scenarioMeta("UN forecast", "Medium"),
+    constant: scenarioMeta("If birth rates stay the same", "Constant fertility"),
+  }),
+  notes: arr("Conventions and caveats.", T("string", "Note.")),
+  adjustments: arr(
+    "Places whose numbers differ from the UN file, and why (Togo: the UN's 2026 interim update revised only its medium scenario).",
+    obj("One adjustment.", {
+      iso3: identity.iso3,
+      scenarios: arr("Scenarios adjusted.", T("string", "Scenario key.", { enum: ["medium", "constant"] })),
+      method: T("string", "How the published numbers were derived."),
+      ratioRange: T(nul("array"), "Smallest and largest yearly ratio revised medium / original medium.", { items: T("number", "Ratio.") }),
+      reason: T("string", "Why."),
+    }),
+  ),
+  places: T("object", "One entry per country plus WLD (every record in countries.json), keyed by ISO3.", {
+    additionalProperties: obj("Population paths for one place.", {
+      medium: scenarioArray("UN forecast (medium)"),
+      constant: scenarioArray("If birth rates stay the same (constant fertility)"),
+    }),
+  }),
+});
+
 export function schemas() {
   return {
+    "scenarios.schema.json": {
+      ...header(
+        "Fertility Tracker: scenarios.json",
+        "scenarios.schema.json",
+        "Population of every country and the world each year to 2100 under two UN WPP 2024 scenarios: medium and constant fertility.",
+      ),
+      ...scenariosSchema,
+    },
     "countries.schema.json": {
       ...header("Fertility Tracker: countries.json", "countries.schema.json", "Summary record for every country plus the world (WLD)."),
       ...obj("countries.json", {
@@ -339,7 +387,7 @@ export function openapi() {
       version: SCHEMA_VERSION,
       summary: "Fertility, births, deaths, migration, UN projections and population-decline risk for every country.",
       description:
-        "Static, read-only JSON/CSV files regenerated weekly from the World Bank (WDI), UN World Population Prospects 2024 " +
+        "Static, read-only JSON/CSV files regenerated weekly from the World Bank (WDI), UN World Population Prospects 2024 (with its January 2026 interim update) " +
         "and UN DESA International Migrant Stock 2024. No key, no rate limit beyond Vercel static hosting; CORS is open " +
         "(Access-Control-Allow-Origin: *). Missing values are null. See /llms.txt and /api/ for a guide.",
       license: { name: "MIT (code); data CC BY 4.0 from the original publishers", url: "https://github.com/RostyslavDzhohola/fertility-tracker/blob/main/LICENSE" },
@@ -360,6 +408,13 @@ export function openapi() {
         },
       },
       "/risk.json": { get: { operationId: "getRisk", summary: "Countries ranked by population-decline risk + methodology", responses: { 200: json("risk.schema.json", "Risk ranking") } } },
+      "/scenarios.json": {
+        get: {
+          operationId: "getScenarios",
+          summary: "Population of every country + WLD each year to 2100: UN forecast (medium) and 'If birth rates stay the same' (constant fertility)",
+          responses: { 200: json("scenarios.schema.json", "Population scenarios") },
+        },
+      },
       "/status.json": { get: { operationId: "getStatus", summary: "When the weekly refresh last ran (deploy-time file)", responses: { 200: json("status.schema.json", "Status") } } },
       "/countries.csv": { get: { operationId: "getCountriesCsv", summary: "One row per country (flat summary)", responses: { 200: csv("CSV with header row") } } },
       "/timeseries.csv": {

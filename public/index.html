@@ -2,421 +2,278 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Fertility Tracker: which countries are shrinking, and how fast</title>
-<meta name="description" content="Live map of births per woman and population-decline risk for every country, with UN projections to 2100. Free JSON, CSV and API for people and AI agents.">
-<meta name="theme-color" content="#0B0E14">
-<meta name="color-scheme" content="dark">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fertility Tracker: every country's population, today to 2100</title>
+<meta name="description" content="Spin the globe and slide to 2100: which countries keep growing, which shrink, and how fast. UN forecasts for every country, in plain words. Free JSON, CSV and API for people and AI agents.">
+<meta name="theme-color" content="#F6F4EF">
+<meta name="color-scheme" content="light">
 <link rel="canonical" href="https://fertility-tracker-live.vercel.app/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Fertility Tracker">
 <meta property="og:url" content="https://fertility-tracker-live.vercel.app/">
 <meta property="og:title" content="Fertility Tracker: which countries are shrinking, and how fast">
-<meta property="og:description" content="Live map of births per woman and population-decline risk for every country, with UN projections to 2100. Free data for people and AI agents.">
+<meta property="og:description" content="Spin the globe and slide to 2100: which countries keep growing and which shrink. UN forecasts for every country, in plain words.">
 <meta property="og:image" content="https://fertility-tracker-live.vercel.app/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="World map colored by population-decline risk, with the five highest-risk countries listed">
+<meta property="og:image:alt" content="A globe colored by how many people each country will have in 2100 compared with today, with the countries most at risk of shrinking">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Fertility Tracker: which countries are shrinking, and how fast">
-<meta name="twitter:description" content="Live map of births per woman and population-decline risk for every country, with UN projections to 2100. Free data for people and AI agents.">
+<meta name="twitter:description" content="Spin the globe and slide to 2100: which countries keep growing and which shrink. UN forecasts for every country, in plain words.">
 <meta name="twitter:image" content="https://fertility-tracker-live.vercel.app/og.png">
-<meta name="twitter:image:alt" content="World map colored by population-decline risk, with the five highest-risk countries listed">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6.5' fill='%23FFCB52'/%3E%3C/svg%3E">
+<meta name="twitter:image:alt" content="A globe colored by how many people each country will have in 2100 compared with today, with the countries most at risk of shrinking">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6.5' fill='%232457FF'/%3E%3Cpath d='M3 9.5c2.5-1.8 7.5-1.8 10 0' stroke='%23fff' stroke-width='1.4' fill='none'/%3E%3C/svg%3E">
 <!-- For AI agents: machine-readable guide, OpenAPI description, manifest and bulk files. -->
-<link rel="service-desc" type="application/json" href="api/v1/openapi.json" title="Fertility Tracker OpenAPI">
-<link rel="alternate" type="application/json" href="api/v1/index.json" title="Fertility Tracker API manifest">
-<link rel="alternate" type="text/plain" href="llms.txt" title="llms.txt">
-<link rel="alternate" type="text/csv" href="api/v1/countries.csv" title="Every country (CSV)">
-<link rel="help" href="api/" title="API documentation">
-<link rel="preload" href="api/v1/countries.json" as="fetch" type="application/json" crossorigin>
-<link rel="preload" href="geo/countries-110m.json" as="fetch" type="application/json" crossorigin>
-<link rel="modulepreload" href="js/logic.js">
-<link rel="modulepreload" href="js/dom.js">
-<link rel="modulepreload" href="js/map.js">
-<link rel="modulepreload" href="js/charts.js">
-<link rel="modulepreload" href="js/country.js">
-<link rel="modulepreload" href="js/lists.js">
-<link rel="modulepreload" href="js/search.js">
-<link rel="stylesheet" href="style.css">
+<link rel="service-desc" type="application/json" href="/api/v1/openapi.json" title="Fertility Tracker OpenAPI">
+<link rel="alternate" type="application/json" href="/api/v1/index.json" title="Fertility Tracker API manifest">
+<link rel="alternate" type="text/plain" href="/llms.txt" title="llms.txt">
+<link rel="alternate" type="text/csv" href="/api/v1/countries.csv" title="Every country (CSV)">
+<link rel="help" href="/api/" title="API documentation">
+<link rel="preload" href="/api/v1/countries.json" as="fetch" type="application/json" crossorigin>
+<link rel="preload" href="/api/v1/scenarios.json" as="fetch" type="application/json" crossorigin>
+<link rel="preload" href="/geo/countries-110m.json" as="fetch" type="application/json" crossorigin>
+<link rel="modulepreload" href="/js/logic.js">
+<link rel="modulepreload" href="/js/dom.js">
+<link rel="modulepreload" href="/js/store.js">
+<link rel="modulepreload" href="/js/globe.js">
+<link rel="modulepreload" href="/js/home.js">
+<link rel="modulepreload" href="/js/controls.js">
+<link rel="modulepreload" href="/js/search.js">
+<link rel="stylesheet" href="/style.css">
 <script type="application/ld+json" id="dataset-jsonld">
 {
   "@context": "https://schema.org",
   "@type": "Dataset",
   "name": "Fertility Tracker: births per woman, population change and decline risk for every country",
-  "description": "Births per woman, births, deaths, net migration, immigrant and emigrant stocks, UN projections to 2100 and a 0-100 population-decline risk score for every country and territory. Static JSON and CSV, no key, refreshed weekly. Agent guide: https://fertility-tracker-live.vercel.app/llms.txt",
+  "description": "Births per woman, births, deaths, net migration, immigrant and emigrant stocks, UN population forecasts to 2100 (medium and constant-fertility variants) and a 0-100 population-decline risk score for every country and territory. Static JSON and CSV, no key, refreshed weekly. Agent guide: https://fertility-tracker-live.vercel.app/llms.txt",
   "url": "https://fertility-tracker-live.vercel.app/",
   "sameAs": "https://github.com/RostyslavDzhohola/fertility-tracker",
   "license": "https://creativecommons.org/licenses/by/4.0/",
   "isAccessibleForFree": true,
   "creator": { "@type": "Organization", "name": "Fertility Tracker", "url": "https://github.com/RostyslavDzhohola/fertility-tracker" },
-  "keywords": ["fertility rate", "births per woman", "population decline", "net migration", "UN World Population Prospects", "World Bank"],
+  "keywords": ["fertility rate", "births per woman", "population decline", "population forecast", "net migration", "UN World Population Prospects", "World Bank"],
   "temporalCoverage": "1950/2100",
   "spatialCoverage": "World",
   "distribution": [
     { "@type": "DataDownload", "encodingFormat": "application/json", "contentUrl": "https://fertility-tracker-live.vercel.app/api/v1/countries.json" },
+    { "@type": "DataDownload", "encodingFormat": "application/json", "contentUrl": "https://fertility-tracker-live.vercel.app/api/v1/scenarios.json" },
     { "@type": "DataDownload", "encodingFormat": "text/csv", "contentUrl": "https://fertility-tracker-live.vercel.app/api/v1/countries.csv" },
     { "@type": "DataDownload", "encodingFormat": "text/csv", "contentUrl": "https://fertility-tracker-live.vercel.app/api/v1/timeseries.csv" }
   ]
 }
 </script>
-<script defer src="vendor/d3-array.min.js"></script>
-<script defer src="vendor/d3-geo.min.js"></script>
-<script defer src="vendor/topojson-client.min.js"></script>
-<script type="module" src="js/main.js"></script>
+<script defer src="/vendor/d3-array.min.js"></script>
+<script defer src="/vendor/d3-geo.min.js"></script>
+<script defer src="/vendor/topojson-client.min.js"></script>
+<script type="module" src="/js/main.js"></script>
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
 
 <header class="topbar">
   <div class="topbar-inner">
-    <a class="wordmark" href="./"><span class="brand-dot" aria-hidden="true"></span><span class="wordmark-text">Fertility Tracker</span></a>
+    <a class="wordmark" href="/" aria-label="Fertility Tracker, home"><span class="brand-dot" aria-hidden="true"></span><span class="wordmark-text">Fertility Tracker</span></a>
     <div class="search" id="search-wrap">
       <label for="search" class="visually-hidden">Search a country or territory</label>
-      <svg class="search-icon" viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" focusable="false"><circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12.7 12.7 17 17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      <svg class="search-icon" viewBox="0 0 20 20" width="20" height="20" aria-hidden="true" focusable="false"><circle cx="8.5" cy="8.5" r="5.6" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M12.8 12.8 17 17" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
       <input id="search" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false"
              aria-controls="search-results" aria-activedescendant="" autocomplete="off" autocapitalize="off"
-             spellcheck="false" enterkeyhint="go" placeholder="Search a country or territory">
+             spellcheck="false" enterkeyhint="go" placeholder="Search any country or territory">
       <kbd class="search-kbd" aria-hidden="true">/</kbd>
       <button type="button" class="search-clear" id="search-clear" aria-label="Clear search text" hidden>
-        <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       </button>
       <ul id="search-results" class="search-results" role="listbox" aria-label="Matching places" hidden></ul>
       <div class="visually-hidden" aria-live="polite" id="search-status"></div>
     </div>
-    <nav class="topnav" aria-label="Sections">
-      <a href="#data" data-jump="data">Data &amp; API</a>
-      <a href="#feedback" data-jump="feedback" class="nav-feedback">Feedback</a>
+    <button type="button" class="menu-btn" id="menu-btn" aria-expanded="false" aria-controls="topnav" aria-label="Menu">
+      <svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true" focusable="false"><path d="M3 6h14M3 10h14M3 14h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+    <nav class="topnav" id="topnav" aria-label="Pages">
+      <a href="/" data-page="globe">Globe</a>
+      <a href="/rankings" data-page="rankings">Rankings</a>
+      <a href="/api/" data-page="data">Data</a>
+      <span class="fb-wrap">
+        <button type="button" class="fb-btn" id="fb-btn" aria-expanded="false" aria-controls="fb-panel">Feedback</button>
+        <div class="fb-panel" id="fb-panel" role="dialog" aria-label="Feedback" hidden></div>
+      </span>
     </nav>
   </div>
 </header>
 
-<main id="main">
-  <section class="hero" aria-labelledby="hero-title">
-    <h1 id="hero-title">Most countries now have too few births to replace their population.</h1>
-    <p class="hero-sub" id="hero-sub">Loading the latest numbers…</p>
-    <p class="hero-meta" id="hero-meta">&nbsp;</p>
-  </section>
+<div class="load-banner" id="load-banner" role="alert" hidden>
+  <span>Couldn't load the latest data.</span>
+  <button type="button" class="btn btn-primary btn-small" id="load-retry">Try again</button>
+</div>
 
+<main id="main">
   <noscript>
     <div class="noscript">
-      <p>This map needs JavaScript. The data works without it:</p>
+      <p>This globe needs JavaScript. The data works without it:</p>
       <ul>
-        <li><a href="api/v1/countries.csv">Every country (CSV)</a></li>
-        <li><a href="api/v1/timeseries.csv">Yearly data 1950–2100 (CSV)</a></li>
-        <li><a href="api/v1/countries.json">Every country (JSON)</a></li>
-        <li><a href="api/">API documentation</a></li>
-        <li><a href="llms.txt">llms.txt (guide for AI agents)</a></li>
+        <li><a href="/api/v1/countries.csv">Every country (CSV)</a></li>
+        <li><a href="/api/v1/timeseries.csv">Yearly data 1950–2100 (CSV)</a></li>
+        <li><a href="/api/v1/countries.json">Every country (JSON)</a></li>
+        <li><a href="/api/">API documentation</a></li>
+        <li><a href="/llms.txt">llms.txt (guide for AI agents)</a></li>
       </ul>
     </div>
   </noscript>
+  <p class="app-loading" id="app-loading" aria-live="polite">Loading the globe…</p>
 
-  <section class="explorer" id="explorer" aria-labelledby="map-heading">
-    <div class="load-banner" id="load-banner" role="alert" hidden>
-      <span>Couldn't load the latest data.</span>
-      <button type="button" class="btn btn-secondary btn-small" id="load-retry">Try again</button>
-    </div>
+  <!-- ============================================================ Globe -->
+  <section class="view view-globe" id="view-globe" aria-labelledby="globe-title" hidden>
+    <h1 class="visually-hidden" id="globe-title">Every country's population, from today to 2100</h1>
+    <canvas class="globe-canvas" id="globe" tabindex="0" role="application" aria-roledescription="globe"
+            aria-label="Globe colored by how many people each country has compared with today. Drag to turn, scroll or pinch to zoom. Arrow keys turn it, plus and minus zoom, Enter opens the country in the middle."></canvas>
+    <div class="globe-tip" id="globe-tip" aria-hidden="true" hidden></div>
+    <p class="globe-note" id="globe-note" role="status"></p>
 
-    <div class="map-col" id="map-col">
-      <h2 class="visually-hidden" id="map-heading">Map</h2>
-      <div class="map-toolbar">
-        <div class="segmented" role="group" aria-label="Color the map by">
-          <button type="button" class="seg-btn" data-mode="risk" aria-pressed="true">Decline risk</button>
-          <button type="button" class="seg-btn" data-mode="tfr" aria-pressed="false">Births per woman</button>
-        </div>
-        <button type="button" class="globe-toggle" id="globe-toggle" aria-pressed="false">
-          <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.3" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M8 1.7a6.3 6.3 0 0 1 0 12.6z" fill="currentColor"/></svg>
-          <span>Globe</span>
-        </button>
+    <div class="zoom-ctrl" id="zoom-ctrl">
+      <div class="zoom-stack" role="group" aria-label="Zoom">
+        <button type="button" class="icon-btn" id="zoom-in" aria-label="Zoom in"><svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true" focusable="false"><path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
+        <button type="button" class="icon-btn" id="zoom-out" aria-label="Zoom out"><svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true" focusable="false"><path d="M4 10h12" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
+        <button type="button" class="icon-btn" id="zoom-reset" aria-label="Reset the view"><svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true" focusable="false"><path d="M4.5 10a5.5 5.5 0 1 0 1.6-3.9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M5.6 3.6v3h3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
       </div>
-
-      <div class="map-frame" id="map-frame">
-        <svg class="map-svg" id="map-svg" tabindex="0" role="group" aria-roledescription="interactive map"
-             aria-label="World map colored by decline risk. Arrow keys move between countries. Enter selects."
-             aria-describedby="map-cursor-status" focusable="true"></svg>
-        <div class="map-tooltip" id="map-tooltip" aria-hidden="true" hidden></div>
-        <div class="chooser" id="chooser" role="dialog" aria-modal="false" aria-labelledby="chooser-title" hidden>
-          <p class="chooser-title" id="chooser-title">Which place?</p>
-          <div class="chooser-rows" id="chooser-rows"></div>
-        </div>
-        <p class="map-note" id="map-note" aria-live="polite"></p>
-      </div>
-      <div class="visually-hidden" aria-live="polite" id="map-cursor-status"></div>
-
-      <a class="skip-details" id="skip-details" href="#country-name">Skip to details</a>
-
-      <div class="legend-wrap">
-        <div class="legend" id="legend" role="group" aria-label="Legend: decline risk"></div>
-        <p class="legend-caption" id="legend-caption">Click a level to show only those places.</p>
-      </div>
-
-      <div class="readout" id="readout">
-        <span class="swatch" id="readout-swatch" aria-hidden="true"></span>
-        <span class="readout-text" id="readout-text">&nbsp;</span>
-        <button type="button" class="btn btn-secondary btn-small readout-btn" id="readout-details">Details <span aria-hidden="true">↓</span></button>
-      </div>
-
-      <div class="chips-wrap">
-        <span class="chips-label" id="chips-label" aria-hidden="true">Highest risk:</span>
-        <ul class="chips" id="chips" aria-label="Highest risk"></ul>
-      </div>
-
-      <div class="ranking" id="ranking-panel">
-        <div class="ranking-head">
-          <h3 class="ranking-title" id="ranking-title">Highest risk of shrinking</h3>
-          <p class="ranking-sub" id="ranking-sub">Ranked by decline-risk score, 0–100</p>
-        </div>
-        <div class="ranking-cols" aria-hidden="true"><span class="col-tfr">births/woman</span><span class="col-2100">2023→2100</span></div>
-        <div class="listbox ranking-list" id="ranking-list" role="listbox" aria-label="Places ranked by decline risk"></div>
+      <div class="view-mode" id="view-mode" role="group" aria-label="Map shape">
+        <button type="button" data-mode="globe" aria-pressed="true">Globe</button>
+        <button type="button" data-mode="flat" aria-pressed="false">Flat</button>
       </div>
     </div>
 
-    <article class="country-col" id="country" aria-labelledby="country-name">
-      <div class="minibar-anchor">
-        <div class="minibar" id="minibar">
-          <span class="swatch" id="minibar-swatch" aria-hidden="true"></span>
-          <span class="minibar-name" id="minibar-name" aria-hidden="true"></span>
-          <span class="minibar-tfr" id="minibar-tfr" aria-hidden="true"></span>
-          <span class="minibar-tier" id="minibar-tier" aria-hidden="true"></span>
-          <button type="button" class="btn btn-secondary btn-small minibar-map" id="minibar-map" tabindex="-1" aria-label="Back to the map"><span aria-hidden="true">↑</span> Map</button>
+    <aside class="card" id="card" aria-labelledby="card-name" hidden>
+      <button type="button" class="icon-btn card-close" id="card-close" aria-label="Close">
+        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+      <p class="card-region" id="card-region"></p>
+      <h2 class="card-name" id="card-name" tabindex="-1"></h2>
+      <div class="card-risk" id="card-risk"></div>
+      <p class="card-big"><span class="num" id="card-num"></span> <span class="unit" id="card-unit"></span></p>
+      <p class="card-sub"><span id="card-year"></span> <span class="pct" id="card-pct"></span></p>
+      <div class="people card-people" id="card-people" aria-hidden="true"></div>
+      <p class="card-cap" id="card-people-cap"></p>
+      <ul class="card-reasons" id="card-reasons"></ul>
+      <a class="btn btn-primary btn-block card-cta" id="card-cta" href="/">See the story</a>
+    </aside>
+
+    <div class="dock-wrap" id="dock-wrap">
+      <div class="dock-top">
+        <div class="risk-pop">
+          <button type="button" class="pill-btn" id="risk-btn" aria-expanded="false" aria-controls="risk-panel">
+            <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true" focusable="false"><path d="M4 5h12M4 10h8M4 15h5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+            Most at risk
+          </button>
+          <div class="risk-panel" id="risk-panel" hidden>
+            <p class="risk-panel-title">Most at risk of shrinking</p>
+            <ol class="risk-list" id="risk-list"></ol>
+            <a class="risk-all" href="/rankings">All rankings →</a>
+          </div>
+        </div>
+        <div class="legend" id="legend" role="img" aria-label="Colors compare each country with today: green, more people; sand, about the same; orange to red, fewer people; gray, half or more gone.">
+          <span class="lg-cap" aria-hidden="true">vs today</span>
+          <span class="lg-item" aria-hidden="true"><i class="lg-sw lg-more"></i>More people</span>
+          <span class="lg-item" aria-hidden="true"><i class="lg-sw lg-same"></i>About the same</span>
+          <span class="lg-item" aria-hidden="true"><i class="lg-sw lg-fewer"></i>Fewer people</span>
+          <span class="lg-item" aria-hidden="true"><i class="lg-sw lg-half"></i>Half gone</span>
         </div>
       </div>
+      <div class="dock" id="dock">
+        <div class="dock-time" id="dock-time"></div>
+        <div class="counter" id="world-counter">
+          <p class="counter-label"><span class="swatch" id="wc-swatch" aria-hidden="true"></span>World in <span id="wc-year"></span></p>
+          <p class="counter-big"><span class="num" id="wc-num"></span> <span class="unit" id="wc-unit"></span></p>
+          <p class="counter-pct" id="wc-pct"></p>
+        </div>
+      </div>
+    </div>
+  </section>
 
-      <div class="country-content" id="country-content">
-        <!-- C1 header -->
-        <header class="blk c1">
-          <p class="eyebrow" id="cv-region">&nbsp;</p>
-          <h2 class="country-name" id="country-name" tabindex="-1">&nbsp;</h2>
-          <div class="meta-row">
-            <span class="tier-chip" id="cv-tier"><span class="swatch" id="cv-tier-swatch" aria-hidden="true"></span><span id="cv-tier-text">&nbsp;</span></span>
-            <span class="rank-text" id="cv-rank"></span>
-            <span class="meta-actions">
-              <button type="button" class="btn btn-secondary btn-small" id="share-btn">Share</button>
-              <a class="btn btn-secondary btn-small" id="post-x" href="https://x.com/intent/post" target="_blank" rel="noopener">Post on X</a>
-            </span>
-          </div>
-          <p class="summary" id="cv-summary">&nbsp;</p>
-        </header>
+  <!-- ============================================================ Country -->
+  <section class="view view-country" id="view-country" hidden>
+    <div class="cv-missing" id="cv-missing" hidden>
+      <h1>We don't have a place with the code <span id="cv-missing-code"></span>.</h1>
+      <p>Try the search box above, or <a href="/">go back to the globe</a>.</p>
+    </div>
+    <article class="story" id="story">
+      <header class="hero">
+        <p class="eyebrow" id="cv-region"></p>
+        <h1 class="cv-name" id="cv-name" tabindex="-1"></h1>
+        <p class="verdict" id="cv-verdict"></p>
+        <div class="meter" id="cv-meter"></div>
+        <p class="lede" id="cv-lede"></p>
+      </header>
 
-        <!-- C2 headline numbers -->
-        <section class="blk c2" aria-label="Headline numbers">
-          <div class="kpis">
-            <div class="kpi"><p class="kpi-label">Births per woman</p><p class="kpi-value" id="kpi-tfr">&nbsp;</p><p class="kpi-sub" id="kpi-tfr-sub">&nbsp;</p></div>
-            <div class="kpi"><p class="kpi-label">Population by 2100</p><p class="kpi-value" id="kpi-pop">&nbsp;</p><p class="kpi-sub" id="kpi-pop-sub">&nbsp;</p></div>
-            <div class="kpi"><p class="kpi-label">Next generation</p><p class="kpi-value"><span id="kpi-gen">&nbsp;</span><small> per 100</small></p><p class="kpi-sub">children for every 100 people today</p></div>
-            <div class="kpi"><p class="kpi-label">Median age</p><p class="kpi-value" id="kpi-age">&nbsp;</p><p class="kpi-sub" id="kpi-age-sub">&nbsp;</p></div>
-          </div>
+      <div class="time-zone">
+        <div class="cv-controls" id="cv-controls"></div>
+
+        <section class="blk blk-people" aria-labelledby="pp-title">
+          <h2 class="blk-title" id="pp-title">100 people</h2>
+          <p class="readout"><span class="ro-year" id="pp-year"></span><span class="ro-dot" aria-hidden="true">·</span><span class="ro-num"><b id="pp-num"></b> <span id="pp-unit"></span></span><span class="ro-pct" id="pp-pct"></span></p>
+          <div class="people people-grid" id="pp-grid" aria-hidden="true"></div>
+          <p class="blk-sentence" id="pp-sentence" aria-live="polite"></p>
         </section>
 
-        <!-- C3 why this risk level -->
-        <section class="blk c3" aria-labelledby="why-title">
-          <h3 class="why-title" id="why-title">&nbsp;</h3>
-          <div class="meter-wrap" id="meter-wrap">
-            <div class="meter" id="meter" aria-hidden="true">
-              <div class="meter-track" id="meter-track"></div>
-              <div class="meter-marker" id="meter-marker"><span class="meter-value" id="meter-value"></span></div>
-            </div>
-            <div class="meter-ends" aria-hidden="true"><span>Low</span><span>Critical</span></div>
-            <p class="meter-world" id="meter-world" hidden></p>
-          </div>
-          <ul class="factors" id="factors"></ul>
-          <button type="button" class="text-btn" id="all-factors" aria-expanded="false" hidden>See all factors</button>
-          <p class="caveat">This is a population-decline risk indicator, not a judgment of the country or its people. <a href="#methodology" data-jump="methodology">How the score works →</a></p>
-        </section>
-
-        <!-- C4 population -->
-        <section class="blk c4 chart-blk" aria-labelledby="pop-takeaway">
-          <p class="blk-label">Population, 1950–2100</p>
-          <h3 class="takeaway" id="pop-takeaway">&nbsp;</h3>
-          <div class="chart" id="pop-chart" data-height="200"></div>
-        </section>
-
-        <!-- C5a latest-year waterfall -->
-        <section class="blk c5a chart-blk" aria-labelledby="wf-takeaway">
-          <p class="blk-label" id="wf-label">What's changing the population</p>
-          <h3 class="takeaway" id="wf-takeaway">&nbsp;</h3>
-          <div class="chart" id="wf-chart" data-height="168"></div>
-        </section>
-
-        <!-- C5b components over time -->
-        <section class="blk c5b chart-blk" aria-labelledby="comp-takeaway">
-          <p class="blk-label">Births, deaths and migration, 1950–2100</p>
-          <h3 class="takeaway" id="comp-takeaway">&nbsp;</h3>
-          <div class="chart" id="comp-chart" data-height="220"></div>
-        </section>
-
-        <!-- C6 moving in, moving out -->
-        <section class="blk c6 chart-blk" aria-labelledby="mig-takeaway">
-          <p class="blk-label">Moving in, moving out</p>
-          <h3 class="takeaway" id="mig-takeaway">&nbsp;</h3>
-          <div class="mig-bars" id="mig-bars"></div>
-          <p class="mig-net" id="mig-net">&nbsp;</p>
-          <div class="corridors" id="corridors">
-            <div class="corridor"><p class="corridor-title">Most come from</p><ol class="corridor-list" id="corr-origins"></ol></div>
-            <div class="corridor"><p class="corridor-title">Most live in</p><ol class="corridor-list" id="corr-dest"></ol></div>
-          </div>
-          <p class="note" id="mig-note">&nbsp;</p>
-        </section>
-
-        <!-- C7 start with 100 people -->
-        <section class="blk c7" aria-labelledby="gen-takeaway">
-          <p class="blk-label">Start with 100 people</p>
-          <h3 class="takeaway" id="gen-takeaway"><span id="gen-takeaway-text">&nbsp;</span> <span class="hypo-tag" id="hypo-tag" hidden>Hypothetical</span></h3>
-          <div class="whatif">
-            <div class="whatif-head">
-              <label for="whatif-range" class="whatif-label">What if births per woman were…</label>
-              <output class="whatif-out" id="whatif-out" for="whatif-range">&nbsp;</output>
-            </div>
-            <div class="whatif-track">
-              <input type="range" id="whatif-range" min="0.5" max="4" step="0.05" value="2.1" aria-describedby="whatif-hint">
-              <div class="whatif-ticks" aria-hidden="true">
-                <span class="whatif-tick" id="tick-country"></span>
-                <span class="whatif-tick" id="tick-repl">Replacement 2.1</span>
-              </div>
-            </div>
-            <p class="visually-hidden" id="whatif-hint">Changes only the 100-people rows below.</p>
-            <button type="button" class="text-btn whatif-reset" id="whatif-reset" hidden>Reset</button>
-          </div>
-          <ol class="gens" id="gens"></ol>
-          <p class="note">Simple model: each generation is today's births per woman ÷ 2.1, about 30 years apart. It ignores migration, longer lives and age structure, so it shows the long-run pull of today's rate, not a forecast. The UN projection above is the forecast.</p>
-        </section>
-
-        <!-- C8 births per woman over time -->
-        <section class="blk c8 chart-blk" aria-labelledby="tfr-takeaway">
-          <p class="blk-label">Births per woman, 1950–2100</p>
-          <h3 class="takeaway" id="tfr-takeaway">&nbsp;</h3>
-          <div class="chart" id="tfr-chart" data-height="200"></div>
-        </section>
-
-        <!-- C9 data and feedback links -->
-        <section class="blk c9" aria-label="Data for this country">
-          <p class="links-row">
-            <span id="c9-label">Data:</span>
-            <a id="c9-json" href="api/v1/countries.json">JSON</a> ·
-            <a href="api/v1/timeseries.csv">CSV</a>
-            <span class="links-sep" aria-hidden="true"> </span>
-            <a id="c9-report" href="https://github.com/RostyslavDzhohola/fertility-tracker/issues/new?template=data-problem.yml" target="_blank" rel="noopener">Report a problem with these numbers →</a>
-          </p>
+        <section class="blk blk-chart" aria-labelledby="ch-title">
+          <h2 class="blk-title" id="ch-title">People, 1950–2100</h2>
+          <p class="blk-sentence" id="ch-sentence"></p>
+          <div class="pop-chart" id="pop-chart"></div>
         </section>
       </div>
+
+      <section class="blk blk-why" aria-labelledby="why-title">
+        <h2 class="blk-title" id="why-title">Why it's happening</h2>
+        <div class="why-tiles">
+          <div class="tile" id="why-babies"></div>
+          <div class="tile" id="why-born"></div>
+          <div class="tile" id="why-move"></div>
+        </div>
+      </section>
+
+      <section class="blk blk-gens" aria-labelledby="gen-title">
+        <h2 class="blk-title" id="gen-title">Generations</h2>
+        <p class="blk-sentence" id="gen-sentence"></p>
+        <ol class="gens" id="gens"></ol>
+        <div class="whatif">
+          <label class="whatif-label" for="whatif-range">What if babies per woman were…</label>
+          <div class="whatif-row">
+            <input type="range" class="tc-range" id="whatif-range" min="0.5" max="4" step="0.05" value="2.1">
+            <output class="whatif-out" id="whatif-out" for="whatif-range"></output>
+          </div>
+          <button type="button" class="text-btn" id="whatif-reset" hidden></button>
+        </div>
+      </section>
+
+      <details class="cv-more" id="more">
+        <summary><span>More numbers</span><small>Every figure, risk factors, migration, data and feedback</small></summary>
+        <div class="cv-more-body" id="more-body"></div>
+      </details>
     </article>
   </section>
 
-  <!-- For people and AI agents -->
-  <section class="page-section data-section" id="data" aria-labelledby="data-title">
-    <h2 id="data-title" tabindex="-1">Use the data: free for people and AI agents</h2>
-    <p class="section-sub">Every number on this page is a static file you can download or call. No key, no sign-up, updated weekly.</p>
-    <div class="cards">
-      <div class="card">
-        <h3>For people</h3>
-        <ul class="link-list">
-          <li><a href="api/v1/countries.csv" download>Download every country (CSV)</a></li>
-          <li><a href="api/v1/timeseries.csv" download>Download yearly data 1950–2100 (CSV)</a> <span class="faint">about 11 MB</span></li>
-          <li><a id="data-country-json" href="api/v1/countries.json">Every country as JSON</a></li>
-          <li><a href="api/">API documentation</a></li>
-        </ul>
-      </div>
-      <div class="card">
-        <h3>For AI agents</h3>
-        <ul class="link-list">
-          <li><a href="llms.txt">llms.txt</a> <span class="faint">plain-text guide for agents</span></li>
-          <li><a href="api/v1/openapi.json">OpenAPI spec</a></li>
-          <li><a href="api/v1/index.json">Manifest</a> <span class="faint">sources, endpoints, generatedAt</span></li>
-          <li><a href="api/v1/risk.json">Risk ranking</a></li>
-        </ul>
-        <div class="code-block">
-          <div class="code-head"><span>Try it</span><button type="button" class="btn btn-secondary btn-small copy-btn" data-copy="curl-code">Copy</button></div>
-          <pre><code id="curl-code">curl -s https://fertility-tracker-live.vercel.app/api/v1/countries/KOR.json</code></pre>
+  <!-- ============================================================ Rankings -->
+  <section class="view view-rankings" id="view-rankings" hidden>
+    <div class="rk">
+      <header class="rk-head">
+        <h1 tabindex="-1">Where populations will shrink most</h1>
+        <p class="rk-sub" id="rk-sub"></p>
+      </header>
+      <div class="rk-controls">
+        <div class="tabs" id="rk-tabs" role="tablist" aria-label="Sort by">
+          <button type="button" role="tab" data-tab="shrink" aria-selected="true" aria-controls="rk-list" tabindex="0">Shrinking most by 2100</button>
+          <button type="button" role="tab" data-tab="risk" aria-selected="false" aria-controls="rk-list" tabindex="-1">Highest risk</button>
+          <button type="button" role="tab" data-tab="babies" aria-selected="false" aria-controls="rk-list" tabindex="-1">Fewest babies</button>
         </div>
-        <div class="code-block">
-          <div class="code-head"><span>Prompt for your agent</span><button type="button" class="btn btn-secondary btn-small copy-btn" data-copy="agent-prompt">Copy</button></div>
-          <pre><code id="agent-prompt">Use the Fertility Tracker open data (no key needed).
-Guide: https://fertility-tracker-live.vercel.app/llms.txt
-OpenAPI: https://fertility-tracker-live.vercel.app/api/v1/openapi.json
-Fetch api/v1/countries.json for every country's latest numbers and decline-risk tier, or
-api/v1/countries/{ISO3}.json for yearly 1950–2100 series (UN projection after the last recorded year).
-Question: &lt;your question&gt;
-Cite "Fertility Tracker (UN World Population Prospects, World Bank)" and the generatedAt date from index.json.</code></pre>
-        </div>
+        <div class="segmented rk-scen" id="rk-scen" role="group" aria-label="Scenario"></div>
       </div>
-    </div>
-    <p class="note data-foot" id="data-foot">Sources: UN World Population Prospects 2024 (CC BY 3.0 IGO), UN DESA International Migrant Stock 2024 (CC BY 3.0 IGO), World Bank World Development Indicators (CC BY 4.0). Code MIT. Checked every Monday.</p>
-  </section>
-
-  <!-- Feedback -->
-  <section class="page-section feedback-section" id="feedback" aria-labelledby="feedback-title">
-    <h2 id="feedback-title" tabindex="-1">Spot something wrong? Want something added?</h2>
-    <p class="section-sub">Every message is read. A weekly check folds feedback into the next update.</p>
-    <div class="feedback-actions">
-      <a class="btn btn-primary" id="fb-github" href="https://github.com/RostyslavDzhohola/fertility-tracker/issues/new/choose" target="_blank" rel="noopener">Give feedback on GitHub</a>
-      <a class="btn btn-secondary" id="fb-email" href="mailto:andromedus+fertility@mail.grokbot.com">Email us</a>
-    </div>
-    <p class="note fb-note">GitHub issues are public; email stays private.</p>
-    <p class="fb-address"><span class="email-text" id="fb-address">andromedus+fertility@mail.grokbot.com</span> <button type="button" class="btn btn-secondary btn-small copy-btn" data-copy="fb-address">Copy</button></p>
-  </section>
-
-  <!-- Methodology -->
-  <section class="page-section method-section" id="methodology" aria-labelledby="method-title">
-    <h2 id="method-title" tabindex="-1">How this works</h2>
-    <div class="method-grid">
-      <div class="method-col">
-        <h3>What the colors mean</h3>
-        <p>The decline-risk score runs from 0 to 100. It shows how likely a country's population is to shrink, based on five things: births per woman, the balance of births and deaths, how old the population is, whether migration fills the gap, and the UN's projected change to 2050 and 2100. It measures population-decline risk only. It is not a judgment of any country, its people, or their choices.</p>
-        <table class="tier-table" id="tier-table">
-          <thead><tr><th scope="col">Level</th><th scope="col">Score</th><th scope="col">Meaning</th></tr></thead>
-          <tbody id="tier-table-body"></tbody>
-        </table>
-        <ul class="weights" id="weights"></ul>
-      </div>
-      <div class="method-col">
-        <h3>Births per woman</h3>
-        <p>The average number of children a woman would have over her life at today's rates (demographers call this the total fertility rate, TFR). About 2.1 keeps a population steady over time. The extra 0.1 covers children who don't survive to adulthood.</p>
-        <h3>Recorded versus projected</h3>
-        <p>Solid lines are recorded estimates. Dashed lines in the shaded area are the UN World Population Prospects medium projection: the UN's central forecast, not a certainty. Real outcomes can land above or below it.</p>
-        <h3>Where growth comes from</h3>
-        <p>A population changes through births, deaths and net migration (people arriving minus people leaving). "Born abroad, living here" and "born here, living abroad" count people, not yearly moves.</p>
-        <h3>The 100-people model</h3>
-        <p>Each generation is today's births per woman ÷ 2.1, about 30 years apart. It deliberately ignores migration, longer lives and the age structure of today's population, so it shows the long-run pull of a birth rate, not a forecast. The UN projection is the forecast.</p>
-        <h3>Small places</h3>
-        <p>Places with fewer than 100,000 people, or with missing inputs, get no rank. When they have enough data they still get a score. A few births either way can swing a small place's numbers a lot from one year to the next.</p>
-        <h3>Sources and updates</h3>
-        <ul class="sources" id="sources-list">
-          <li><a href="https://population.un.org/wpp/">UN World Population Prospects</a></li>
-          <li><a href="https://data.worldbank.org/">World Bank World Development Indicators</a></li>
-          <li><a href="https://www.un.org/development/desa/pd/content/international-migrant-stock">UN DESA International Migrant Stock</a></li>
-        </ul>
-        <p>A check runs every Monday, and numbers change when a source publishes new data. Feedback is folded in on the same schedule. Full method: <a href="https://github.com/RostyslavDzhohola/fertility-tracker/blob/main/docs/METHODOLOGY.md">METHODOLOGY.md</a>.</p>
-      </div>
+      <div class="chips" id="rk-regions" role="group" aria-label="Region"></div>
+      <div class="rk-cols" aria-hidden="true"><span>#</span><span>Place</span><span>Risk</span><span>Today → 2100</span><span>Babies</span></div>
+      <p class="visually-hidden" id="rk-count" aria-live="polite"></p>
+      <ol class="rk-list" id="rk-list" role="tabpanel" aria-label="Ranked places"></ol>
+      <h2 class="rk-small-title" id="rk-small-title">Small places, not ranked: too few people for a fair score</h2>
+      <ol class="rk-list rk-small" id="rk-small"></ol>
     </div>
   </section>
 </main>
-
-<footer class="site-footer">
-  <div class="footer-inner">
-    <p><span class="brand-dot" aria-hidden="true"></span> Fertility Tracker · Data: UN World Population Prospects, UN DESA, World Bank · Code MIT</p>
-    <p class="footer-links">
-      <a href="api/">API</a>
-      <a href="llms.txt">llms.txt</a>
-      <a href="https://github.com/RostyslavDzhohola/fertility-tracker">GitHub</a>
-      <a href="#feedback" data-jump="feedback">Feedback</a>
-    </p>
-  </div>
-</footer>
-
-<dialog class="all-dialog" id="all-dialog" aria-labelledby="all-dialog-title">
-  <div class="dialog-inner">
-    <div class="dialog-head">
-      <h2 class="dialog-title" id="all-dialog-title">All countries and territories</h2>
-      <button type="button" class="icon-btn dialog-close" id="all-dialog-close" aria-label="Close">
-        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-      </button>
-    </div>
-    <label class="visually-hidden" for="all-filter">Filter places</label>
-    <input type="search" class="dialog-filter" id="all-filter" placeholder="Filter places" autocomplete="off" autocapitalize="off" spellcheck="false">
-    <div class="ranking-cols dialog-cols" aria-hidden="true"><span class="col-tfr">births/woman</span><span class="col-2100">2023→2100</span></div>
-    <div class="listbox dialog-list" id="all-list" role="listbox" aria-label="All places ranked by decline risk"></div>
-  </div>
-</dialog>
 
 <div class="visually-hidden" aria-live="polite" id="announcer"></div>
 </body>

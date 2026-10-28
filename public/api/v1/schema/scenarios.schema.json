@@ -1,0 +1,225 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fertility-tracker-live.vercel.app/api/v1/schema/scenarios.schema.json",
+  "title": "Fertility Tracker: scenarios.json",
+  "description": "scenarios.json",
+  "type": "object",
+  "required": [
+    "apiVersion",
+    "generatedAt",
+    "source",
+    "unit",
+    "startYear",
+    "endYear",
+    "scenarios",
+    "notes",
+    "adjustments",
+    "places"
+  ],
+  "properties": {
+    "apiVersion": {
+      "type": "string",
+      "description": "API version.",
+      "const": "v1"
+    },
+    "generatedAt": {
+      "type": "string",
+      "description": "When the numbers last changed (ISO 8601).",
+      "format": "date-time"
+    },
+    "source": {
+      "type": "object",
+      "description": "UN WPP 2024 file, interim update, vintage, licence and citation."
+    },
+    "unit": {
+      "type": "string",
+      "description": "Unit of every number in places.",
+      "const": "people"
+    },
+    "startYear": {
+      "type": "integer",
+      "description": "First year in each array (index 0)."
+    },
+    "endYear": {
+      "type": "integer",
+      "description": "Last year in each array."
+    },
+    "scenarios": {
+      "type": "object",
+      "description": "The two scenarios.",
+      "required": [
+        "medium",
+        "constant"
+      ],
+      "properties": {
+        "medium": {
+          "type": "object",
+          "description": "The UN forecast scenario.",
+          "required": [
+            "label",
+            "unVariant",
+            "description",
+            "unDefinition"
+          ],
+          "properties": {
+            "label": {
+              "type": "string",
+              "description": "Plain-language label for the UI.",
+              "const": "UN forecast"
+            },
+            "unVariant": {
+              "type": "string",
+              "description": "UN WPP variant name in the source file.",
+              "const": "Medium"
+            },
+            "description": {
+              "type": "string",
+              "description": "What the scenario means."
+            },
+            "unDefinition": {
+              "type": "string",
+              "description": "The UN's own definition, quoted."
+            }
+          },
+          "additionalProperties": false
+        },
+        "constant": {
+          "type": "object",
+          "description": "The If birth rates stay the same scenario.",
+          "required": [
+            "label",
+            "unVariant",
+            "description",
+            "unDefinition"
+          ],
+          "properties": {
+            "label": {
+              "type": "string",
+              "description": "Plain-language label for the UI.",
+              "const": "If birth rates stay the same"
+            },
+            "unVariant": {
+              "type": "string",
+              "description": "UN WPP variant name in the source file.",
+              "const": "Constant fertility"
+            },
+            "description": {
+              "type": "string",
+              "description": "What the scenario means."
+            },
+            "unDefinition": {
+              "type": "string",
+              "description": "The UN's own definition, quoted."
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "notes": {
+      "type": "array",
+      "description": "Conventions and caveats.",
+      "items": {
+        "type": "string",
+        "description": "Note."
+      }
+    },
+    "adjustments": {
+      "type": "array",
+      "description": "Places whose numbers differ from the UN file, and why (Togo: the UN's 2026 interim update revised only its medium scenario).",
+      "items": {
+        "type": "object",
+        "description": "One adjustment.",
+        "required": [
+          "iso3",
+          "scenarios",
+          "method",
+          "ratioRange",
+          "reason"
+        ],
+        "properties": {
+          "iso3": {
+            "type": "string",
+            "description": "ISO 3166-1 alpha-3 code (WLD = world, XKX = Kosovo).",
+            "pattern": "^[A-Z]{3}$"
+          },
+          "scenarios": {
+            "type": "array",
+            "description": "Scenarios adjusted.",
+            "items": {
+              "type": "string",
+              "description": "Scenario key.",
+              "enum": [
+                "medium",
+                "constant"
+              ]
+            }
+          },
+          "method": {
+            "type": "string",
+            "description": "How the published numbers were derived."
+          },
+          "ratioRange": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "description": "Smallest and largest yearly ratio revised medium / original medium.",
+            "items": {
+              "type": "number",
+              "description": "Ratio."
+            }
+          },
+          "reason": {
+            "type": "string",
+            "description": "Why."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "places": {
+      "type": "object",
+      "description": "One entry per country plus WLD (every record in countries.json), keyed by ISO3.",
+      "additionalProperties": {
+        "type": "object",
+        "description": "Population paths for one place.",
+        "required": [
+          "medium",
+          "constant"
+        ],
+        "properties": {
+          "medium": {
+            "type": "array",
+            "description": "UN forecast (medium): people on 1 July for each year startYear..endYear (index = year - startYear); null = missing.",
+            "items": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "description": "People.",
+              "minimum": 0
+            },
+            "minItems": 1
+          },
+          "constant": {
+            "type": "array",
+            "description": "If birth rates stay the same (constant fertility): people on 1 July for each year startYear..endYear (index = year - startYear); null = missing.",
+            "items": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "description": "People.",
+              "minimum": 0
+            },
+            "minItems": 1
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

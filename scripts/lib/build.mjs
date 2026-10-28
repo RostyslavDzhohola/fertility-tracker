@@ -92,8 +92,24 @@ function migrantStock(code, ims, wb) {
 }
 
 /**
- * Build everything. raw = { wpp, ims, wb: { countries, latest }, corridors: Map|null }.
- * Returns { records (summary, sorted by iso3), details: Map<iso3, detail>, ranking, unranked, latestEstimateYear }.
+ * Population scenarios for scenarios.json, restricted to the published records (sorted by code).
+ * scenarios = { startYear, endYear, places: Map<code, {medium, constant}>, adjustments, vintage } | null.
+ */
+export function scenarioPlaces(scenarios, codes) {
+  if (!scenarios?.places) return null;
+  const places = new Map();
+  for (const code of [...codes].sort()) {
+    const p = scenarios.places.get(code);
+    if (p) places.set(code, { medium: p.medium, constant: p.constant });
+  }
+  const kept = new Set(places.keys());
+  return { ...scenarios, places, adjustments: (scenarios.adjustments ?? []).filter((a) => kept.has(a.iso3)) };
+}
+
+/**
+ * Build everything. raw = { wpp, ims, wb: { countries, latest }, corridors: Map|null, scenarios?: see scenarioPlaces }.
+ * Returns { records (summary, sorted by iso3), details: Map<iso3, detail>, ranking, unranked, latestEstimateYear,
+ * scenarios }.
  */
 export function buildDataset(raw) {
   const { wpp, ims, wb, corridors } = raw;
@@ -114,8 +130,12 @@ export function buildDataset(raw) {
     const projection = baseRow ? projectionSummary(series, estYear) : null;
     const stock = migrantStock(code, ims, wb);
 
-    const unBirthRate = components?.perThousand.births;
-    const unDeathRate = components?.perThousand.deaths;
+    // UN crude rates: the UN's own CBR/CDR (per 1,000 person-years) when the source has them, else births or deaths
+    // per 1,000 of the 1 July population (components.perThousand). They differ only for tiny places such as the Vatican.
+    const unRates = wpp.birthsDeaths?.entities.get(code)?.years.get(estYear);
+    const unBirthRate = unRates?.cbrEst ?? components?.perThousand.births;
+    const unDeathRate = unRates?.cdrEst ?? components?.perThousand.deaths;
+    const unNaturalRate = unRates?.cbrEst != null && unRates?.cdrEst != null ? unRates.cbrEst - unRates.cdrEst : components?.perThousand.naturalChange;
     const wbBirth = wbPoint(wb, "birthRate", code, 1);
     const wbDeath = wbPoint(wb, "deathRate", code, 1);
     const wbNatural =
@@ -135,7 +155,7 @@ export function buildDataset(raw) {
       tfr: pickLatest(wbPoint(wb, "tfr", code, 3), unPoint(baseRow, baseRow?.tfr, 3)),
       birthRate: pickLatest(wbBirth, unPoint(baseRow, unBirthRate, 1)),
       deathRate: pickLatest(wbDeath, unPoint(baseRow, unDeathRate, 1)),
-      naturalChangeRate: pickLatest(wbNatural, unPoint(baseRow, components?.perThousand.naturalChange, 1)),
+      naturalChangeRate: pickLatest(wbNatural, unPoint(baseRow, unNaturalRate, 1)),
       netMigration: pickLatest(wbPoint(wb, "netMigration", code, 0), unPoint(baseRow, baseRow?.netMigration, 0)),
       populationGrowthPct: pickLatest(
         wbPoint(wb, "populationGrowthPct", code, 2),
@@ -199,6 +219,7 @@ export function buildDataset(raw) {
     ranking,
     unranked,
     latestEstimateYear: estYear,
+    scenarios: scenarioPlaces(raw.scenarios, records.map((r) => r.iso3)),
   };
 }
 

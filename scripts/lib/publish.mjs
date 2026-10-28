@@ -7,6 +7,7 @@ import { toCsv } from "./csv.mjs";
 import { REPLACEMENT_TFR } from "./model.mjs";
 import { RISK_MODEL } from "./risk.mjs";
 import { API_BASE, SCHEMA_VERSION, SITE_URL, openapi, schemas } from "./schema.mjs";
+import { WPP_CITATION, WPP_CSV, WPP_HOME, WPP_METHODOLOGY, WPP_NEXT_RELEASE, WPP_RELEASED, WPP_SCENARIOS_DOC, WPP_UPDATE } from "./unwpp.mjs";
 
 export const API_DIR = "api/v1";
 const GEN = "__GENERATED_AT__";
@@ -15,7 +16,7 @@ const REPO = "https://github.com/RostyslavDzhohola/fertility-tracker";
 
 export const SOURCE_NAMES = {
   WB: "World Bank, World Development Indicators",
-  "UN-WPP": "United Nations, World Population Prospects 2024 (via Our World in Data)",
+  "UN-WPP": "United Nations, World Population Prospects 2024 (UN CSV files, with the January 2026 interim update for Togo)",
   "UN-DESA": "United Nations DESA, International Migrant Stock 2024 (via Our World in Data)",
 };
 
@@ -26,9 +27,10 @@ const pretty = (o) => JSON.stringify(o, null, 2) + "\n";
 const compact = (o) => JSON.stringify(o) + "\n";
 
 function sourcesManifest(manifest) {
-  const wppVintage = manifest.wpp.find((d) => d.id === "population")?.vintage;
   const imsVintage = manifest.ims.find((d) => d.vintage)?.vintage;
   const wbDates = manifest.wb.map((d) => d.lastUpdated).filter(Boolean).sort();
+  const wppDates = manifest.wpp.map((d) => d.vintage?.lastUpdated).filter(Boolean).sort();
+  const update = manifest.wpp.find((d) => d.id === "interimUpdate");
   const owidDataset = (d) => ({
     id: d.id,
     title: d.title,
@@ -39,19 +41,32 @@ function sourcesManifest(manifest) {
     lastUpdated: d.vintage?.lastUpdated ?? null,
     timespan: d.vintage?.timespan ?? null,
   });
+  const unDataset = (d) => ({
+    id: d.id,
+    title: d.title,
+    url: d.url,
+    status: d.status,
+    columns: d.columns,
+    lastUpdated: d.vintage?.lastUpdated ?? null,
+    timespan: d.vintage?.timespan ?? null,
+    ...(d.releaseNote ? { released: d.released, releaseNote: d.releaseNote, places: d.updated ?? [] } : {}),
+  });
   return [
     {
       id: "UN-WPP",
       name: "World Population Prospects 2024",
       publisher: "United Nations, Department of Economic and Social Affairs, Population Division",
-      via: "Our World in Data (grapher and explorer CSV downloads)",
-      homepage: "https://population.un.org/wpp/",
-      license: "CC BY 3.0 IGO (UN); OWID processing CC BY 4.0",
-      citation: wppVintage?.citation ?? "UN, World Population Prospects (2024) – processed by Our World in Data",
-      vintage: wppVintage?.lastUpdated ?? null,
-      nextUpdate: wppVintage?.nextUpdate ?? null,
-      coverage: "Estimates 1950 to the latest estimate year; medium-variant projections to 2100",
-      datasets: manifest.wpp.map(owidDataset),
+      via: "UN Population Division CSV files (population.un.org/wpp/downloads), read directly",
+      homepage: WPP_HOME,
+      license: "CC BY 3.0 IGO",
+      citation: WPP_CITATION,
+      edition: "World Population Prospects 2024",
+      released: WPP_RELEASED,
+      interimUpdate: update ? { released: update.released, places: update.updated ?? [], releaseNote: update.releaseNote, url: update.url } : null,
+      vintage: wppDates.at(-1) ?? null,
+      nextUpdate: WPP_NEXT_RELEASE,
+      coverage: "Estimates 1950-2023; medium-variant projections and the constant-fertility scenario 2024-2100",
+      datasets: manifest.wpp.map(unDataset),
     },
     {
       id: "UN-DESA",
@@ -88,7 +103,9 @@ function dataGaps(ds, manifest) {
       "We publish annual net migration (UN WPP: immigrants minus emigrants) plus migrant stocks from UN DESA as inflow/outflow proxies: " +
       "immigrants = people living in a country who were born elsewhere; emigrants = people born in a country who now live abroad.",
     `UN WPP 2024 estimates end in ${ds.latestEstimateYear}; later years are the UN medium-variant projection (variant = "projection"). ` +
-      "The demographic balance (components) and projection baselines use the latest estimate year.",
+      "The demographic balance (components) and projection baselines use the latest estimate year. The next WPP revision is due 11 July 2027.",
+    "Togo follows the UN's interim update of 19 January 2026 (revised population and vital events, estimates and medium projection). The UN did not revise " +
+      "Togo's other scenarios or the world and regional aggregates; scenarios.json rescales Togo's constant-fertility path to the revised level (see its adjustments).",
     "Headline fields (population, tfr, birthRate, deathRate, netMigration, populationGrowthPct, share65) take the newest year across World Bank and UN; " +
       "each carries its own year and source. World Bank's latest net migration (and, for many countries, population) are themselves UN WPP estimates or projections.",
     "populationChange = births - deaths + netMigration for the calendar year (UN WPP). It can differ slightly from the difference between successive 1 July population figures.",
@@ -197,6 +214,74 @@ function timeseriesCsv(ds) {
   return toCsv(["iso3", "year", "variant", "metric", "value"], rows);
 }
 
+export const SCENARIO_META = {
+  medium: {
+    label: "UN forecast",
+    unVariant: "Medium",
+    description:
+      "UN WPP 2024 medium scenario, the UN's central projection: the projection years of countries/{ISO3}.json series (population on 1 July; " +
+      "this file uses the UN's PopTotal and the series its TPopulation1July, which agree to within 1 person).",
+    unDefinition: "Fertility, mortality and international migration all follow the medium assumption: \"Based on the mean probabilistic projections for fertility and mortality, and median probabilistic projections for net migration.\"",
+  },
+  constant: {
+    label: "If birth rates stay the same",
+    unVariant: "Constant fertility",
+    description:
+      "UN WPP 2024 constant-fertility scenario: from 2024 to 2100 each country's fertility rate stays at its 2023 level (South Korea 0.72 births per woman), " +
+      "while mortality and international migration follow the medium scenario. A what-if that shows where today's birth rates lead, not a forecast.",
+    unDefinition:
+      "\"As the name implies, under the constant-fertility scenario, fertility in all countries will remain constant at the level projected for 2024. " +
+      "Meanwhile, mortality and migration assumptions are the same as those in the medium fertility scenario.\" (table II.4: fertility \"Constant as of 2024\", " +
+      "mortality \"Medium\", international migration \"Medium\"). In the published data the constant level equals each country's 2023 estimate " +
+      "(true for all 237 countries and areas).",
+  },
+};
+
+function scenariosPayload(sc) {
+  const adjustments = sc.adjustments.map((a) => ({
+    iso3: a.iso3,
+    scenarios: a.scenarios,
+    method: "UN constant-fertility population x (revised medium / original medium), year by year",
+    ratioRange: a.ratioRange,
+    reason:
+      "The UN's interim update of 19 January 2026 revised this place's population (Togo: census counts had been adjusted for undercount twice) for the medium " +
+      "scenario only. Its fertility and mortality rates are unchanged, and the release note asks users to read the other scenarios \"taking into consideration " +
+      "the adjustments made here to the medium projection\", so the other scenarios are rescaled to the revised population level.",
+  }));
+  return {
+    apiVersion: "v1",
+    generatedAt: GEN,
+    source: {
+      id: "UN-WPP",
+      name: "World Population Prospects 2024: total population by sex, all scenarios",
+      publisher: "United Nations, Department of Economic and Social Affairs, Population Division",
+      url: WPP_CSV.populationBySex,
+      vintage: sc.vintage?.lastModified ?? null,
+      interimUpdate: { url: WPP_UPDATE.url, released: WPP_UPDATE.released, releaseNote: WPP_UPDATE.releaseNote, lastModified: sc.vintage?.updateLastModified ?? null },
+      released: WPP_RELEASED,
+      nextUpdate: WPP_NEXT_RELEASE,
+      homepage: WPP_HOME,
+      scenarioDefinitions: WPP_SCENARIOS_DOC,
+      methodology: WPP_METHODOLOGY,
+      license: "CC BY 3.0 IGO",
+      citation: WPP_CITATION,
+    },
+    unit: "people",
+    startYear: sc.startYear,
+    endYear: sc.endYear,
+    scenarios: SCENARIO_META,
+    notes: [
+      "places[ISO3].medium and .constant are arrays of people on 1 July; index = year - startYear; null = missing.",
+      "UN PopTotal (thousands, 3 decimals) x 1000, rounded to whole people.",
+      "WLD is the UN's world aggregate. The UN did not revise aggregates for the Togo interim update, so WLD still counts Togo's superseded figures " +
+        "(1.1 million more people in 2024, 2.7 million in 2100: under 0.03% of the world).",
+      "Past years (1950-2023) are in countries/{ISO3}.json series.",
+    ],
+    adjustments,
+    places: Object.fromEntries(sc.places),
+  };
+}
+
 /** All published files: Map<path relative to public/, content>. Placeholders are filled by finalize(). */
 export function renderFiles(ds, manifest) {
   const files = new Map();
@@ -227,12 +312,13 @@ export function renderFiles(ds, manifest) {
           countries: `${API_BASE}countries.json`,
           risk: `${API_BASE}risk.json`,
           docs: `${SITE_URL}api/`,
-          site: `${SITE_URL}#${iso3}`,
+          site: `${SITE_URL}country/${iso3}`,
         },
       }),
     );
   }
   put("risk.json", compact(riskPayload(ds)));
+  if (ds.scenarios) put("scenarios.json", compact(scenariosPayload(ds.scenarios)));
   put("countries.csv", toCsv(COUNTRY_CSV_HEADER, ds.full.map(flatRow)));
   put("timeseries.csv", timeseriesCsv(ds));
   put("openapi.json", pretty(openapi()));
@@ -250,8 +336,8 @@ export function renderFiles(ds, manifest) {
     pretty({
       name: "Fertility Tracker API",
       description:
-        "Fertility, births, deaths, net migration, migrant stocks, UN projections to 2100 and a population-decline risk score for every country. " +
-        "Static files, no key, CORS open, refreshed weekly.",
+        "Fertility, births, deaths, net migration, migrant stocks, UN projections to 2100 (medium and constant-fertility scenarios) and a " +
+        "population-decline risk score for every country. Static files, no key, CORS open, refreshed weekly.",
       apiVersion: "v1",
       schemaVersion: SCHEMA_VERSION,
       generatedAt: GEN,
@@ -266,6 +352,16 @@ export function renderFiles(ds, manifest) {
         endpoint("countries.json", "json", "Summary for every country + WLD (sorted by iso3).", "countries.schema.json"),
         endpoint("countries/{iso3}.json", "json", "Full record for one country: series 1950-2100, demographic balance, migrant stocks and corridors, risk detail.", "country.schema.json"),
         endpoint("risk.json", "json", "Countries ranked by population-decline risk + methodology.", "risk.schema.json"),
+        ...(ds.scenarios
+          ? [
+              endpoint(
+                "scenarios.json",
+                "json",
+                `Population of every country + WLD each year ${ds.scenarios.startYear}-${ds.scenarios.endYear} under two UN WPP 2024 scenarios: medium ("UN forecast") and constant fertility ("If birth rates stay the same").`,
+                "scenarios.schema.json",
+              ),
+            ]
+          : []),
         endpoint("countries.csv", "csv", "One row per country; nested fields flattened with underscores (components_births, projection_change2100Pct, ...)."),
         endpoint("timeseries.csv", "csv", "Long format iso3,year,variant,metric,value. Metrics: " + [...SERIES_METRICS, ...STOCK_METRICS].join(", ") + ". Rows with no data are omitted."),
         endpoint("openapi.json", "json", "OpenAPI 3.1 description of these endpoints."),
@@ -276,6 +372,7 @@ export function renderFiles(ds, manifest) {
         docs: `${SITE_URL}api/`,
         llms: `${SITE_URL}llms.txt`,
         openapi: `${API_BASE}openapi.json`,
+        ...(ds.scenarios ? { scenarios: `${API_BASE}scenarios.json` } : {}),
         methodology: `${REPO}/blob/main/docs/METHODOLOGY.md`,
         apiReference: `${REPO}/blob/main/docs/API.md`,
         repo: REPO,

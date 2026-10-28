@@ -37,10 +37,28 @@ jobs:
         # sources that worked last time). On pushes a source outage must not block deploying code changes;
         # scheduled and manual runs fail loudly.
         continue-on-error: ${{ github.event_name == 'push' }}
-        run: node scripts/fetch-data.mjs
+        # --cache keeps this run's downloads (about 65 MB of UN CSVs) for the validation step below.
+        run: node scripts/fetch-data.mjs --cache "$RUNNER_TEMP/sources"
 
       - name: Verify the API files about to be deployed
         run: node scripts/fetch-data.mjs --verify
+
+      # Compare every published number with the primary sources: UN WPP CSVs (reused from the cache above), the World
+      # Bank API and UN DESA's migrant stock tables. A mismatch (exit 1) blocks scheduled and manual runs before anything
+      # is committed or deployed; an unreachable source (exit 2) only warns. Full report in the step summary.
+      - name: Validate against the primary sources
+        if: steps.refresh.outcome == 'success'
+        continue-on-error: ${{ github.event_name == 'push' }}
+        run: |
+          set +e
+          node scripts/validate-data.mjs --cache "$RUNNER_TEMP/sources" --json "$RUNNER_TEMP/validation.json" > "$RUNNER_TEMP/validation.txt"
+          code=$?
+          set -e
+          cat "$RUNNER_TEMP/validation.txt"
+          { echo '### Data validation against primary sources'; echo '```'; head -c 60000 "$RUNNER_TEMP/validation.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$code" -eq 2 ]; then echo "::warning::validate-data could not load a primary source; validation skipped"; exit 0; fi
+          if [ "$code" -ne 0 ]; then echo "::error::published data disagrees with a primary source (see the step summary)"; fi
+          exit "$code"
 
       # Only the revision tested above may be committed and deployed. If the branch moved during this run, stop
       # here without committing or deploying: every push to main starts its own run of this workflow (queued behind
@@ -56,8 +74,9 @@ jobs:
             echo "::warning::$GITHUB_REF_NAME moved during this run ($(git rev-parse --short HEAD) -> $(git rev-parse --short FETCH_HEAD)); not committing or deploying. The run for the newer commit does both."
           fi
 
+      # Only main commits data and deploys to production. A manual run on another branch gets a Vercel preview.
       - name: Commit data if changed
-        if: steps.refresh.outcome == 'success' && steps.head.outputs.current == 'true'
+        if: steps.refresh.outcome == 'success' && steps.head.outputs.current == 'true' && github.ref == 'refs/heads/main'
         run: |
           git add -A public/api
           if git diff --cached --quiet; then
@@ -74,23 +93,30 @@ jobs:
         if: steps.head.outputs.current == 'true'
         run: node scripts/fetch-data.mjs --write-status --outcome "${{ steps.refresh.outcome || 'unknown' }}" --commit "$(git rev-parse HEAD)"
 
-      - name: Deploy public/ to Vercel (production)
+      - name: Deploy public/ to Vercel (production on main, preview elsewhere)
         if: steps.head.outputs.current == 'true'
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+          IS_MAIN: ${{ github.ref == 'refs/heads/main' }}
         run: |
           npm install --global --silent vercel@59.11.2
-          vercel pull --yes --environment=production --token "$VERCEL_TOKEN"
+          if [ "$IS_MAIN" = "true" ]; then env=production; prod=--prod; else env=preview; prod=; fi
+          vercel pull --yes --environment="$env" --token "$VERCEL_TOKEN"
           # Static build: copies public/ (including the status.json written above) and applies vercel.json headers.
-          vercel build --prod --token "$VERCEL_TOKEN"
-          # Last guard: if main moved while the CLI installed or built, the newer commit's run deploys instead.
+          vercel build $prod --token "$VERCEL_TOKEN"
+          # Last guard: if the branch moved while the CLI installed or built, the newer commit's run deploys instead.
           git fetch --quiet --depth=1 origin "$GITHUB_REF_NAME"
           if [ "$(git rev-parse FETCH_HEAD)" != "$(git rev-parse HEAD)" ]; then
             echo "::warning::$GITHUB_REF_NAME moved before deploy ($(git rev-parse --short HEAD) -> $(git rev-parse --short FETCH_HEAD)); not deploying."
             exit 0
           fi
-          url=$(vercel deploy --prebuilt --prod --yes --token "$VERCEL_TOKEN")
-          echo "Deployed $url (production alias https://fertility-tracker-live.vercel.app/)"
-          echo "### Deployed to Vercel: $url" >> "$GITHUB_STEP_SUMMARY"
+          url=$(vercel deploy --prebuilt $prod --yes --token "$VERCEL_TOKEN")
+          if [ "$IS_MAIN" = "true" ]; then
+            echo "Deployed $url (production alias https://fertility-tracker-live.vercel.app/)"
+            echo "### Deployed to Vercel: $url" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Preview deployed: $url (production untouched)"
+            echo "### Vercel preview (production untouched): $url" >> "$GITHUB_STEP_SUMMARY"
+          fi

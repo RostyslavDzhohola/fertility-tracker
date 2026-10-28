@@ -75,7 +75,65 @@ export function sanityCheck(ds, previous = null) {
     if (pw && w?.population?.value && Math.abs(w.population.value / pw - 1) > 0.05) err(`world population moved >5% (${pw} -> ${w.population.value})`);
   }
   if (previous?.details?.size) for (const e of coverageRegressions(previous.details, ds.details)) err(e);
+  if (ds.scenarios || previous?.scenarios) for (const e of scenarioChecks(ds, previous?.scenarios ?? null)) err(e);
   return errors;
+}
+
+// ---------- scenarios.json ----------
+
+const SCENARIO_KEYS = ["medium", "constant"];
+
+/**
+ * scenarios.json guards. Against the build itself: every record has both arrays, full length, no nulls, plausible
+ * world totals; the medium path equals the series population (same UN projection) and both scenarios start from the
+ * same level (catches a stale or partial overlay such as Togo's 2026 interim update). Against the previous published
+ * file: no place lost, no year range shrinking, no array losing values. Returns error strings.
+ */
+export function scenarioChecks(ds, previous = null, { max = 40 } = {}) {
+  const out = [];
+  const sc = ds.scenarios;
+  if (!sc) return previous ? ["scenarios.json: no scenario data in this build (it was published before)"] : [];
+  const n = sc.endYear - sc.startYear + 1;
+  if (!(n > 0)) return [`scenarios.json: bad year range ${sc.startYear}-${sc.endYear}`];
+  for (const rec of ds.full ?? ds.records) {
+    if (out.length >= max) break;
+    const p = sc.places.get(rec.iso3);
+    if (!p) {
+      out.push(`scenarios.json: ${rec.iso3} (${rec.name}) missing`);
+      continue;
+    }
+    for (const k of SCENARIO_KEYS) {
+      const a = p[k];
+      if (!Array.isArray(a) || a.length !== n) out.push(`scenarios.json: ${rec.iso3} ${k} has ${a?.length ?? 0} years, expected ${n}`);
+      else if (a.some((v) => v == null || !Number.isInteger(v) || v < 0)) out.push(`scenarios.json: ${rec.iso3} ${k} has missing or invalid values`);
+    }
+    const m0 = p.medium?.[0];
+    const c0 = p.constant?.[0];
+    if (m0 > 0 && c0 != null && Math.abs(c0 / m0 - 1) > 0.01) out.push(`scenarios.json: ${rec.iso3} constant starts ${c0} vs medium ${m0} in ${sc.startYear} (scenarios must share the same base population)`);
+    const series = ds.details.get(rec.iso3)?.series ?? [];
+    const bad = series.filter((r) => {
+      const v = p.medium?.[r.year - sc.startYear];
+      return r.year >= sc.startYear && r.year <= sc.endYear && r.population != null && v != null && Math.abs(v - r.population) > Math.max(2, r.population * 0.0005);
+    });
+    if (bad.length) out.push(`scenarios.json: ${rec.iso3} medium differs from the series population in ${bad.length} years (e.g. ${bad[0].year}: ${p.medium[bad[0].year - sc.startYear]} vs ${bad[0].population})`);
+  }
+  const w = sc.places.get("WLD");
+  const last = (k) => w?.[k]?.at(-1);
+  if (w && !(last("medium") > 6e9 && last("medium") < 1.5e10)) out.push(`scenarios.json: world medium ${sc.endYear} out of range: ${last("medium")}`);
+  if (w && !(last("constant") > 3e9 && last("constant") < 3e10)) out.push(`scenarios.json: world constant ${sc.endYear} out of range: ${last("constant")}`);
+  if (previous) {
+    if (sc.startYear > previous.startYear || sc.endYear < previous.endYear) {
+      out.push(`scenarios.json: year range would shrink from ${previous.startYear}-${previous.endYear} to ${sc.startYear}-${sc.endYear}`);
+    }
+    const values = (a) => (a ?? []).filter((v) => v != null).length;
+    for (const [code, prev] of Object.entries(previous.places ?? {})) {
+      if (out.length >= max) break;
+      const cur = sc.places.get(code);
+      if (!cur) out.push(`scenarios.json: ${code} would be dropped (it was published before)`);
+      else for (const k of SCENARIO_KEYS) if (values(cur[k]) < values(prev[k])) out.push(`scenarios.json: ${code} ${k} would lose values (${values(prev[k])} -> ${values(cur[k])})`);
+    }
+  }
+  return out.slice(0, max);
 }
 
 // ---------- coverage regression vs the previous published build ----------

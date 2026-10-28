@@ -5,42 +5,48 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Fertility Tracker API: open data for people and agents</title>
 <meta name="description" content="Free JSON/CSV API: fertility, births, deaths, migration, UN projections to 2100 and population-decline risk for every country. No key, CORS open, refreshed weekly.">
-<link rel="alternate" type="text/plain" href="../llms.txt" title="llms.txt">
-<link rel="describedby" type="application/json" href="v1/openapi.json">
-<link rel="service-desc" type="application/json" href="v1/openapi.json">
-<meta name="theme-color" content="#0B0E14">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6.5' fill='%23FFCB52'/%3E%3C/svg%3E">
-<style>
-  :root { color-scheme: dark; --fg: #EDEFF4; --muted: #A3AABA; --bg: #0B0E14; --line: #252C39; --code: #11151D; --accent: #FFCB52; --link: #8EC5FF; }
-  * { box-sizing: border-box; }
-  body { margin: 0; font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: var(--fg); background: var(--bg); }
-  main { max-width: 860px; margin: 0 auto; padding: 32px 20px 64px; }
-  h1 { font-size: 1.9rem; margin: 0 0 4px; } h2 { margin-top: 2.2em; font-size: 1.3rem; border-bottom: 1px solid var(--line); padding-bottom: 4px; }
-  p.lead { color: var(--muted); margin-top: 4px; }
-  a { color: var(--link); text-decoration-color: rgba(142, 197, 255, .45); text-underline-offset: 2px; }
-  a:focus-visible { outline: 2px solid #fff; outline-offset: 2px; border-radius: 3px; }
-  .back::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); margin-right: 8px; vertical-align: 0; }
-  code, pre { font: 0.88em/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--code); border-radius: 6px; }
-  pre { border: 1px solid var(--line); }
-  code { padding: 1px 4px; } pre { padding: 12px 14px; overflow-x: auto; }
-  table { width: 100%; border-collapse: collapse; font-size: 0.93rem; } th, td { text-align: left; vertical-align: top; padding: 7px 8px; border-bottom: 1px solid var(--line); }
-  th { font-weight: 600; } td:first-child { white-space: nowrap; }
-  /* Tables never widen the page: they wrap on phones and, if still too wide, scroll inside their own box. */
-  .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; max-width: 100%; }
-  .table-scroll:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
-  @media (max-width: 599px) {
-    td:first-child { white-space: normal; overflow-wrap: anywhere; min-width: 7.5em; }
-    th, td { padding: 6px 6px; }
-    pre { white-space: pre-wrap; overflow-wrap: anywhere; }
-  }
-  .pill { display: inline-block; font-size: 0.8rem; padding: 1px 8px; border: 1px solid var(--line); border-radius: 99px; margin-right: 4px; color: var(--muted); }
-  #live { color: var(--muted); font-size: 0.92rem; min-height: 1.5em; }
-  ol#top { padding-left: 1.4em; } ol#top li { margin: 2px 0; }
-</style>
+<link rel="alternate" type="text/plain" href="/llms.txt" title="llms.txt">
+<link rel="describedby" type="application/json" href="/api/v1/openapi.json">
+<link rel="service-desc" type="application/json" href="/api/v1/openapi.json">
+<meta name="theme-color" content="#F6F4EF">
+<meta name="color-scheme" content="light">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6.5' fill='%232457FF'/%3E%3Cpath d='M3 9.5c2.5-1.8 7.5-1.8 10 0' stroke='%23fff' stroke-width='1.4' fill='none'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="/style.css">
+<script type="module" src="/js/apipage.js"></script>
 </head>
-<body>
-<main>
-  <p><a class="back" href="../">Fertility Tracker map</a></p>
+<body class="page-doc">
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="wordmark" href="/" aria-label="Fertility Tracker, home"><span class="brand-dot" aria-hidden="true"></span><span class="wordmark-text">Fertility Tracker</span></a>
+    <div class="search" id="search-wrap">
+      <label for="search" class="visually-hidden">Search a country or territory</label>
+      <svg class="search-icon" viewBox="0 0 20 20" width="20" height="20" aria-hidden="true" focusable="false"><circle cx="8.5" cy="8.5" r="5.6" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M12.8 12.8 17 17" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+      <input id="search" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false"
+             aria-controls="search-results" aria-activedescendant="" autocomplete="off" autocapitalize="off"
+             spellcheck="false" enterkeyhint="go" placeholder="Search any country or territory">
+      <kbd class="search-kbd" aria-hidden="true">/</kbd>
+      <button type="button" class="search-clear" id="search-clear" aria-label="Clear search text" hidden>
+        <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+      <ul id="search-results" class="search-results" role="listbox" aria-label="Matching places" hidden></ul>
+      <div class="visually-hidden" aria-live="polite" id="search-status"></div>
+    </div>
+    <button type="button" class="menu-btn" id="menu-btn" aria-expanded="false" aria-controls="topnav" aria-label="Menu">
+      <svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true" focusable="false"><path d="M3 6h14M3 10h14M3 14h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+    <nav class="topnav" id="topnav" aria-label="Pages">
+      <a href="/" data-page="globe">Globe</a>
+      <a href="/rankings" data-page="rankings">Rankings</a>
+      <a href="/api/" data-page="data" aria-current="page">Data</a>
+      <span class="fb-wrap">
+        <button type="button" class="fb-btn" id="fb-btn" aria-expanded="false" aria-controls="fb-panel">Feedback</button>
+        <div class="fb-panel" id="fb-panel" role="dialog" aria-label="Feedback" hidden></div>
+      </span>
+    </nav>
+  </div>
+</header>
+<main id="main" class="doc">
   <h1>Fertility Tracker API</h1>
   <p class="lead">Fertility, births, deaths, net migration, migrant stocks, UN projections to 2100 and a population-decline risk score for every country. Static files: no key, no sign-up, CORS open, refreshed every Monday.</p>
   <p><span class="pill">JSON</span><span class="pill">CSV</span><span class="pill">OpenAPI 3.1</span><span class="pill">JSON Schema</span><span class="pill">llms.txt</span></p>
@@ -54,14 +60,15 @@
   <div class="table-scroll" role="region" tabindex="0" aria-label="Endpoints table">
   <table>
     <tr><th>File</th><th>What it contains</th></tr>
-    <tr><td><a href="v1/index.json">index.json</a></td><td>Manifest: exact source URLs, data vintages, endpoints, known data gaps, <code>generatedAt</code> and <code>contentHash</code>. Both change only when a number changes.</td></tr>
-    <tr><td><a href="v1/countries.json">countries.json</a></td><td>Summary for every country plus the world: population, fertility, median age, 65+ share, latest births, deaths and net migration (absolute and per 1,000), immigrant and emigrant stock, UN 2050/2100 projection, generation ratio, risk score, tier, rank and reasons.</td></tr>
-    <tr><td><a href="v1/countries/KOR.json">countries/{ISO3}.json</a></td><td>Everything for one country: yearly series 1950-2100 (estimates, then the UN medium projection), migrant stock history, top 10 countries immigrants come from and emigrants live in, full risk breakdown.</td></tr>
-    <tr><td><a href="v1/risk.json">risk.json</a></td><td>Countries ranked by population-decline risk (1 = highest), with component points, inputs, reasons and the methodology.</td></tr>
-    <tr><td><a href="v1/countries.csv">countries.csv</a></td><td>One row per country; nested fields flattened (<code>components_births</code>, <code>projection_change2100Pct</code>, …).</td></tr>
-    <tr><td><a href="v1/timeseries.csv">timeseries.csv</a></td><td>Long format <code>iso3,year,variant,metric,value</code>, about 11 MB.</td></tr>
-    <tr><td><a href="v1/status.json">status.json</a></td><td>When the weekly refresh last ran and whether it succeeded.</td></tr>
-    <tr><td><a href="v1/openapi.json">openapi.json</a></td><td>OpenAPI 3.1. JSON Schemas with field descriptions: <a href="v1/schema/countries.schema.json">countries</a>, <a href="v1/schema/country.schema.json">country</a>, <a href="v1/schema/risk.schema.json">risk</a>, <a href="v1/schema/index.schema.json">index</a>, <a href="v1/schema/status.schema.json">status</a>.</td></tr>
+    <tr><td><a href="/api/v1/index.json">index.json</a></td><td>Manifest: exact source URLs, data vintages, endpoints, known data gaps, <code>generatedAt</code> and <code>contentHash</code>. Both change only when a number changes.</td></tr>
+    <tr><td><a href="/api/v1/countries.json">countries.json</a></td><td>Summary for every country plus the world: population, fertility, median age, 65+ share, latest births, deaths and net migration (absolute and per 1,000), immigrant and emigrant stock, UN 2050/2100 projection, generation ratio, risk score, tier, rank and reasons.</td></tr>
+    <tr><td><a href="/api/v1/countries/KOR.json">countries/{ISO3}.json</a></td><td>Everything for one country: yearly series 1950-2100 (estimates, then the UN medium projection), migrant stock history, top 10 countries immigrants come from and emigrants live in, full risk breakdown.</td></tr>
+    <tr><td><a href="/api/v1/scenarios.json">scenarios.json</a></td><td>People in every place for every year from 2024 to 2100, in two futures: <code>medium</code> (the UN forecast) and <code>constant</code> (if birth rates stay the same; UN constant-fertility variant). <code>places[ISO3].medium[i]</code> is the population in <code>startYear + i</code>. This is what the globe and its year slider draw.</td></tr>
+    <tr><td><a href="/api/v1/risk.json">risk.json</a></td><td>Countries ranked by population-decline risk (1 = highest), with component points, inputs, reasons and the methodology.</td></tr>
+    <tr><td><a href="/api/v1/countries.csv">countries.csv</a></td><td>One row per country; nested fields flattened (<code>components_births</code>, <code>projection_change2100Pct</code>, …).</td></tr>
+    <tr><td><a href="/api/v1/timeseries.csv">timeseries.csv</a></td><td>Long format <code>iso3,year,variant,metric,value</code>, about 11 MB.</td></tr>
+    <tr><td><a href="/api/v1/status.json">status.json</a></td><td>When the weekly refresh last ran and whether it succeeded.</td></tr>
+    <tr><td><a href="/api/v1/openapi.json">openapi.json</a></td><td>OpenAPI 3.1. JSON Schemas with field descriptions: <a href="/api/v1/schema/countries.schema.json">countries</a>, <a href="/api/v1/schema/country.schema.json">country</a>, <a href="/api/v1/schema/risk.schema.json">risk</a>, <a href="/api/v1/schema/index.schema.json">index</a>, <a href="/api/v1/schema/status.schema.json">status</a>.</td></tr>
   </table>
   </div>
 
@@ -79,7 +86,7 @@ const korea = countries.find((c) => c.iso3 === "KOR");
 console.log(korea.tfr.value, korea.risk.tier, korea.risk.factors[0]);</pre>
 
   <h2>Highest risk right now</h2>
-  <ol id="top"><li>Open <a href="v1/risk.json">risk.json</a> for the live ranking.</li></ol>
+  <ol id="top"><li>Open <a href="/api/v1/risk.json">risk.json</a> for the live ranking.</li></ol>
 
   <h2>Key fields</h2>
   <div class="table-scroll" role="region" tabindex="0" aria-label="Key fields table">
@@ -110,7 +117,7 @@ console.log(korea.tfr.value, korea.risk.tier, korea.risk.factors[0]);</pre>
   <p>Places under 100,000 people are scored but not ranked. Full method: <a href="https://github.com/RostyslavDzhohola/fertility-tracker/blob/main/docs/METHODOLOGY.md">METHODOLOGY.md</a>. Field reference: <a href="https://github.com/RostyslavDzhohola/fertility-tracker/blob/main/docs/API.md">API.md</a>.</p>
 
   <h2>Sources and licence</h2>
-  <p>World Bank World Development Indicators (CC BY 4.0). UN World Population Prospects 2024 and UN DESA International Migrant Stock 2024 (CC BY 3.0 IGO), via Our World in Data (CC BY 4.0). Code MIT. Please cite the original publishers and "Fertility Tracker (github.com/RostyslavDzhohola/fertility-tracker)".</p>
+  <p>World Bank World Development Indicators (CC BY 4.0). UN World Population Prospects 2024 (CC BY 3.0 IGO), from the UN's own files. UN DESA International Migrant Stock 2024 (CC BY 3.0 IGO), via Our World in Data (CC BY 4.0). Code MIT. Please cite the original publishers and "Fertility Tracker (github.com/RostyslavDzhohola/fertility-tracker)".</p>
   <p>Found a problem? <a href="https://github.com/RostyslavDzhohola/fertility-tracker/issues">Open an issue</a> or email <a href="mailto:andromedus+fertility@mail.grokbot.com">andromedus+fertility@mail.grokbot.com</a>.</p>
 </main>
 <script>
@@ -118,7 +125,7 @@ console.log(korea.tfr.value, korea.risk.tier, korea.risk.factors[0]);</pre>
   (async () => {
     try {
       const [index, status, risk] = await Promise.all(
-        ["v1/index.json", "v1/status.json", "v1/risk.json"].map((p) => fetch(p).then((r) => (r.ok ? r.json() : null)).catch(() => null)),
+        ["/api/v1/index.json", "/api/v1/status.json", "/api/v1/risk.json"].map((p) => fetch(p).then((r) => (r.ok ? r.json() : null)).catch(() => null)),
       );
       const day = (s) => (s ? new Date(s).toISOString().slice(0, 10) : "unknown");
       if (index) {
@@ -132,9 +139,9 @@ console.log(korea.tfr.value, korea.risk.tier, korea.risk.factors[0]);</pre>
           ...risk.ranking.slice(0, 10).map((r) => {
             const li = document.createElement("li");
             const a = document.createElement("a");
-            a.href = `v1/countries/${r.iso3}.json`;
+            a.href = `/country/${r.iso3}`;
             a.textContent = r.name;
-            li.append(a, ` ${r.score} (${r.tier}): ${r.factors[0] ?? ""}`);
+            li.append(a, ` · score ${r.score} (${r.tier}): ${r.factors[0] ?? ""}`);
             return li;
           }),
         );

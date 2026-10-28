@@ -182,6 +182,35 @@ test("page assets: a missing module, a missing data file, or HTML served as JS i
   assert.equal(byPath["js/lazy.js"].level, "pass", "dynamic import() followed");
 });
 
+test("v3 site: root-absolute assets are followed and clean routes must survive a reload", async () => {
+  const v3 = () => {
+    const r = goodSite();
+    r[""] = { type: "text/html", body: r[""].body.replace(/(href|src)="(?!https?:|data:)([^"]+)"/g, '$1="/$2"') };
+    r["js/main.js"] = { type: "text/javascript", body: 'import { a } from "./logic.js";\nimport { draw } from "./map.js";\nconst topo = await fetchJson("/geo/countries-110m.json");\nconst detail = () => fetchJson("/geo/countries-50m.json");\n' };
+    r["geo/countries-50m.json"] = r["geo/countries-110m.json"];
+    r["country/KOR"] = r[""];
+    r["rankings"] = r[""];
+    return r;
+  };
+  routes = v3();
+  const repoRoot = await tempRepo();
+  await writeFile(path.join(repoRoot, "vercel.json"), JSON.stringify({ rewrites: [{ source: "/country/:iso3", destination: "/index.html" }, { source: "/rankings", destination: "/index.html" }] }));
+  const ok = await runSiteChecks({ siteUrl: site, repoRoot, expectDeployed: true, retries: 0 });
+  const byPath = Object.fromEntries(ok.targets.map((t) => [t.path, t]));
+  for (const p of ["style.css", "js/main.js", "js/logic.js", "js/dom.js", "geo/countries-110m.json", "geo/countries-50m.json", "country/KOR", "rankings"]) assert.equal(byPath[p]?.level, "pass", `${p}: ${JSON.stringify(byPath[p])}`);
+  assert.equal(byPath["geo/countries-50m.json"].reason, "fetched by the site's JavaScript");
+  assert.equal(byPath["country/KOR"].required, true);
+  assert.equal(byPath["country/KOR"].reason, "rewritten by vercel.json on the deployed branch");
+
+  routes = v3();
+  delete routes["country/KOR"];
+  const broken = await runSiteChecks({ siteUrl: site, repoRoot, expectDeployed: true, retries: 0 });
+  assert.equal(broken.targets.find((t) => t.path === "country/KOR").level, "fail");
+  const branch = await runSiteChecks({ siteUrl: site, repoRoot, expectDeployed: false, retries: 0 });
+  assert.equal(branch.targets.find((t) => t.path === "country/KOR").level, "warn", "not required before it is deployed");
+  await rm(repoRoot, { recursive: true });
+});
+
 test("structurally useless or inconsistent API payloads fail even though they parse", async () => {
   const repoRoot = await tempRepo();
   routes = goodSite();

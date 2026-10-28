@@ -1,56 +1,115 @@
-// Pure frontend logic: color scale / tier mapping, number formatting, generations math, hash parsing, feedback URLs,
-// search, ordering, keyboard map navigation and takeaway copy. Runs offline with node:test.
+// Pure frontend logic (public/js/logic.js): the people ramp, risk words, scenarios, number formatting, routes and URLs,
+// feedback links, typo-tolerant search and the plain-language copy. Runs offline with node:test.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import * as L from "../../public/js/logic.js";
 
 const feedback = JSON.parse(await readFile(new URL("../../public/feedback.json", import.meta.url), "utf8"));
+const countries = JSON.parse(await readFile(new URL("../../public/api/v1/countries.json", import.meta.url), "utf8")).countries;
+const scen = JSON.parse(await readFile(new URL("../../public/api/v1/scenarios.json", import.meta.url), "utf8"));
 const M = L.MINUS;
 
-test("tier mapping and decline-risk colors", () => {
-  assert.equal(L.tierOf({ risk: { tier: "Critical" } }), "Critical");
-  assert.equal(L.tierOf({ risk: { tier: "bogus" } }), null);
-  assert.equal(L.tierOf({ risk: null }), null);
-  assert.equal(L.tierClass("High"), "tier-high");
-  assert.equal(L.tierClass(null), "tier-none");
-  assert.equal(L.colorFor({ risk: { tier: "Critical" } }, "risk"), "#FFCB52");
-  assert.equal(L.colorFor({ risk: { tier: "Low" } }, "risk"), "#2A3A5E");
-  assert.equal(L.colorFor({ risk: { tier: null } }, "risk"), null);
-  assert.equal(L.legendKey({ risk: { tier: null } }, "risk"), L.NODATA);
-  assert.deepEqual(
-    L.legendItems("risk").map((i) => i.key),
-    ["Low", "Moderate", "Elevated", "High", "Critical"],
-  );
+test("risk words map the five API tiers to plain words; no score on the label", () => {
+  assert.deepEqual(L.TIERS.map((t) => L.RISK_WORDS[t]), ["Very low", "Low", "Medium", "High", "Very high"]);
+  assert.deepEqual(L.RISK_LEVELS, ["Very low", "Low", "Medium", "High", "Very high"]);
+  assert.equal(L.riskWord({ risk: { tier: "Critical" } }), "Very high");
+  assert.equal(L.riskWord({ risk: { tier: "Elevated" } }), "Medium");
+  assert.equal(L.riskWord({ risk: { tier: null } }), null);
+  assert.equal(L.riskStep({ risk: { tier: "Low" } }), 0);
+  assert.equal(L.riskStep({ risk: { tier: "Critical" } }), 4);
+  assert.equal(L.riskStep({}), -1);
+  assert.equal(L.RISK_COLORS.length, 5);
+  assert.equal(L.isSmallPlace({ flags: ["small-population"] }), true);
 });
 
-test("births-per-woman bins: lower bound inclusive, rounded to 2 decimals first", () => {
-  const bin = L.tfrBinIndex;
-  assert.equal(bin(0.582), 0);
-  assert.equal(bin(0.994), 0);
-  assert.equal(bin(0.995), 1); // rounds to 1.00
-  assert.equal(bin(1.0), 1);
-  assert.equal(bin(1.294), 1);
-  assert.equal(bin(1.3), 2);
-  assert.equal(bin(1.6), 3);
-  assert.equal(bin(2.094), 3);
-  assert.equal(bin(2.096), 4); // 2.10 is replacement: at/above side
-  assert.equal(bin(2.1), 4);
-  assert.equal(bin(3.0), 5);
-  assert.equal(bin(4.0), 6);
-  assert.equal(bin(6.03), 6);
-  assert.equal(bin(null), -1);
-  assert.equal(bin(NaN), -1);
-  assert.equal(L.colorFor({ tfr: { value: 0.75 } }, "tfr"), "#FFCB52");
-  assert.equal(L.colorFor({ tfr: { value: 1.8 } }, "tfr"), "#7A4A34");
-  assert.equal(L.colorFor({ tfr: { value: 2.2 } }, "tfr"), "#2C4C72");
-  assert.equal(L.legendKey({ tfr: null }, "tfr"), L.NODATA);
-  const counts = L.countByKey([{ tfr: { value: 0.9 } }, { tfr: { value: 0.8 } }, { tfr: { value: 5 } }], "tfr");
-  assert.equal(counts.get("tfr-0"), 2);
-  assert.equal(counts.get("tfr-6"), 1);
+test("people ramp: greens grow, sand stays, orange to red shrinks, gray from half gone; accent never in the ramp", () => {
+  const band = L.changeBand;
+  assert.equal(band(40), "more");
+  assert.equal(band(5.01), "more");
+  assert.equal(band(0), "same");
+  assert.equal(band(-5), "same");
+  assert.equal(band(-5.01), "fewer");
+  assert.equal(band(-49.9), "fewer");
+  assert.equal(band(-50), "half");
+  assert.equal(band(-90), "half");
+  assert.equal(band(null), null);
+  assert.equal(L.changeColor(null), null);
+  assert.equal(L.changeColor(0), "#EEE5CD");
+  // Gray, darkening as more is lost (no hue: R ≈ G ≈ B).
+  const rgb = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  const lum = (hex) => rgb(hex).reduce((a, b) => a + b, 0);
+  for (const p of [-55, -70, -90]) {
+    const [r, g, b] = rgb(L.changeColor(p));
+    assert.ok(Math.max(r, g, b) - Math.min(r, g, b) < 16, `${p}% should be gray, got ${L.changeColor(p)}`);
+  }
+  assert.ok(lum(L.changeColor(-90)) < lum(L.changeColor(-70)) && lum(L.changeColor(-70)) < lum(L.changeColor(-55)));
+  // Shrinking is warm (red > blue), growing is green-blue (green and blue > red).
+  for (const p of [-10, -25, -45]) {
+    const [r, , b] = rgb(L.changeColor(p));
+    assert.ok(r > b + 60, `${p}% should be orange/red`);
+  }
+  for (const p of [15, 40, 100]) {
+    const [r, g] = rgb(L.changeColor(p));
+    assert.ok(g > r + 40, `${p}% should be green`);
+  }
+  // Stronger growth = darker green.
+  assert.ok(lum(L.changeColor(100)) < lum(L.changeColor(30)));
+  // The interactive accent (#2457FF) is not a data color.
+  for (let p = -100; p <= 250; p += 5) assert.notEqual(L.changeColor(p), "#2457FF");
+  assert.deepEqual(L.LEGEND.map((l) => l.label), ["Half gone", "Fewer people", "About the same", "More people"]);
 });
 
-test("number formatting follows DESIGN §8.6", () => {
+test("scenarios: popAt interpolates fractional years; % is measured against today's UN forecast", () => {
+  const s = { startYear: 2024, endYear: 2027, places: { AAA: { medium: [100, 90, 80, 70], constant: [100, 85, 70, 55] } } };
+  assert.equal(L.popAt(s, "AAA", 2024), 100);
+  assert.equal(L.popAt(s, "AAA", 2025.5), 85);
+  assert.equal(L.popAt(s, "AAA", 2027, "constant"), 55);
+  assert.equal(L.popAt(s, "AAA", 2030), 70, "clamped to the last year");
+  assert.equal(L.popAt(s, "ZZZ", 2025), null);
+  assert.equal(L.popAt({ ...s, places: { AAA: { medium: [100, null, 80, 70] } } }, "AAA", 2025), null);
+  assert.equal(L.todayYear(s, new Date("2026-06-01")), 2026);
+  assert.equal(L.todayYear(s, new Date("2031-06-01")), 2027);
+  assert.equal(L.todayYear(s, new Date("2020-06-01")), 2024);
+  // Both scenarios share one baseline: today's UN forecast.
+  assert.equal(L.ratioVsToday(s, "AAA", 2027, "medium", 2025), 70 / 90);
+  assert.equal(L.ratioVsToday(s, "AAA", 2027, "constant", 2025), 55 / 90);
+  assert.ok(Math.abs(L.pctVsToday(s, "AAA", 2026, "medium", 2025) - (80 / 90 - 1) * 100) < 1e-9);
+  assert.equal(L.normScenario("constant"), "constant");
+  assert.equal(L.normScenario("bogus"), "medium");
+  assert.deepEqual(L.SCENARIO_LABELS, { medium: "UN forecast", constant: "If birth rates stay the same" });
+});
+
+test("scenarios.json follows the §7 contract the globe reads", () => {
+  assert.equal(scen.startYear, 2024);
+  assert.equal(scen.endYear, 2100);
+  const n = scen.endYear - scen.startYear + 1;
+  assert.ok(scen.places.WLD, "WLD included");
+  for (const c of countries) {
+    const p = scen.places[c.iso3];
+    assert.ok(p, `${c.iso3} missing from scenarios.json`);
+    assert.equal(p.medium.length, n, c.iso3);
+    assert.equal(p.constant.length, n, c.iso3);
+  }
+  // Taiwan shrinks in both futures; the world still grows in the UN forecast.
+  const today = L.todayYear(scen);
+  assert.ok(L.pctVsToday(scen, "TWN", 2100, "medium", today) < -40);
+  assert.ok(L.pctVsToday(scen, "TWN", 2100, "constant", today) < L.pctVsToday(scen, "TWN", 2100, "medium", today));
+  assert.ok(L.pctVsToday(scen, "WLD", 2100, "medium", today) > 0);
+});
+
+test("person icons: kept, lost and extra green icons for a ratio vs today", () => {
+  assert.deepEqual(L.peopleIcons(1), { kept: 10, lost: 0, extra: 0 });
+  const half = L.peopleIcons(0.437);
+  assert.ok(Math.abs(half.kept - 4.37) < 1e-9 && Math.abs(half.lost - 5.63) < 1e-9 && half.extra === 0);
+  const grow = L.peopleIcons(2.5, 10);
+  assert.equal(grow.kept, 10);
+  assert.equal(grow.extra, 15);
+  assert.deepEqual(L.peopleIcons(null), { kept: 10, lost: 0, extra: 0 });
+  assert.deepEqual(L.iconFills(4.3, 6).map((f) => Math.round(f * 10) / 10), [1, 1, 1, 1, 0.3, 0]);
+});
+
+test("number formatting", () => {
   assert.equal(L.fmtTfr(0.748), "0.75");
   assert.equal(L.fmtTfr(2.1), "2.10");
   assert.equal(L.fmtTfr(null), "–");
@@ -60,13 +119,14 @@ test("number formatting follows DESIGN §8.6", () => {
   assert.equal(L.fmtCompact(999.6), "1K");
   assert.equal(L.fmtCompact(640), "640");
   assert.equal(L.fmtCompact(-352000), `${M}352K`);
-  assert.equal(L.fmtCompact(76000, { plus: true }), "+76K");
   assert.equal(L.fmtWords(21848795), "21.8 million");
   assert.equal(L.fmtWords(8215424893), "8.22 billion");
   assert.equal(L.fmtWords(820000), "820,000");
+  assert.deepEqual(L.splitWords(10180160751), { num: "10.2", unit: "billion" });
+  assert.deepEqual(L.splitWords(15023000), { num: "15", unit: "million" });
+  assert.deepEqual(L.splitWords(820000), { num: "820,000", unit: "" });
   assert.equal(L.fmtFlow(231394), "+231,000");
   assert.equal(L.fmtFlow(-352000), `${M}352,000`);
-  assert.equal(L.fmtFlow(-3427), `${M}3,430`);
   assert.equal(L.fmtFlow(554), "+554");
   assert.equal(L.fmtFlow(70458654), "+70.5 million");
   assert.equal(L.fmtFlow(0), "0");
@@ -75,60 +135,50 @@ test("number formatting follows DESIGN §8.6", () => {
   assert.equal(L.fmtPct(-0.4), `${M}0.4%`);
   assert.equal(L.fmtPct(0.04), "0%");
   assert.equal(L.fmtPct(57.8, { plus: false }), "58%");
-  assert.equal(L.fmtRate(4.56), "4.6");
   assert.equal(L.fmtRate(-6.7, { plus: true }), `${M}6.7`);
-  assert.equal(L.fmtRate(1.7, { plus: true }), "+1.7");
   assert.equal(L.fmtInt(1811507), "1,811,507");
   assert.equal(L.fmtDate("2026-10-26T23:32:59Z"), "26 Oct 2026");
-  assert.equal(L.fmtDate("not a date"), "–");
-  assert.equal(L.fmtTick(40000000), "40M");
-  assert.equal(L.fmtTick(200000), "200K");
-  assert.equal(L.fmtTick(1.5, { kind: "tfr" }), "1.5");
-  assert.equal(L.fmtTick(0), "0");
-  // Uses the true minus sign, never a hyphen.
-  assert.ok(!L.fmtPct(-5).includes("-"));
-});
-
-test("niceTicks spans the data with round steps", () => {
+  assert.ok(!L.fmtPct(-5).includes("-"), "true minus sign, never a hyphen");
   assert.deepEqual(L.niceTicks(0, 51858481), [0, 20000000, 40000000, 60000000]);
-  assert.deepEqual(L.niceTicks(-345503, 240982), [-400000, -200000, 0, 200000, 400000]);
-  assert.deepEqual(L.niceTicks(0, 3), [0, 1, 2, 3]);
-  const t = L.niceTicks(0, 7);
-  assert.ok(t[0] <= 0 && t[t.length - 1] >= 7);
+  assert.deepEqual(L.axisUnit(23e6), { div: 1e6, unit: "million" });
+  assert.deepEqual(L.axisUnit(10.3e9), { div: 1e9, unit: "billion" });
+  assert.deepEqual(L.axisUnit(52000), { div: 1e3, unit: "thousand" });
 });
 
 test("generations: 100 people, each generation × tfr / 2.1", () => {
-  // The context post: 1.14 births per woman → 100 → 54 → 29 → 16 → 9 (8.7 with one decimal under 10).
   assert.deepEqual(L.generationCounts(1.14).map(L.fmtCount), ["100", "54", "29", "16", "8.7"]);
-  assert.deepEqual(L.generationCounts(0.748).map(L.fmtCount), ["100", "36", "13", "4.5", "1.6"]);
-  assert.equal(L.nextGeneration(0.748), 36);
+  assert.deepEqual(L.generationCounts(0.87, 4).map(L.fmtCount), ["100", "41", "17", "7.1"]);
   assert.equal(L.nextGeneration(2.1), 100);
-  assert.equal(L.generationCounts(2.1)[4], 100);
   assert.deepEqual(L.generationCounts(null), []);
-  assert.equal(L.fmtCount(9.96), "10");
-  assert.equal(L.fmtCount(4.53), "4.5");
-  const fills = L.dotFills(36.4);
-  assert.equal(fills.length, 100);
-  assert.equal(fills[35], 1);
-  assert.ok(Math.abs(fills[36] - 0.4) < 1e-9);
-  assert.equal(fills[37], 0);
-  assert.equal(L.dotFills(250).filter((f) => f === 1).length, 100);
-  assert.equal(L.dotFills(-5).every((f) => f === 0), true);
+  assert.equal(L.generationsSentence(0.87), "At 0.87 babies per woman, 100 people have 41 children, 17 grandchildren and 7.1 great-grandchildren.");
+  assert.match(L.generationsSentence(6.03), /each generation is bigger/);
 });
 
-test("hash parsing selects known places only and normalizes case", () => {
-  const known = new Set(["KOR", "JPN", "WLD"]);
-  assert.deepEqual(L.parseSelectionHash("#KOR", known), { iso3: "KOR", normalized: false });
-  assert.deepEqual(L.parseSelectionHash("#kor", known), { iso3: "KOR", normalized: true });
-  assert.deepEqual(L.parseSelectionHash("#Wld", (c) => known.has(c)), { iso3: "WLD", normalized: true });
-  assert.equal(L.parseSelectionHash("#XYZ", known), null);
-  assert.equal(L.parseSelectionHash("#data", known), null);
-  assert.equal(L.parseSelectionHash("#feedback", known), null);
-  assert.equal(L.parseSelectionHash("#KO", known), null);
-  assert.equal(L.parseSelectionHash("", known), null);
-  assert.equal(L.parseSelectionHash(undefined, known), null);
-  assert.equal(L.isSelectionLikeHash("#abc"), true);
-  assert.equal(L.isSelectionLikeHash("#methodology"), false);
+test("routes: clean paths, legacy /#KOR and /KOR, lowercase codes, the shareable query", () => {
+  const r = L.parseRoute;
+  assert.deepEqual(r("/", "", ""), { page: "globe", iso3: null, year: null, scenario: null, focus: null, redirect: null });
+  assert.deepEqual(r("/", "?year=2070&scenario=constant&focus=twn", ""), { page: "globe", iso3: null, year: 2070, scenario: "constant", focus: "TWN", redirect: null });
+  assert.deepEqual(r("/", "", "#KOR"), { page: "country", iso3: "KOR", year: null, scenario: null, focus: null, redirect: "/country/KOR" });
+  assert.equal(r("/", "", "#kor").redirect, "/country/KOR");
+  assert.equal(r("/", "", "#data").page, "globe", "longer hashes are ordinary anchors");
+  assert.deepEqual(r("/country/TWN", "", ""), { page: "country", iso3: "TWN", year: null, scenario: null, focus: null, redirect: null });
+  assert.equal(r("/country/twn", "", "").redirect, "/country/TWN");
+  assert.equal(r("/country/TWN/", "", "").redirect, "/country/TWN");
+  assert.equal(r("/rankings", "", "").page, "rankings");
+  assert.equal(r("/rankings/", "", "").redirect, "/rankings");
+  assert.equal(r("/KOR", "", "").redirect, "/country/KOR");
+  assert.equal(r("/fertility-tracker/KOR", "", "").redirect, "/country/KOR");
+  assert.equal(r("/index.html", "", "").page, "globe");
+  assert.equal(r("/nope/here", "", "").page, "notfound");
+  assert.equal(r("/", "?year=abc&scenario=x&focus=toolong", "").year, null);
+  assert.equal(r("/", "?scenario=x", "").scenario, null);
+  assert.equal(L.buildQuery({ year: 2100, scenario: "medium" }), "");
+  assert.equal(L.buildQuery({ year: 2070, scenario: "constant", focus: "twn" }), "?year=2070&scenario=constant&focus=TWN");
+  assert.equal(L.buildQuery({ year: 2050 }, { defaultYear: 2100 }), "?year=2050");
+  assert.equal(L.countryPath("KOR"), "/country/KOR");
+  assert.equal(L.pageUrl("KOR"), "https://fertility-tracker-live.vercel.app/country/KOR");
+  assert.equal(L.pageUrl(null), "https://fertility-tracker-live.vercel.app/");
+  assert.equal(L.pageUrl("JPN", "https://example.org"), "https://example.org/country/JPN");
 });
 
 test("GitHub issue URLs: template + title + only the template's field ids, never labels=", () => {
@@ -139,20 +189,14 @@ test("GitHub issue URLs: template + title + only the template's field ids, never
   assert.equal(u.searchParams.get("template"), "data-problem.yml");
   assert.equal(u.searchParams.get("title"), "[Data] South Korea: ");
   assert.equal(u.searchParams.get("country"), "KOR");
-  assert.equal(u.searchParams.get("page"), "https://fertility-tracker-live.vercel.app/#KOR");
+  assert.equal(u.searchParams.get("page"), "https://fertility-tracker-live.vercel.app/country/KOR");
   assert.ok(!url.includes("labels="));
   for (const key of u.searchParams.keys()) assert.ok(["template", "title", ...Object.keys(feedback.github.templates["data-problem"].fields)].includes(key), key);
-  // Values are percent-encoded, so the page URL's '#' does not end the query string.
-  assert.ok(url.includes("page=https%3A%2F%2Ffertility-tracker-live.vercel.app%2F%23KOR"));
-
   const world = new URL(L.buildIssueUrl(feedback, "feedback", { iso3: "WLD", name: "World" }));
   assert.equal(world.searchParams.get("country"), "World");
-  assert.equal(world.searchParams.get("title"), "[Feedback] World: ");
-
   const chooser = new URL(L.buildChooserUrl(feedback, kor));
   assert.equal(chooser.pathname, "/RostyslavDzhohola/fertility-tracker/issues/new/choose");
   assert.deepEqual([...chooser.searchParams.keys()].sort(), ["country", "page"]);
-  assert.ok(!chooser.href.includes("labels="));
   assert.equal(L.buildIssueUrl(feedback, "missing-template", kor), null);
   assert.equal(L.buildIssueUrl(null, "data-problem", kor), null);
 });
@@ -162,7 +206,7 @@ test("mailto link carries subject and body; falls back to the brief's address", 
   assert.ok(m.startsWith("mailto:andromedus+fertility@mail.grokbot.com?subject="));
   const q = new URLSearchParams(m.split("?")[1]);
   assert.equal(q.get("subject"), "Fertility Tracker feedback: Japan");
-  assert.equal(q.get("body"), "Page: https://fertility-tracker-live.vercel.app/#JPN\n\nWhat should we fix or add?\n");
+  assert.equal(q.get("body"), "Page: https://fertility-tracker-live.vercel.app/country/JPN\n\nWhat should we fix or add?\n");
   assert.ok(L.buildMailto(null, { iso3: "JPN", name: "Japan" }).startsWith(`mailto:${L.FALLBACK_EMAIL}?`));
 });
 
@@ -170,158 +214,98 @@ test("X handle stays hidden while it is a TODO_ placeholder", () => {
   assert.equal(feedback.x.handle.startsWith("TODO_"), true);
   assert.equal(L.xHandle(feedback), null);
   assert.equal(L.xProfileUrl(feedback), null);
-  assert.equal(L.xHandle({ x: { handle: null } }), null);
   assert.equal(L.xHandle({ x: { handle: "@FertilityTrack" } }), "FertilityTrack");
-  assert.equal(L.xProfileUrl({ x: { handle: "FertilityTrack", urlTemplate: "https://x.com/{handle}" } }), "https://x.com/FertilityTrack");
 });
 
-test("search: names, aliases, ISO3 codes, diacritics; ties go to the larger population", () => {
-  const places = [
-    { iso3: "KOR", name: "South Korea", population: 51e6 },
-    { iso3: "PRK", name: "North Korea", population: 26e6 },
-    { iso3: "GBR", name: "United Kingdom", population: 69e6 },
-    { iso3: "UKR", name: "Ukraine", population: 39e6 },
-    { iso3: "CIV", name: "Cote d'Ivoire", population: 31e6 },
-    { iso3: "USA", name: "United States", population: 340e6 },
-    { iso3: "ARE", name: "United Arab Emirates", population: 11e6 },
-    { iso3: "TUR", name: "Turkey", population: 85e6 },
-    { iso3: "WLD", name: "World", population: 8e9 },
-  ];
-  const codes = (q) => L.searchPlaces(places, q).map((p) => p.iso3);
-  assert.equal(codes("kor")[0], "KOR"); // exact ISO3
-  assert.equal(codes("korea")[0], "KOR"); // alias
-  assert.deepEqual(codes("korea").slice(0, 2), ["KOR", "PRK"]);
-  assert.equal(codes("uk")[0], "GBR"); // alias beats a name prefix
-  assert.equal(codes("ivory")[0], "CIV");
-  assert.equal(codes("CÔTE D’IVOIRE")[0], "CIV"); // diacritics and curly apostrophe
-  assert.equal(codes("türkiye")[0], "TUR");
-  assert.deepEqual(codes("united"), ["USA", "GBR", "ARE"]);
-  assert.equal(codes("earth")[0], "WLD");
-  assert.deepEqual(codes("zzzz"), []);
-  assert.deepEqual(codes("   "), []);
+test("search: names, aliases, ISO3 codes, diacritics, typos; ties go to the larger population", () => {
+  const places = countries.map((c) => ({ iso3: c.iso3, name: c.name, population: c.population?.value ?? 0 }));
+  assert.equal(places.length, 238);
+  const first = (q) => L.searchPlaces(places, q)[0]?.iso3;
+  // DESIGN-v3 §9 item 6.
+  for (const [q, want] of [
+    ["taiwan", "TWN"],
+    ["taiwn", "TWN"],
+    ["tiawan", "TWN"],
+    ["korea", "KOR"],
+    ["south korea", "KOR"],
+    ["sout korea", "KOR"],
+    ["uk", "GBR"],
+    ["ivory coast", "CIV"],
+    ["hong kong", "HKG"],
+    ["hongkong", "HKG"],
+    ["macau", "MAC"],
+    ["czech", "CZE"],
+    ["czeck", "CZE"],
+    ["türkiye", "TUR"],
+    ["turkiye", "TUR"],
+    ["turkey", "TUR"],
+    ["TWN", "TWN"],
+    ["kor", "KOR"],
+    ["jpn", "JPN"],
+    ["CÔTE D’IVOIRE", "CIV"],
+    ["earth", "WLD"],
+    ["germny", "DEU"],
+    ["phillipines", "PHL"],
+  ])
+    assert.equal(first(q), want, `"${q}" should find ${want}, got ${first(q)}`);
+  assert.deepEqual(L.searchPlaces(places, "korea").slice(0, 2).map((p) => p.iso3), ["KOR", "PRK"]);
+  assert.deepEqual(L.searchPlaces(places, "zzzzzz"), []);
+  assert.deepEqual(L.searchPlaces(places, "   "), []);
   assert.equal(L.searchPlaces(places, "a", 3).length, 3);
+  // Every place can be found by its own name and its code.
+  for (const p of places) {
+    assert.ok(L.searchPlaces(places, p.name, 8).some((x) => x.iso3 === p.iso3), `name ${p.name}`);
+    assert.equal(first(p.iso3), p.iso3, `code ${p.iso3}`);
+  }
+  assert.equal(L.editDistance("taiwn", "taiwan"), 1);
+  assert.equal(L.editDistance("cehck", "check"), 1, "adjacent swap counts once");
+  assert.ok(L.editDistance("abcdef", "uvwxyz", 2) > 2);
   assert.deepEqual(L.matchRange("Côte d'Ivoire", "cote d"), [0, 6]);
   assert.deepEqual(L.matchRange("South Korea", "KOR"), [6, 9]);
-  assert.equal(L.matchRange("Chad", "xyz"), null);
   assert.equal(L.normalizeText("Guinea-Bissau"), "guinea bissau");
 });
 
-test("ordering: risk mode uses the API rank; births mode sorts ascending; unranked kept apart; WLD excluded", () => {
-  const recs = [
-    { iso3: "WLD", name: "World", ranked: false, tfr: { value: 2.2 }, risk: { score: 2, tier: "Low", rank: null } },
-    { iso3: "AAA", name: "Alpha", ranked: true, tfr: { value: 1.5 }, risk: { score: 60, tier: "High", rank: 2 } },
-    { iso3: "BBB", name: "Beta", ranked: true, tfr: { value: 0.9 }, risk: { score: 88, tier: "Critical", rank: 1 } },
-    { iso3: "CCC", name: "Gamma", ranked: true, tfr: { value: 3.1 }, risk: { score: 5, tier: "Low", rank: 3 } },
-    { iso3: "DDD", name: "Delta", ranked: false, flags: ["small-population"], tfr: { value: 0.8 }, risk: { score: 70, tier: "Critical", rank: null } },
-  ];
-  const r = L.orderPlaces(recs, "risk");
-  assert.deepEqual(r.ranked.map((x) => x.iso3), ["BBB", "AAA", "CCC"]);
-  assert.deepEqual(r.unranked.map((x) => x.iso3), ["DDD"]);
-  const t = L.orderPlaces(recs, "tfr");
-  assert.deepEqual(t.ranked.map((x) => x.iso3), ["BBB", "AAA", "CCC"].sort((a, b) => recs.find((x) => x.iso3 === a).tfr.value - recs.find((x) => x.iso3 === b).tfr.value));
-  assert.equal(L.rankLabel(recs[2], 200), "#1 of 200");
-  assert.equal(L.rankLabel(recs[4], 200), "Not ranked (under 100,000 people)");
-  assert.equal(L.rankLabel({ iso3: "XXX", flags: [], risk: { rank: null } }, 200), "Not ranked (incomplete data)");
-  assert.equal(L.rankLabel(recs[0], 200), "The world as a whole isn't scored");
+test("plain verdicts and the 100-people sentence", () => {
+  const twn = countries.find((c) => c.iso3 === "TWN");
+  const today = L.todayYear(scen);
+  const p = L.pctVsToday(scen, "TWN", 2100, "medium", today);
+  assert.equal(L.verdict(twn, p, today), "Taiwan is shrinking fast.");
+  assert.equal(L.verdictShort(p), "shrinking fast");
+  assert.equal(L.verdict({ name: "X", projection: { peakYear: 2060 } }, -20, 2026), "X grows for a while, then shrinks.");
+  assert.equal(L.verdict({ name: "X" }, 0, 2026), "X stays about the same size.");
+  assert.equal(L.verdict({ name: "X" }, 150, 2026), "X keeps growing fast.");
+  assert.equal(L.verdict({ iso3: "WLD", name: "World", projection: { peakYear: 2084 } }, 24, 2026), "The world keeps growing until about 2084.");
+  assert.equal(L.verdict({ name: "X" }, null, 2026), "X: no forecast in our sources.");
+  assert.equal(L.hundredSentence(twn, 0.43), "For every 100 people in Taiwan today, about 43 will be left in 2100 (UN forecast).");
+  assert.equal(L.hundredSentence({ name: "Niger" }, 3.5), "For every 100 people in Niger today, there will be about 350 in 2100 (UN forecast).");
+  assert.equal(L.hundredSentence({ name: "X" }, 1.01, "constant"), "For every 100 people in X today, there will still be about 100 in 2100 (If birth rates stay the same).");
+  assert.equal(L.tfrReason(twn), "0.87 babies per woman; 2.1 keeps a country the same size");
+  assert.equal(L.birthsDeathsReason(twn, 2023), "More deaths than births since 2019");
+  assert.equal(L.migrationSentence(-32777), `32,800 more people leave than arrive each year.`);
+  assert.equal(L.migrationSentence(87800), "87,800 more people arrive than leave each year.");
+  assert.equal(L.migrationSentence(10), "About as many people move in as move out.");
+  assert.match(L.bornDiedSentence(twn.components), /^132,000 born and 205,000 died in 2023: more people die than are born\.$/);
+  assert.equal(L.documentTitle("country", twn, p), "Taiwan: shrinking fast · Fertility Tracker");
+  assert.equal(L.documentTitle("rankings"), "Where populations will shrink most · Fertility Tracker");
+  assert.equal(L.documentTitle("globe"), L.HOME_TITLE);
+  assert.match(L.xPostText(twn, 0.437), /^Taiwan: 0\.87 babies per woman\. For every 100 people today, about 44 will be left in 2100 \(UN forecast\)\.$/);
+  assert.equal(L.rankLabel(twn, 200), "#3 of 200");
+  assert.equal(L.rankLabel({ iso3: "XXX", flags: ["small-population"], risk: {} }, 200), "Not ranked (under 100,000 people)");
 });
 
-test("keyboard map navigation picks the nearest place within ±60° of the arrow", () => {
-  const pts = [
-    { iso3: "KOR", x: 100, y: 100 },
-    { iso3: "JPN", x: 120, y: 102 },
-    { iso3: "PRK", x: 98, y: 90 },
-    { iso3: "CHN", x: 60, y: 95 },
-    { iso3: "TWN", x: 92, y: 130 },
-  ];
-  const from = pts[0];
-  assert.equal(L.nearestInDirection(pts, from, "right").iso3, "JPN");
-  assert.equal(L.nearestInDirection(pts, from, "up").iso3, "PRK");
-  assert.equal(L.nearestInDirection(pts, from, "left").iso3, "CHN");
-  assert.equal(L.nearestInDirection(pts, from, "down").iso3, "TWN");
-  assert.equal(L.nearestInDirection([from], from, "left"), null);
-  assert.equal(L.nearestInDirection(pts, from, "sideways"), null);
-});
-
-test("takeaway copy: waterfall cases, generations, summary, X post", () => {
-  const rec = (B, D, Mig) => ({ iso3: "TST", name: "Testland", components: { year: 2023, births: B, deaths: D, netMigration: Mig } });
-  assert.match(L.waterfallTakeaway(rec(300, 200, 50)), /^Births outnumber deaths and more people arrive than leave: \+150 people in 2023\.$/);
-  assert.match(L.waterfallTakeaway(rec(300, 200, -50)), /^Births outnumber deaths, but 50 more people leave than arrive each year\.$/);
-  assert.match(L.waterfallTakeaway(rec(200, 300, 150)), /^More deaths than births, but immigration more than fills the gap: \+50 people in 2023\.$/);
-  assert.equal(L.waterfallTakeaway(rec(236394, 345503, 87800)), "Deaths outnumber births by 109,000. Immigration covers 80% of that gap.");
-  assert.equal(L.waterfallTakeaway(rec(200, 300, -10)), `Deaths outnumber births and more people leave than arrive: ${M}110 people in 2023.`);
-  const rows = L.waterfallRows({ births: 300, deaths: 200, netMigration: -50, perThousand: {} });
-  assert.deepEqual(rows.map((r) => [r.from, r.to]), [
-    [0, 300],
-    [300, 100],
-    [100, 50],
-    [0, 50],
-  ]);
-  assert.equal(L.generationsTakeaway("Japan", 1.15), "At 1.15 births per woman, 100 people today have 55 children, 30 grandchildren and 16 great-grandchildren.");
-  assert.equal(L.generationsTakeaway("Niger", 6.03), "At 6.03 births per woman, each generation is bigger than the last: 100 → 287 → 825.");
-  assert.equal(L.generationsTakeaway("Japan", 2.5, { whatIf: true }), "What if Japan had 2.50 births per woman?");
-  const kor = { iso3: "KOR", name: "South Korea", tfr: { value: 0.748, year: 2024 }, projection: { change2100Pct: -57.8, population2100: 21848795 } };
-  assert.equal(
-    L.summarySentence(kor),
-    "South Korea has 0.75 births per woman, far below the 2.1 needed to keep a population steady. The UN projects 21.8 million people by 2100, 58% fewer than in 2023.",
-  );
-  const post = L.xPostText(kor);
-  assert.equal(post, "South Korea: 0.75 births per woman. Start with 100 people → 36 children → 13 grandchildren. The UN projects a 58% population drop from 2023 to 2100.");
-  assert.ok(post.length < 250);
-  assert.equal(L.possessive("Philippines"), "Philippines'");
-  assert.equal(L.documentTitle(kor), "South Korea: 0.75 births per woman · Fertility Tracker");
-  assert.equal(L.documentTitle(null), "Fertility Tracker: which countries are shrinking, and how fast");
-});
-
-test("direct labels are spread at least 14px apart and kept in bounds", () => {
-  const ys = L.spreadLabels([100, 104, 106], 14, 0, 200);
-  const sorted = [...ys].sort((a, b) => a - b);
-  for (let i = 1; i < sorted.length; i++) assert.ok(sorted[i] - sorted[i - 1] >= 14 - 1e-9);
-  const top = L.spreadLabels([195, 198], 14, 0, 200);
-  assert.ok(Math.max(...top) <= 200);
-});
-
-test("projected % is always shown against its UN base year and base population", () => {
-  // Nigeria: World Bank 2025 population 237.5M, UN 2023 base 227.9M; +109.2% is measured from the UN base.
-  const nga = {
-    iso3: "NGA",
-    name: "Nigeria",
-    tfr: { value: 4.38, year: 2024 },
-    population: { value: 237527782, year: 2025 },
-    projection: { baseYear: 2023, basePopulation: 227882949, population2100: 476747779, change2100Pct: 109.2, peakYear: 2100 },
-    risk: { tier: "Low", rank: 190 },
-    flags: [],
-  };
+test("projected % from the API is shown against its own UN base year", () => {
+  const nga = { projection: { baseYear: 2023, basePopulation: 227882949, population2100: 476747779, change2100Pct: 109.2 } };
   assert.deepEqual(L.projectionBase(nga), { year: 2023, population: 227882949 });
-  assert.equal(L.tooltipLines(nga, 200)[3], "Population 228M (2023) → 477M (2100), +109%");
-  // Without the backend fields: the series value for the base year, then the value implied by the 2100 figure.
   const bare = { projection: { population2100: 150, change2100Pct: 50 } };
   assert.deepEqual(L.projectionBase(bare, { series: [{ year: 2023, population: 101 }] }), { year: 2023, population: 101 });
   assert.equal(Math.round(L.projectionBase(bare).population), 100);
-  assert.equal(L.projectionBase({ projection: { baseYear: 2024, population2100: 1, change2100Pct: null } }).year, 2024);
-  assert.match(L.summarySentence(nga), /The UN projects 477 million people by 2100 \(\+109% vs 2023\)\.$/);
-  assert.match(L.populationTakeaway({ ...nga, projection: { ...nga.projection, peakYear: 2100 } }, 2023), /up 109% from 2023\.$/);
-  assert.match(L.xPostText(nga), /a 109% population rise from 2023 to 2100\.$/);
 });
 
-test("below-replacement growth: momentum is described, immigration only when it is a real share", () => {
-  const rec = (B, D, M) => ({
-    iso3: "TST",
-    name: "Testland",
-    tfr: { value: 1.9, year: 2024 },
-    components: { year: 2023, births: B, deaths: D, netMigration: M, populationChange: B - D + M },
-    projection: { baseYear: 2023, change2100Pct: 4.7, population2100: 1 },
-  });
-  // India-like: births > deaths, net emigration. No immigration claim.
-  const india = L.summarySentence(rec(23219488, 9507013, -979179));
-  assert.equal(india, "Testland has 1.90 births per woman, below replacement, but a young population means births still outnumber deaths for now. The UN projects +5% between 2023 and 2100.");
-  assert.ok(!/immigra/.test(india));
-  // Small positive net migration (under a quarter of growth) is not named.
-  assert.ok(!/immigra/.test(L.summarySentence(rec(1000, 400, 50))));
-  // Material immigration is named alongside momentum.
-  assert.match(L.summarySentence(rec(1000, 800, 300)), /births still outnumber deaths for now, and immigration adds to the growth\./);
-  // More deaths than births, growth from immigration.
-  assert.match(L.summarySentence(rec(800, 1000, 500)), /but immigration more than makes up for more deaths than births\./);
-  // Neither: no cause is claimed.
-  assert.match(L.summarySentence(rec(800, 1000, -10)), /below replacement\. The UN still projects \+5% between 2023 and 2100\.$/);
-  assert.equal(L.growthReason({ components: null }), null);
+test("chart helpers: end labels spread apart and stay in bounds; peak finding", () => {
+  const ys = L.spreadLabels([100, 104, 106], 14, 0, 200);
+  const sorted = [...ys].sort((a, b) => a - b);
+  for (let i = 1; i < sorted.length; i++) assert.ok(sorted[i] - sorted[i - 1] >= 14 - 1e-9);
+  assert.ok(Math.max(...L.spreadLabels([195, 198], 14, 0, 200)) <= 200);
+  assert.deepEqual(L.peakOf([[1950, 1], [2019, 9], [2100, 4]]), [2019, 9]);
+  assert.equal(L.peakOf([]), null);
 });

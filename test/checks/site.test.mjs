@@ -7,6 +7,7 @@ import {
   crossCheck,
   extractModuleRefs,
   extractPageAssets,
+  routePattern,
   schemaPathFor,
   shapeProblems,
   isLocalSite,
@@ -245,6 +246,20 @@ const dyn = fetch(\`api/v1/countries/\${iso}.json\`);`;
   const refs = extractModuleRefs(js, `${SITE}js/main.js`, SITE, SITE);
   assert.deepEqual(refs.imports.sort(), ["js/country.js", "js/dom.js", "js/lazy.js", "js/logic.js", "js/side-effect.js", "js/x.js", "shared/util.js"]);
   assert.deepEqual(refs.data.sort(), ["geo/countries-110m.json", "geo/world-points.json"]);
+});
+
+test("root-absolute asset and data paths resolve against the site base, even under a sub-path", () => {
+  const sub = "https://example.org/fertility-tracker/";
+  assert.deepEqual(extractPageAssets(`<script type="module" src="/js/main.js"></script><link rel="stylesheet" href="/style.css">`, sub, sub), [
+    { path: "js/main.js", kind: "module" },
+    { path: "style.css", kind: "css" },
+  ]);
+  const refs = extractModuleRefs(`const t = fetchJson("/geo/countries-110m.json"); const d = "/geo/countries-50m.json"; import("/js/lazy.js");`, `${SITE}js/main.js`, SITE, SITE);
+  assert.deepEqual(refs.data.sort(), ["geo/countries-110m.json", "geo/countries-50m.json"]);
+  assert.deepEqual(refs.imports, ["js/lazy.js"]);
+  assert.equal(routePattern("/country/:iso3").test("/country/KOR"), true);
+  assert.equal(routePattern("/country/:iso3").test("/country/KOR/extra"), false);
+  assert.equal(routePattern("/rankings").test("/rankings"), true);
 });
 
 test("buildSchemaMap and schemaPathFor use the manifest's schema links, then defaults", () => {

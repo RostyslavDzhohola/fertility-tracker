@@ -4,14 +4,16 @@ Live fertility rates (births per woman) for every country, plus a plain-language
 over a few generations: start with 100 people, and at a fertility rate of 1.14 each generation is about 54% the size of
 the last (1.14 ÷ 2.1 replacement), so 100 → 54 → 29 → 16 → 9.
 
-**Live:** https://fertility-tracker-live.vercel.app/ (shareable per country, e.g. `#KOR`, `#JPN`, `#USA`)
+**Live:** https://fertility-tracker-live.vercel.app/ (shareable per country, e.g. `/country/KOR`, `/country/JPN`; rankings at `/rankings`)
 
 ## What's in it
 
-- Per-country stats: latest fertility rate, population, rank, generation-to-generation ratio, halving time, UN 2050 projection
-- "100 people" generations view with a what-if slider
-- Trend chart 1950–2100: UN estimates, UN medium-variant projection, latest World Bank figure, replacement line
-- Ranked list of every country
+- Full-screen globe (drag, wheel/pinch zoom) colored by how many people each country will have compared with today,
+  with a year slider to 2100 and two futures: the UN forecast, and "if birth rates stay the same" (UN constant fertility)
+- Country pages (`/country/KOR`): a plain-words risk meter, 100 people who gray out as the year moves, population
+  1950–2100 under both futures, births vs deaths, moving in vs out, and generations with a what-if slider
+- Rankings (`/rankings`): where populations shrink most by 2100, highest risk, fewest babies per woman
+- Design: [docs/design/DESIGN-v3.md](docs/design/DESIGN-v3.md). Preview locally with `node scripts/serve.mjs` (port 8731)
 
 ## Data and refresh
 
@@ -20,8 +22,9 @@ the last (1.14 ÷ 2.1 replacement), so 100 → 54 → 29 → 16 → 9.
 
 - **World Bank WDI**: latest reported fertility rate, population, crude birth and death rates, net migration,
   population growth, 65+ share and migrant stock, plus region and income group
-- **UN World Population Prospects 2024** (via Our World in Data): fertility, population, births, deaths, net
-  migration, median age and 65+ population, as estimates 1950-2023 and medium-variant projections to 2100
+- **UN World Population Prospects 2024** (the UN's own CSV files, with its January 2026 corrections): fertility,
+  population, births, deaths, net migration, median age and 65+ population, as estimates 1950-2023 and projections to
+  2100 for the medium and constant-fertility variants
 - **UN DESA International Migrant Stock 2024** (via Our World in Data): immigrant stock (people living in a country who
   were born elsewhere), emigrant stock (people born there who live abroad) and the top origin and destination countries
 
@@ -70,5 +73,5 @@ mortality change and age-structure momentum: it shows the long-run pull of a rat
 
 ## License
 
-MIT. Data: World Bank (CC BY 4.0); UN WPP 2024 and UN DESA International Migrant Stock 2024 (CC BY 3.0 IGO) via
-Our World in Data (CC BY 4.0).
+MIT. Data: World Bank (CC BY 4.0); UN WPP 2024 and UN DESA International Migrant Stock 2024 (CC BY 3.0 IGO); migrant
+stock via Our World in Data (CC BY 4.0).

@@ -9,7 +9,7 @@ Every Monday, three loops run in sequence:
 
 | When (UTC) | Loop | Where | What it does |
 | --- | --- | --- | --- |
-| 06:17 | Data refresh | `.github/workflows/refresh-and-deploy.yml` | Refetches UN WPP / World Bank data, commits it if anything changed, deploys `public/` to Vercel (Vercel CLI, `VERCEL_TOKEN` repo secret). Also deploys on every push to `main`. |
+| 06:17 | Data refresh | `.github/workflows/refresh-and-deploy.yml` | Refetches UN WPP (population.un.org CSVs), UN DESA (via OWID) and World Bank data, validates every published number against those primary sources (`scripts/validate-data.mjs`), commits only if anything changed, deploys `public/` to Vercel (Vercel CLI, `VERCEL_TOKEN` repo secret). Also deploys on every push to `main`. A manual run on any other branch commits nothing and deploys a Vercel preview, never production. |
 | 08:00 | Weekly check | `.github/workflows/weekly-check.yml` → `scripts/checks/weekly-check.mjs` | Checks the live site and every API endpoint, data freshness, the refresh run, and the past 7 days of feedback issues. Keeps one open issue titled `Weekly check — YYYY-MM-DD` (label `weekly-check`) and closes last week's. |
 | After the check | Weekly agent | T3 Code scheduled task on Ros's machine, following `docs/weekly-agent-prompt.md` | Verifies the report, triages feedback, ships fixes in one reviewed PR, merges only through the gate in the prompt, comments on every feedback issue, reports in the weekly-check issue and its thread. |
 
@@ -152,6 +152,8 @@ or of objects with `url` / `path` / `href` / `urlTemplate`), as absolute URLs, s
 | Check a local build | `python3 -m http.server 8080 -d public` then `node scripts/checks/weekly-check.mjs --site http://127.0.0.1:8080/ --no-github --expect-deployed` |
 | Checker tests | `node --test "test/checks/*.test.mjs"` |
 | Refresh data and redeploy now | `gh workflow run refresh-and-deploy.yml -R RostyslavDzhohola/fertility-tracker` |
+| Rebuild the API locally | `node scripts/fetch-data.mjs --cache /tmp/ft-cache` (the cache keeps the ~65 MB of UN downloads between runs; drop it for a fresh fetch), then `node scripts/fetch-data.mjs --verify` |
+| Validate the published data against the primary sources | `node scripts/validate-data.mjs --cache /tmp/ft-cache` (about 30 s; add `--json report.json`; `--skip age,scenarios,wb,ims` to narrow it). Exit 0 = no mismatches, 1 = mismatches (listed with examples), 2 = a source could not be loaded. See `docs/DATA-VALIDATION.md` |
 | Run the weekly agent now | Run the T3 scheduled task now (`run_scheduled_task_now`), or start a session with `docs/weekly-agent-prompt.md` as its instructions |
 | Recreate labels | Any non-dry-run check does it; or `gh label create <name> --color <hex> --description "…" --force` using `public/feedback.json` |
 
@@ -174,6 +176,25 @@ set and does not start with `TODO_`. Optionally add a matching `contact_links` e
 Disabling a workflow stops new runs only; the site stays up with its last deployed data. A workflow you disable
 by hand stays off: the weekly agent re-enables only workflows GitHub disabled for inactivity.
 
+## When the UN publishes a new World Population Prospects
+
+WPP 2024 is the current edition; the UN has postponed the next one to **11 July 2027**. The pipeline reads fixed
+WPP 2024 file names (`scripts/lib/unwpp.mjs`: `WPP_CSV`, `WPP_UPDATE`, `WPP_LAST_ESTIMATE_YEAR = 2023`,
+`WPP_NEXT_RELEASE`), so a new edition needs a code change, not just a rerun:
+
+1. Find the new CSV names on https://population.un.org/wpp/downloads (or in its `assets/downloads.json`).
+2. Update `WPP_CSV`, the update-zip entry (drop it if the new edition has none), the last estimate year, the release
+   dates and the citation in `scripts/lib/unwpp.mjs`, and the edition names in `scripts/lib/publish.mjs`,
+   `docs/METHODOLOGY.md`, `docs/API.md` and `public/llms.txt`.
+3. Run `node scripts/fetch-data.mjs --cache /tmp/ft-cache`. Some guards may refuse on purpose. For example, if the new
+   projections start after 2024, `scenarios.json` can no longer fill 2024 (decide whether `startYear` moves: the
+   frontend reads it from the file). Review the diff, then rerun with `--force`.
+4. Run `node scripts/validate-data.mjs` and check that it reports 0 mismatches.
+
+Interim updates (like Togo's on 2026-01-19) are announced on the downloads page and in a release note. The current
+zip is re-read on every run, so a re-upload of the same zip is picked up automatically. A differently named zip needs
+`WPP_UPDATE` updated.
+
 ## Gotchas
 
 - **Inactive repos lose their schedules.** GitHub disables scheduled workflows in a public repo after 60 days
@@ -189,5 +210,8 @@ by hand stays off: the weekly agent re-enables only workflows GitHub disabled fo
   leaves the 06:17 refresh well over an hour of slack.
 - **Local servers list directories.** `python3 -m http.server` answers `api/` with a directory listing, so a
   missing `public/api/index.html` passes a local check but returns 404 on the live site.
+- **population.un.org is a required source.** If it is down, the weekly refresh refuses to publish and the last data
+  stays live (the run fails loudly). The validator's UN DESA tables come from www.un.org; if those are unreachable,
+  the validation step only warns.
 - **Issue text is untrusted.** The check never copies issue bodies into its report; the weekly agent treats all
   issue and email text as data, per its prompt.

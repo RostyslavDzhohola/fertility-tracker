@@ -1,4 +1,4 @@
-// Pure logic shared by the page, the social card and the tests (test/frontend/logic.test.mjs).
+// Pure logic shared by the pages, the social card and the tests (test/frontend/logic.test.mjs).
 // No DOM, no d3: everything here runs in Node as well as the browser.
 
 export const REPLACEMENT = 2.1;
@@ -6,92 +6,154 @@ export const MINUS = "−";
 export const SITE_URL = "https://fertility-tracker-live.vercel.app/";
 export const FALLBACK_EMAIL = "andromedus+fertility@mail.grokbot.com";
 export const GEN_YEARS = 30;
+export const END_YEAR = 2100;
 
-// ---------------------------------------------------------------- tiers and color ramps (DESIGN §2.4, §4.1)
+const isNum = (n) => typeof n === "number" && Number.isFinite(n);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
+// ---------------------------------------------------------------- risk in words (DESIGN-v3 §0, §3)
+
+// API tiers → the five words people see. The 0–100 score only appears behind "More numbers".
 export const TIERS = ["Low", "Moderate", "Elevated", "High", "Critical"];
-export const TIER_COLORS = {
-  Low: "#2A3A5E",
-  Moderate: "#5B4A94",
-  Elevated: "#B4508C",
-  High: "#F2713F",
-  Critical: "#FFCB52",
-};
-export const DEFAULT_TIER_MINS = { Low: 0, Moderate: 20, Elevated: 40, High: 55, Critical: 70 };
-
-// Lower bound inclusive; the value is rounded to 2 decimals before binning.
-export const TFR_BINS = [
-  { max: 1.0, label: "Under 1", color: "#FFCB52" },
-  { max: 1.3, label: "1–1.3", color: "#F2713F" },
-  { max: 1.6, label: "1.3–1.6", color: "#B9563A" },
-  { max: 2.1, label: "1.6–2.1", color: "#7A4A34" },
-  { max: 3.0, label: "2.1–3", color: "#2C4C72" },
-  { max: 4.0, label: "3–4", color: "#3779B4" },
-  { max: Infinity, label: "4+", color: "#73B7EA" },
-];
-export const NODATA = "nodata";
+export const RISK_LEVELS = ["Very low", "Low", "Medium", "High", "Very high"];
+export const RISK_WORDS = { Low: "Very low", Moderate: "Low", Elevated: "Medium", High: "High", Critical: "Very high" };
+// Meter segments, calm → alarming. Not the accent color, not the people ramp's gray.
+export const RISK_COLORS = ["#CFE6D2", "#EDE3C6", "#F3B87A", "#E8774A", "#C3392F"];
 
 export function tierOf(rec) {
   const t = rec?.risk?.tier;
   return TIERS.includes(t) ? t : null;
 }
 
-export function tierClass(tier) {
-  return tier ? `tier-${tier.toLowerCase()}` : "tier-none";
+// 0..4, or -1 when the place has no tier.
+export function riskStep(rec) {
+  return TIERS.indexOf(tierOf(rec));
 }
 
-export function tfrValue(rec) {
-  const v = rec?.tfr?.value;
-  return typeof v === "number" && Number.isFinite(v) ? v : null;
+export function riskWord(rec) {
+  const t = tierOf(rec);
+  return t ? RISK_WORDS[t] : null;
 }
 
-export function tfrBinIndex(tfr) {
-  if (typeof tfr !== "number" || !Number.isFinite(tfr)) return -1;
-  const v = Math.round(tfr * 100) / 100;
-  for (let i = 0; i < TFR_BINS.length; i++) if (v < TFR_BINS[i].max) return i;
-  return TFR_BINS.length - 1;
+export function isSmallPlace(rec) {
+  return (rec?.flags ?? []).includes("small-population");
 }
 
-// The legend key a place belongs to in a color mode: a tier name, "tfr-<bin>", or "nodata".
-export function legendKey(rec, mode) {
-  if (mode === "tfr") {
-    const i = tfrBinIndex(tfrValue(rec));
-    return i < 0 ? NODATA : `tfr-${i}`;
+// ---------------------------------------------------------------- scenarios (DESIGN-v3 §7)
+
+export const SCENARIOS = ["medium", "constant"];
+export const SCENARIO_LABELS = { medium: "UN forecast", constant: "If birth rates stay the same" };
+export const SCENARIO_SHORT = { medium: "UN forecast", constant: "Rates stay the same" };
+export const SCENARIO_HINTS = {
+  medium: "The UN's central forecast (World Population Prospects 2024).",
+  constant: "What if every country kept today's babies per woman until 2100? A what-if, not a forecast.",
+};
+
+export function normScenario(s) {
+  return s === "constant" ? "constant" : "medium";
+}
+
+// "Today" is the current calendar year, clamped to the data.
+export function todayYear(scen, now = new Date()) {
+  const start = scen?.startYear ?? 2024;
+  const end = scen?.endYear ?? END_YEAR;
+  return clamp(now.getFullYear(), start, end);
+}
+
+// People in `year` (fractional years interpolate, so Play is smooth). null when missing.
+export function popAt(scen, iso3, year, scenario = "medium") {
+  const arr = scen?.places?.[iso3]?.[normScenario(scenario)];
+  if (!Array.isArray(arr) || !arr.length || !isNum(year)) return null;
+  const t = clamp(year - scen.startYear, 0, arr.length - 1);
+  const i = Math.floor(t);
+  const f = t - i;
+  const a = arr[i];
+  const b = arr[Math.min(i + 1, arr.length - 1)];
+  if (!isNum(a)) return isNum(b) && f > 0.5 ? b : null;
+  if (!isNum(b) || f === 0) return a;
+  return a + (b - a) * f;
+}
+
+// Population in `year` as a share of today's (UN forecast for today, so both scenarios share one baseline).
+export function ratioVsToday(scen, iso3, year, scenario, today) {
+  const base = popAt(scen, iso3, today, "medium");
+  const v = popAt(scen, iso3, year, scenario);
+  if (!isNum(base) || base <= 0 || !isNum(v)) return null;
+  return v / base;
+}
+
+export function pctVsToday(scen, iso3, year, scenario, today) {
+  const r = ratioVsToday(scen, iso3, year, scenario, today);
+  return r == null ? null : (r - 1) * 100;
+}
+
+// ---------------------------------------------------------------- the people ramp (DESIGN-v3 §1)
+
+// % change vs today → color. Greens grow (blue-leaning, so they part from the oranges under red-green color blindness),
+// sand stays about the same, orange → red shrinks, and from half gone on a gray that darkens. Checked under protan,
+// deutan and tritan simulation (docs/design/DESIGN-v3.md §1).
+export const RAMP = [
+  [-100, "#3B3A39"],
+  [-80, "#5E5B58"],
+  [-50, "#9A958F"],
+  [-49.999, "#BE3A30"],
+  [-35, "#DA573A"],
+  [-20, "#EC8447"],
+  [-10, "#F4B26E"],
+  [-4, "#F2D9A9"],
+  [0, "#EEE5CD"],
+  [4, "#DDE8D0"],
+  [12, "#ABD8C4"],
+  [30, "#62B7A6"],
+  [60, "#2C9690"],
+  [120, "#13737A"],
+  [250, "#0B4F63"],
+];
+export const NODATA_COLOR = "#E7E3DC";
+
+function hexToRgb(hex) {
+  const n = parseInt(hex.slice(1), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+function rgbToHex([r, g, b]) {
+  return "#" + [r, g, b].map((v) => Math.round(clamp(v, 0, 255)).toString(16).padStart(2, "0")).join("").toUpperCase();
+}
+
+const RAMP_RGB = RAMP.map(([p, c]) => [p, hexToRgb(c)]);
+
+export function changeColor(pct) {
+  if (!isNum(pct)) return null;
+  const p = clamp(pct, RAMP[0][0], RAMP[RAMP.length - 1][0]);
+  for (let i = 1; i < RAMP_RGB.length; i++) {
+    const [p1, c1] = RAMP_RGB[i];
+    if (p <= p1) {
+      const [p0, c0] = RAMP_RGB[i - 1];
+      const t = p1 === p0 ? 1 : (p - p0) / (p1 - p0);
+      return rgbToHex([0, 1, 2].map((k) => c0[k] + (c1[k] - c0[k]) * t));
+    }
   }
-  return tierOf(rec) ?? NODATA;
+  return RAMP[RAMP.length - 1][1];
 }
 
-export function colorForKey(key) {
-  if (key === NODATA || key == null) return null;
-  if (key.startsWith("tfr-")) return TFR_BINS[Number(key.slice(4))]?.color ?? null;
-  return TIER_COLORS[key] ?? null;
+// The four words of the legend, worst first (left to right on screen).
+export const LEGEND = [
+  { key: "half", label: "Half gone", from: -100, to: -50, stops: [-90, -50] },
+  { key: "fewer", label: "Fewer people", from: -50, to: -5, stops: [-49.999, -35, -20, -10, -5] },
+  { key: "same", label: "About the same", from: -5, to: 5, stops: [-4, 0, 4] },
+  { key: "more", label: "More people", from: 5, to: Infinity, stops: [5, 12, 30, 60, 120] },
+];
+
+export function changeBand(pct) {
+  if (!isNum(pct)) return null;
+  if (pct <= -50) return "half";
+  if (pct < -5) return "fewer";
+  if (pct <= 5) return "same";
+  return "more";
 }
 
-export function colorFor(rec, mode) {
-  return colorForKey(legendKey(rec, mode));
-}
-
-export function legendItems(mode) {
-  if (mode === "tfr") return TFR_BINS.map((b, i) => ({ key: `tfr-${i}`, label: b.label, color: b.color }));
-  return TIERS.map((t) => ({ key: t, label: t, color: TIER_COLORS[t] }));
-}
-
-export function countByKey(records, mode) {
-  const counts = new Map();
-  for (const r of records) {
-    const k = legendKey(r, mode);
-    counts.set(k, (counts.get(k) ?? 0) + 1);
-  }
-  return counts;
-}
-
-// ---------------------------------------------------------------- number formatting (DESIGN §8.6)
+// ---------------------------------------------------------------- number formatting
 
 const nf = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
-
-function isNum(n) {
-  return typeof n === "number" && Number.isFinite(n);
-}
 
 export function sig3(n) {
   if (!isNum(n) || n === 0) return 0;
@@ -141,7 +203,7 @@ export function fmtCompact(n, { plus = false } = {}) {
   return s + String(r);
 }
 
-// "21.9 million", "8.22 billion", "820,000", "640".
+// "21.8 million", "8.22 billion", "820,000", "640".
 export function fmtWords(n) {
   if (!isNum(n)) return "–";
   const s = n < 0 ? MINUS : "";
@@ -151,6 +213,13 @@ export function fmtWords(n) {
   if (r >= 1e9) return s + trimZeros((r / 1e9).toFixed(Math.max(0, 3 - (Math.floor(Math.log10(r / 1e9)) + 1)))) + " billion";
   if (r >= 1e6) return s + trimZeros((r / 1e6).toFixed(Math.max(0, 3 - (Math.floor(Math.log10(r / 1e6)) + 1)))) + " million";
   return s + nf.format(r);
+}
+
+// Big counters split the number from its unit: { num: "10.2", unit: "billion" }, { num: "820,000", unit: "" }.
+export function splitWords(n) {
+  const w = fmtWords(n);
+  const m = /^(.*?) (million|billion)$/.exec(w);
+  return m ? { num: m[1], unit: m[2] } : { num: w, unit: "" };
 }
 
 // Yearly flows: "+231,000", "−352,000"; exact below 1,000; "+70.5 million" from a million up.
@@ -212,7 +281,15 @@ export function niceTicks(min, max, count = 4) {
   return ticks.map((t) => (Math.abs(t) < step / 1e6 ? 0 : Number(t.toPrecision(12))));
 }
 
-// ---------------------------------------------------------------- generations (DESIGN §5.3, §5.9)
+// The unit a population axis is labelled in: { div, unit } so 23,000,000 reads "23" with "million".
+export function axisUnit(max) {
+  if (max >= 2e9) return { div: 1e9, unit: "billion" };
+  if (max >= 2e6) return { div: 1e6, unit: "million" };
+  if (max >= 2e3) return { div: 1e3, unit: "thousand" };
+  return { div: 1, unit: "people" };
+}
+
+// ---------------------------------------------------------------- generations
 
 export function generationRatio(tfr) {
   return isNum(tfr) ? tfr / REPLACEMENT : null;
@@ -236,34 +313,86 @@ export function fmtCount(v) {
   return one >= 10 ? String(Math.round(v)) : one.toFixed(1);
 }
 
-// How full each of the 100 dots is (0..1), filled row by row from the top-left.
-export function dotFills(count) {
-  const c = Math.max(0, Math.min(100, isNum(count) ? count : 0));
-  return Array.from({ length: 100 }, (_, i) => Math.max(0, Math.min(1, c - i)));
+// How full each of `n` icons is (0..1), filled from the first: count 4.3 of 10 → [1,1,1,1,0.3,0,…].
+export function iconFills(count, n = 100) {
+  const c = Math.max(0, Math.min(n, isNum(count) ? count : 0));
+  return Array.from({ length: n }, (_, i) => Math.max(0, Math.min(1, c - i)));
 }
 
-// ---------------------------------------------------------------- URL hash (DESIGN §3.5)
-
-// Returns { iso3, normalized } for a selection hash naming a known place, else null.
-export function parseSelectionHash(hash, known) {
-  const m = /^#([A-Za-z]{3})$/.exec(hash ?? "");
-  if (!m) return null;
-  const iso3 = m[1].toUpperCase();
-  const has = typeof known === "function" ? known(iso3) : known?.has?.(iso3);
-  if (!has) return null;
-  return { iso3, normalized: m[1] !== iso3 };
+// Person icons for a ratio vs today, `per` icons standing for today's population:
+// { kept } icons stay colored (fractional), the rest of `per` gray out; growth adds { extra } green icons.
+export function peopleIcons(ratio, per = 10) {
+  if (!isNum(ratio)) return { kept: per, lost: 0, extra: 0 };
+  const kept = Math.min(1, Math.max(0, ratio)) * per;
+  const extra = Math.max(0, ratio - 1) * per;
+  return { kept, lost: per - kept, extra };
 }
 
-export function isSelectionLikeHash(hash) {
-  return /^#[A-Za-z]{3}$/.test(hash ?? "");
+// ---------------------------------------------------------------- routes and URLs (DESIGN-v3 §6)
+
+const ISO = /^[A-Za-z]{3}$/;
+
+// pathname + search + hash → { page, iso3, year, scenario, focus, redirect }. `redirect` is the canonical path to
+// replaceState to (legacy /#KOR, lowercase codes, trailing slashes).
+export function parseRoute(pathname = "/", search = "", hash = "") {
+  const q = new URLSearchParams(search);
+  const y = Number(q.get("year"));
+  const sc = q.get("scenario");
+  const focus = q.get("focus");
+  const out = {
+    page: "notfound",
+    iso3: null,
+    year: Number.isInteger(y) && y >= 1900 && y <= 2200 ? y : null,
+    scenario: sc === "constant" || sc === "medium" ? sc : null,
+    focus: focus && ISO.test(focus) ? focus.toUpperCase() : null,
+    redirect: null,
+  };
+  const p = String(pathname || "/").replace(/\/index\.html$/, "/");
+  let m;
+  if (p === "/" || p === "") {
+    out.page = "globe";
+    const h = /^#([A-Za-z]{3})$/.exec(hash ?? "");
+    if (h) {
+      out.page = "country";
+      out.iso3 = h[1].toUpperCase();
+      out.redirect = `/country/${out.iso3}`;
+    }
+  } else if ((m = /^\/country\/([A-Za-z]{3})(\/?)$/.exec(p))) {
+    out.page = "country";
+    out.iso3 = m[1].toUpperCase();
+    if (m[1] !== out.iso3 || m[2]) out.redirect = `/country/${out.iso3}`;
+  } else if ((m = /^\/rankings(\/?)$/.exec(p))) {
+    out.page = "rankings";
+    if (m[1]) out.redirect = "/rankings";
+  } else if ((m = /^\/(?:fertility-tracker\/)?([A-Za-z]{3})\/?$/.exec(p))) {
+    // "/KOR" (normally caught by 404.html) and the old GitHub Pages form.
+    out.page = "country";
+    out.iso3 = m[1].toUpperCase();
+    out.redirect = `/country/${out.iso3}`;
+  }
+  return out;
 }
 
-// ---------------------------------------------------------------- feedback links (DESIGN §7)
+// The shareable query: only what differs from the defaults, in a fixed order.
+export function buildQuery({ year, scenario, focus } = {}, { defaultYear = END_YEAR } = {}) {
+  const q = [];
+  if (Number.isInteger(year) && year !== defaultYear) q.push(`year=${year}`);
+  if (scenario === "constant") q.push("scenario=constant");
+  if (focus && ISO.test(focus)) q.push(`focus=${focus.toUpperCase()}`);
+  return q.length ? `?${q.join("&")}` : "";
+}
 
+export function countryPath(iso3) {
+  return `/country/${iso3}`;
+}
+
+// The public URL of a place (Share, X, feedback context).
 export function pageUrl(iso3, siteUrl = SITE_URL) {
   const base = siteUrl.endsWith("/") ? siteUrl : siteUrl + "/";
-  return iso3 ? `${base}#${iso3}` : base;
+  return iso3 ? `${base}country/${iso3}` : base;
 }
+
+// ---------------------------------------------------------------- feedback links (DESIGN.md §7)
 
 function query(params) {
   return params.map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join("&");
@@ -326,28 +455,35 @@ export function xProfileUrl(feedback) {
   return tpl.replace("{handle}", encodeURIComponent(h));
 }
 
-// ---------------------------------------------------------------- search (DESIGN §3.6)
+// ---------------------------------------------------------------- search (typo-tolerant)
 
 export const ALIASES = {
-  KOR: ["Korea", "Republic of Korea"],
+  KOR: ["Korea", "Republic of Korea", "S Korea"],
   PRK: ["North Korea", "DPRK"],
-  GBR: ["UK", "Britain", "Great Britain", "England"],
-  USA: ["US", "America", "United States of America"],
+  GBR: ["UK", "Britain", "Great Britain", "England", "Scotland", "Wales"],
+  USA: ["US", "USA", "America", "United States of America"],
   RUS: ["Russian Federation"],
-  TUR: ["Türkiye", "Turkey"],
-  CZE: ["Czech Republic", "Czechia"],
+  TUR: ["Türkiye", "Turkiye", "Turkey"],
+  CZE: ["Czech Republic", "Czechia", "Czech"],
   CIV: ["Ivory Coast", "Côte d'Ivoire"],
   MMR: ["Burma"],
   NLD: ["Holland"],
   MAC: ["Macau"],
-  COD: ["DRC", "Congo-Kinshasa"],
-  COG: ["Congo-Brazzaville"],
+  HKG: ["Hongkong"],
+  TWN: ["Republic of China", "Chinese Taipei"],
+  COD: ["DRC", "DR Congo", "Congo-Kinshasa", "Zaire"],
+  COG: ["Congo-Brazzaville", "Republic of the Congo"],
   SWZ: ["Swaziland", "Eswatini"],
   MKD: ["Macedonia"],
   CPV: ["Cabo Verde"],
-  TLS: ["East Timor"],
-  VAT: ["Holy See"],
-  PSE: ["Palestine"],
+  TLS: ["Timor-Leste", "East Timor"],
+  VAT: ["Holy See", "Vatican City"],
+  PSE: ["Palestine", "Gaza", "West Bank"],
+  ARE: ["UAE", "Emirates"],
+  LAO: ["Lao PDR"],
+  IRN: ["Persia"],
+  FSM: ["Federated States of Micronesia"],
+  BES: ["Caribbean Netherlands", "Bonaire"],
   WLD: ["World", "Earth", "Global"],
 };
 
@@ -390,6 +526,36 @@ export function matchRange(text, q) {
   return [map[at], lastIdx + lastChar];
 }
 
+// Optimal string alignment distance (Levenshtein plus adjacent swaps), stopping once it exceeds `max`.
+export function editDistance(a, b, max = Infinity) {
+  if (a === b) return 0;
+  if (Math.abs(a.length - b.length) > max) return max + 1;
+  let prev2 = null;
+  let prev = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i];
+    let rowMin = i;
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      let v = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + cost);
+      if (prev2 && i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) v = Math.min(v, prev2[j - 2] + 1);
+      cur.push(v);
+      if (v < rowMin) rowMin = v;
+    }
+    if (rowMin > max) return max + 1;
+    prev2 = prev;
+    prev = cur;
+  }
+  return prev[b.length];
+}
+
+function typoBudget(len) {
+  if (len < 4) return 0;
+  if (len < 6) return 1;
+  if (len < 9) return 2;
+  return 3;
+}
+
 function scorePlace(place, nq) {
   const name = normalizeText(place.name);
   const code = place.iso3.toLowerCase();
@@ -399,7 +565,15 @@ function scorePlace(place, nq) {
   if (name.split(" ").some((w) => w.startsWith(nq))) return 2;
   if (aliases.some((a) => a.startsWith(nq) || a.split(" ").some((w) => w.startsWith(nq)))) return 3;
   if (name.includes(nq) || aliases.some((a) => a.includes(nq))) return 4;
-  return -1;
+  // Typos: compare with each full name, and with the same-length start of it ("taiwn" → "taiwan", "czeck" → "czech").
+  const budget = typoBudget(nq.length);
+  if (!budget) return -1;
+  let best = budget + 1;
+  for (const t of [name, ...aliases]) {
+    const cands = [t, t.slice(0, nq.length), t.slice(0, nq.length + 1), ...t.split(" ").filter((w) => w.length >= 4)];
+    for (const c of cands) best = Math.min(best, editDistance(nq, c, budget));
+  }
+  return best <= budget ? 5 + best / 10 : -1;
 }
 
 // places: [{ iso3, name, population }]. Returns up to `limit` places, best first.
@@ -415,80 +589,101 @@ export function searchPlaces(places, q, limit = 8) {
   return hits.slice(0, limit).map((h) => h.p);
 }
 
-// ---------------------------------------------------------------- ordering (DESIGN §4.3, §4.4)
-
-// Ranked places first (risk mode: by API rank; tfr mode: ascending births per woman), then the unranked.
-export function orderPlaces(records, mode) {
-  const list = records.filter((r) => r.iso3 !== "WLD");
-  const byTfr = (a, b) => (tfrValue(a) ?? 99) - (tfrValue(b) ?? 99) || a.name.localeCompare(b.name);
-  const byScore = (a, b) =>
-    (b.risk?.score ?? -1) - (a.risk?.score ?? -1) || (tfrValue(a) ?? 99) - (tfrValue(b) ?? 99) || a.name.localeCompare(b.name);
-  const isRanked = (r) => r.ranked === true && Number.isInteger(r.risk?.rank);
-  const ranked = list.filter(isRanked);
-  const unranked = list.filter((r) => !isRanked(r));
-  if (mode === "tfr") {
-    ranked.sort(byTfr);
-    unranked.sort(byTfr);
-  } else {
-    ranked.sort((a, b) => a.risk.rank - b.risk.rank);
-    unranked.sort(byScore);
-  }
-  return { ranked, unranked };
-}
-
-export function rankLabel(rec, n) {
-  if (!rec) return "";
-  if (rec.iso3 === "WLD") return "The world as a whole isn't scored";
-  if (Number.isInteger(rec.risk?.rank)) return `#${rec.risk.rank} of ${n}`;
-  return (rec.flags ?? []).includes("small-population") ? "Not ranked (under 100,000 people)" : "Not ranked (incomplete data)";
-}
-
-// ---------------------------------------------------------------- keyboard map navigation (DESIGN §2.11)
-
-// points: [{ iso3, x, y }]; dir: "left" | "right" | "up" | "down". Lowest score within ±60° wins.
-export function nearestInDirection(points, from, dir) {
-  const v = { left: [-1, 0], right: [1, 0], up: [0, -1], down: [0, 1] }[dir];
-  if (!v || !from) return null;
-  let best = null;
-  let bestScore = Infinity;
-  const cos60 = Math.cos(Math.PI / 3);
-  for (const p of points) {
-    if (p.iso3 === from.iso3) continue;
-    const dx = p.x - from.x;
-    const dy = p.y - from.y;
-    const dist = Math.hypot(dx, dy);
-    if (dist < 1e-9) continue;
-    const cos = (dx * v[0] + dy * v[1]) / dist;
-    if (cos < cos60 - 1e-9) continue;
-    const score = dist * (1 + 2 * (1 - cos));
-    if (score < bestScore) {
-      bestScore = score;
-      best = p;
-    }
-  }
-  return best;
-}
-
-// ---------------------------------------------------------------- copy (DESIGN §5, §8)
+// ---------------------------------------------------------------- copy (each block: one picture, one sentence)
 
 export function possessive(name) {
   return /s$/i.test(name) ? `${name}'` : `${name}'s`;
 }
 
-function subject(rec, { start = false, own = false } = {}) {
-  if (rec.iso3 === "WLD") {
-    const w = start ? "The world" : "the world";
-    return own ? `${w}'s` : w;
-  }
-  return own ? possessive(rec.name) : rec.name;
+export function displayName(rec) {
+  return rec?.iso3 === "WLD" ? "The world" : rec?.name ?? "";
 }
 
-export function tierLabel(tier) {
-  return tier ? `${tier} decline risk` : "Not scored";
+// Plain verdict from the UN forecast: % change from today to 2100 and whether the peak is still ahead.
+export function verdict(rec, pct2100, today) {
+  const name = displayName(rec);
+  if (!isNum(pct2100)) return `${name}: no forecast in our sources.`;
+  const peak = rec?.projection?.peakYear;
+  const rising = isNum(peak) && peak > today + 3 && peak < END_YEAR;
+  if (pct2100 <= -40) return rising ? `${name} grows a little longer, then shrinks fast.` : `${name} is shrinking fast.`;
+  if (pct2100 <= -15) return rising ? `${name} grows for a while, then shrinks.` : `${name} is shrinking.`;
+  if (pct2100 < -5) return rising ? `${name} grows for a while, then shrinks a little.` : `${name} is slowly shrinking.`;
+  if (pct2100 <= 5) return rising ? `${name} grows, then falls back to about today's size.` : `${name} stays about the same size.`;
+  if (pct2100 < 30) return rising ? `${name} keeps growing until about ${peak}.` : `${name} keeps growing slowly.`;
+  return `${name} keeps growing fast.`;
 }
 
-// The baseline every projected % is measured against: UN population in the latest estimate year (projection.baseYear).
-// Falls back to the yearly series, then to the value implied by the 2100 figure and its % change.
+// Short form for titles: "shrinking fast".
+export function verdictShort(pct2100) {
+  if (!isNum(pct2100)) return "population outlook";
+  if (pct2100 <= -40) return "shrinking fast";
+  if (pct2100 <= -15) return "shrinking";
+  if (pct2100 < -5) return "slowly shrinking";
+  if (pct2100 <= 5) return "about the same size";
+  if (pct2100 < 30) return "growing slowly";
+  return "growing fast";
+}
+
+// "For every 100 people in Taiwan today, about 43 will be left in 2100 (UN forecast)."
+export function hundredSentence(rec, ratio2100, scenario = "medium") {
+  if (!isNum(ratio2100)) return "";
+  const where = rec?.iso3 === "WLD" ? "the world" : rec?.name;
+  const n = Math.round(100 * ratio2100);
+  const tag = `(${SCENARIO_LABELS[normScenario(scenario)]})`;
+  if (n >= 97 && n <= 103) return `For every 100 people in ${where} today, there will still be about 100 in 2100 ${tag}.`;
+  if (n < 100) return `For every 100 people in ${where} today, about ${n} will be left in 2100 ${tag}.`;
+  return `For every 100 people in ${where} today, there will be about ${nf.format(n)} in 2100 ${tag}.`;
+}
+
+export function tfrReason(rec) {
+  const tfr = rec?.tfr?.value;
+  if (!isNum(tfr)) return null;
+  return `${fmtTfr(tfr)} babies per woman; 2.1 keeps a country the same size`;
+}
+
+export function birthsDeathsReason(rec, latestYear = 2023) {
+  const c = rec?.components;
+  const since = rec?.projection?.naturalDeclineSince;
+  if (!c || !isNum(c.births) || !isNum(c.deaths)) return null;
+  if (c.deaths > c.births) return isNum(since) && since <= latestYear ? `More deaths than births since ${since}` : "More deaths than births each year";
+  if (isNum(since) && since > latestYear && since <= END_YEAR) return `More births than deaths, until about ${since}`;
+  return "More births than deaths each year";
+}
+
+export function migrationSentence(net) {
+  if (!isNum(net)) return "No recent figure for people moving in and out.";
+  const a = Math.abs(net);
+  if (a < 50) return "About as many people move in as move out.";
+  const n = fmtFlow(a, { plus: false });
+  return net < 0 ? `${n} more people leave than arrive each year.` : `${n} more people arrive than leave each year.`;
+}
+
+export function bornDiedSentence(c) {
+  if (!c || !isNum(c.births) || !isNum(c.deaths)) return "No recent births and deaths figure.";
+  const b = fmtFlow(c.births, { plus: false });
+  const d = fmtFlow(c.deaths, { plus: false });
+  if (c.deaths > c.births) return `${b} born and ${d} died in ${c.year}: more people die than are born.`;
+  return `${b} born and ${d} died in ${c.year}: more babies are born than people die.`;
+}
+
+export function babiesSentence(tfr) {
+  if (!isNum(tfr)) return "No recent figure for babies per woman.";
+  if (tfr < REPLACEMENT - 0.05) return `${fmtTfr(tfr)} babies per woman. It takes 2.1 to keep a country the same size.`;
+  if (tfr <= REPLACEMENT + 0.05) return `${fmtTfr(tfr)} babies per woman: just about the 2.1 that keeps a country the same size.`;
+  return `${fmtTfr(tfr)} babies per woman: more than the 2.1 that keeps a country the same size.`;
+}
+
+export function generationsSentence(tfr) {
+  const g = generationCounts(tfr, 4);
+  if (!g.length) return "No births-per-woman figure.";
+  const r = tfr / REPLACEMENT;
+  if (Math.abs(r - 1) < 0.01) return `At ${fmtTfr(tfr)} babies per woman, each generation is about the same size.`;
+  if (r < 1)
+    return `At ${fmtTfr(tfr)} babies per woman, 100 people have ${fmtCount(g[1])} children, ${fmtCount(g[2])} grandchildren and ${fmtCount(g[3])} great-grandchildren.`;
+  return `At ${fmtTfr(tfr)} babies per woman, each generation is bigger: 100 people have ${fmtCount(g[1])} children and ${fmtCount(g[2])} grandchildren.`;
+}
+
+// The baseline the API's projected % is measured against (UN population in projection.baseYear).
 export function projectionBase(rec, { series = null, fallbackYear = 2023 } = {}) {
   const p = rec?.projection ?? {};
   const year = Number.isInteger(p.baseYear) ? p.baseYear : fallbackYear;
@@ -499,201 +694,44 @@ export function projectionBase(rec, { series = null, fallbackYear = 2023 } = {})
   return { year, population };
 }
 
-// Why a below-replacement population still grows, from the latest births, deaths and net migration only.
-// Momentum is described, never inferred from the projection; immigration is named only when it is a real share.
-export function growthReason(rec) {
-  const c = rec?.components;
-  if (!c || c.births == null || c.deaths == null) return null;
-  const natural = c.births - c.deaths;
-  const M = c.netMigration ?? 0;
-  const change = c.populationChange ?? natural + M;
-  const migrationMatters = M > 0 && M >= 0.25 * Math.max(change, 1);
-  if (natural > 0 && migrationMatters) return "a young population means births still outnumber deaths for now, and immigration adds to the growth";
-  if (natural > 0) return "a young population means births still outnumber deaths for now";
-  if (M > 0 && M > -natural) return "immigration more than makes up for more deaths than births";
-  return null;
+export function rankLabel(rec, n) {
+  if (!rec) return "";
+  if (rec.iso3 === "WLD") return "The world as a whole isn't ranked";
+  if (Number.isInteger(rec.risk?.rank)) return `#${rec.risk.rank} of ${n}`;
+  return isSmallPlace(rec) ? "Not ranked (under 100,000 people)" : "Not ranked (incomplete data)";
 }
 
-export function summarySentence(rec, detail, { fallbackYear = 2023 } = {}) {
-  const tfr = tfrValue(rec);
-  const t = fmtTfr(tfr);
-  const pct = rec.projection?.change2100Pct;
-  const pop2100 = rec.projection?.population2100;
-  const by = projectionBase(rec, { series: detail?.series, fallbackYear }).year;
-  if (rec.iso3 === "WLD") {
-    const peak = detail?.projection?.peakPopulation;
-    const peakYear = rec.projection?.peakYear;
-    const tail = peak && peakYear ? ` The UN projects the world population to peak at ${fmtWords(peak)} around ${peakYear}.` : "";
-    const rel = tfr != null && tfr >= REPLACEMENT ? "just above" : "just below";
-    return `The world has ${t} births per woman, ${rel} the 2.1 replacement level.${tail}`;
+export function xPostText(rec, ratio2100) {
+  const who = displayName(rec);
+  let text = `${who}: ${fmtTfr(rec?.tfr?.value)} babies per woman.`;
+  if (isNum(ratio2100)) {
+    const n = Math.round(100 * ratio2100);
+    text += n < 100 ? ` For every 100 people today, about ${n} will be left in 2100 (UN forecast).` : ` For every 100 people today, about ${n} in 2100 (UN forecast).`;
   }
-  if (tfr == null) return `${rec.name} has no recent births-per-woman figure in our sources.`;
-  if (tfr < REPLACEMENT) {
-    if (pct != null && pct < 0) {
-      const how = tfr < 1.5 ? "far below" : "below";
-      return `${rec.name} has ${t} births per woman, ${how} the 2.1 needed to keep a population steady. The UN projects ${fmtWords(pop2100)} people by 2100, ${fmtPct(Math.abs(pct), { plus: false })} fewer than in ${by}.`;
-    }
-    if (pct != null) {
-      const reason = growthReason(rec);
-      return reason
-        ? `${rec.name} has ${t} births per woman, below replacement, but ${reason}. The UN projects ${fmtPct(pct)} between ${by} and 2100.`
-        : `${rec.name} has ${t} births per woman, below replacement. The UN still projects ${fmtPct(pct)} between ${by} and 2100.`;
-    }
-    return `${rec.name} has ${t} births per woman, below the 2.1 needed to keep a population steady.`;
-  }
-  const how = tfr < 2.4 ? "close to" : "above";
-  const proj = pop2100 != null && pct != null ? ` The UN projects ${fmtWords(pop2100)} people by 2100 (${fmtPct(pct)} vs ${by}).` : "";
-  return `${rec.name} has ${t} births per woman, ${how} the 2.1 replacement level.${proj}`;
-}
-
-export function populationTakeaway(rec, lastEstimateYear) {
-  const p = rec.projection ?? {};
-  const pct = p.change2100Pct;
-  const peak = p.peakYear;
-  const by = projectionBase(rec, { fallbackYear: lastEstimateYear }).year;
-  if (pct == null) return `UN population estimates and projection for ${subject(rec)}.`;
-  if (peak != null && peak <= lastEstimateYear && pct < 0)
-    return `${subject(rec, { start: true, own: true })} population peaked in ${peak} and is projected to fall ${fmtPct(Math.abs(pct), { plus: false })} between ${by} and 2100.`;
-  if (peak != null && peak > lastEstimateYear && peak < 2100)
-    return `${subject(rec, { start: true })} keeps growing until about ${peak}, then the UN expects a slow decline.`;
-  if (pct >= 0) return `${subject(rec, { start: true, own: true })} population keeps growing through 2100, up ${fmtPct(pct, { plus: false })} from ${by}.`;
-  return `${subject(rec, { start: true, own: true })} population is projected to change ${fmtPct(pct)} between ${by} and 2100.`;
-}
-
-export function waterfallTakeaway(rec) {
-  const c = rec.components;
-  if (!c || c.births == null || c.deaths == null) return `No recent births and deaths data for ${subject(rec)}.`;
-  const B = c.births;
-  const D = c.deaths;
-  const M = c.netMigration ?? 0;
-  const total = B - D + M;
-  const year = c.year;
-  const gap = D - B;
-  if (B > D && M === 0) return `Births outnumber deaths: ${fmtFlow(total)} people in ${year}.`;
-  if (B > D && M >= 0) return `Births outnumber deaths and more people arrive than leave: ${fmtFlow(total)} people in ${year}.`;
-  if (B > D) return `Births outnumber deaths, but ${fmtFlow(Math.abs(M), { plus: false })} more people leave than arrive each year.`;
-  if (M >= gap) return `More deaths than births, but immigration more than fills the gap: ${fmtFlow(total)} people in ${year}.`;
-  if (M > 0) return `Deaths outnumber births by ${fmtFlow(gap, { plus: false })}. Immigration covers ${Math.round((100 * M) / gap)}% of that gap.`;
-  return `Deaths outnumber births and more people leave than arrive: ${fmtFlow(total)} people in ${year}.`;
-}
-
-export function componentsTakeaway(rec, series, lastEstimateYear) {
-  const since = rec.projection?.naturalDeclineSince;
-  if (since != null && since <= lastEstimateYear) {
-    const last = series?.[series.length - 1];
-    const r = last && last.births > 0 ? (last.deaths / last.births).toFixed(1) : null;
-    return r
-      ? `Deaths overtook births in ${since}. By 2100 the UN expects ${r} deaths for every birth.`
-      : `Deaths overtook births in ${since}.`;
-  }
-  if (since != null) return `Births still outnumber deaths, but the UN expects deaths to overtake them around ${since}.`;
-  return "Births outnumber deaths all the way to 2100.";
-}
-
-export function migrationTakeaway(rec) {
-  if (rec.iso3 === "WLD") return "Migration moves people between countries, so it cancels out for the world.";
-  const m = rec.migrantStock;
-  if (!m || m.immigrants == null) return `No migrant-stock data for ${rec.name}.`;
-  const im = fmtWords(m.immigrants);
-  if (m.emigrants == null) return `${rec.name} is home to ${im} people born abroad.`;
-  const em = fmtWords(m.emigrants);
-  if (m.emigrants > m.immigrants) return `More people born in ${rec.name} live abroad (${em}) than immigrants live in ${rec.name} (${im}).`;
-  return `${rec.name} is home to ${im} people born abroad, more than the ${em} of its own people living abroad.`;
-}
-
-export function generationsTakeaway(name, tfr, { whatIf = false } = {}) {
-  if (whatIf) return `What if ${name} had ${fmtTfr(tfr)} births per woman?`;
-  const g = generationCounts(tfr, 4);
-  if (!g.length) return `No births-per-woman figure for ${name}.`;
-  if (Math.abs(tfr / REPLACEMENT - 1) < 0.005)
-    return `At ${fmtTfr(tfr)} births per woman, each generation is about the same size: 100 \u2192 ${fmtCount(g[1])} \u2192 ${fmtCount(g[2])}.`;
-  if (tfr / REPLACEMENT < 1)
-    return `At ${fmtTfr(tfr)} births per woman, 100 people today have ${fmtCount(g[1])} children, ${fmtCount(g[2])} grandchildren and ${fmtCount(g[3])} great-grandchildren.`;
-  return `At ${fmtTfr(tfr)} births per woman, each generation is bigger than the last: 100 → ${fmtCount(g[1])} → ${fmtCount(g[2])}.`;
-}
-
-export function tfrTakeaway(rec, series) {
-  const first = series?.find((r) => r.year === 1950 && r.tfr != null) ?? series?.find((r) => r.tfr != null);
-  const last = series?.[series.length - 1];
-  const latest = tfrValue(rec);
-  if (!first || latest == null) return `Births per woman in ${subject(rec)} over time.`;
-  const verb = latest > first.tfr ? "rose" : "fell";
-  const tail = last?.tfr != null ? ` The UN projects ${fmtTfr(last.tfr)} by 2100.` : "";
-  return `Births per woman ${verb} from ${fmtTfr(first.tfr)} in ${first.year} to ${fmtTfr(latest)} in ${rec.tfr.year}.${tail}`;
-}
-
-export function xPostText(rec) {
-  const tfr = tfrValue(rec);
-  const g = generationCounts(tfr, 3);
-  const pct = rec.projection?.change2100Pct;
-  const who = rec.iso3 === "WLD" ? "The world" : rec.name;
-  let text = `${who}: ${fmtTfr(tfr)} births per woman.`;
-  if (g.length) text += ` Start with 100 people → ${fmtCount(g[1])} children → ${fmtCount(g[2])} grandchildren.`;
-  if (pct != null)
-    text += ` The UN projects a ${fmtPct(Math.abs(pct), { plus: false })} population ${pct < 0 ? "drop" : "rise"} from ${projectionBase(rec).year} to 2100.`;
   return text;
 }
 
-export function documentTitle(rec) {
-  if (!rec) return "Fertility Tracker: which countries are shrinking, and how fast";
-  return `${rec.name}: ${fmtTfr(tfrValue(rec))} births per woman · Fertility Tracker`;
+export const HOME_TITLE = "Fertility Tracker: every country's population, today to 2100";
+
+export function documentTitle(page, rec = null, pct2100 = null) {
+  if (page === "country" && rec) return `${rec.iso3 === "WLD" ? "The world" : rec.name}: ${verdictShort(pct2100)} · Fertility Tracker`;
+  if (page === "rankings") return "Where populations will shrink most · Fertility Tracker";
+  return HOME_TITLE;
 }
 
-export function selectionAnnouncement(rec) {
-  const tier = tierOf(rec);
-  const parts = [`${rec.name} selected.`];
-  if (tier && rec.iso3 !== "WLD") parts.push(`${tier} decline risk.`);
-  parts.push(`${fmtTfr(tfrValue(rec))} births per woman.`);
-  return parts.join(" ");
+export function lastEstimateYear(series, fallback = null) {
+  let y = fallback;
+  for (const r of series ?? []) if (r.variant === "estimate") y = r.year;
+  return y;
 }
 
-// Tooltip lines (DESIGN §8.4). n = length of the ranking.
-export function tooltipLines(rec, n) {
-  if (!rec) return null;
-  const tier = tierOf(rec);
-  let line2;
-  if (!tier) line2 = "Not scored (incomplete data)";
-  else if (Number.isInteger(rec.risk?.rank)) line2 = `${tier} decline risk · #${rec.risk.rank} of ${n}`;
-  else
-    line2 = `${tier} decline risk · ${
-      (rec.flags ?? []).includes("small-population") ? "not ranked (under 100,000 people)" : "not ranked (incomplete data)"
-    }`;
-  const tfr = tfrValue(rec);
-  const line3 = tfr != null ? `${fmtTfr(tfr)} births per woman (${rec.tfr.year})` : "No births-per-woman figure";
-  const p = rec.projection;
-  const pop = rec.population?.value;
-  const base = projectionBase(rec);
-  const line4 =
-    base.population != null && p?.population2100 != null && p.change2100Pct != null
-      ? `Population ${fmtCompact(base.population)} (${base.year}) → ${fmtCompact(p.population2100)} (2100), ${fmtPct(p.change2100Pct)}`
-      : pop != null
-        ? `Population ${fmtCompact(pop)} (${rec.population.year})`
-        : "";
-  return [rec.name, line2, line3, line4].filter(Boolean);
+export function peakOf(points) {
+  let best = null;
+  for (const p of points ?? []) if (p && isNum(p[1]) && (best == null || p[1] > best[1])) best = p;
+  return best;
 }
 
-export function cursorAnnouncement(rec) {
-  const tier = tierOf(rec);
-  return `${rec.name}. ${tier ? `${tier} decline risk. ` : ""}${fmtTfr(tfrValue(rec))} births per woman. Press Enter to select.`;
-}
-
-// ---------------------------------------------------------------- waterfall geometry (DESIGN §5.6)
-
-export function waterfallRows(c) {
-  if (!c || c.births == null || c.deaths == null) return null;
-  const B = c.births;
-  const D = c.deaths;
-  const M = c.netMigration ?? 0;
-  const pt = c.perThousand ?? {};
-  return [
-    { key: "births", label: "Births", from: 0, to: B, value: B, rate: pt.births },
-    { key: "deaths", label: "Deaths", from: B, to: B - D, value: -D, rate: pt.deaths != null ? -pt.deaths : null },
-    { key: "migration", label: "Net migration", from: B - D, to: B - D + M, value: M, rate: pt.netMigration },
-    { key: "total", label: "Total change", from: 0, to: B - D + M, value: B - D + M, rate: pt.populationChange },
-  ];
-}
-
-// Spread label y positions so they sit at least `gap` px apart, keeping order. items: [{ y }] (mutated copy returned).
+// Spread label y positions so they sit at least `gap` px apart, keeping order.
 export function spreadLabels(ys, gap, min = -Infinity, max = Infinity) {
   const idx = ys.map((y, i) => ({ y, i })).sort((a, b) => a.y - b.y);
   for (let k = 1; k < idx.length; k++) if (idx[k].y - idx[k - 1].y < gap) idx[k].y = idx[k - 1].y + gap;
@@ -711,14 +749,13 @@ export function spreadLabels(ys, gap, min = -Infinity, max = Infinity) {
   return out;
 }
 
-export function lastEstimateYear(series, fallback = null) {
-  let y = fallback;
-  for (const r of series ?? []) if (r.variant === "estimate") y = r.year;
-  return y;
-}
-
-export function peakOf(series, key = "population") {
-  let best = null;
-  for (const r of series ?? []) if (r[key] != null && (best == null || r[key] > best[key])) best = r;
-  return best;
-}
+// Short region names for chips.
+export const REGION_SHORT = {
+  "East Asia & Pacific": "East Asia & Pacific",
+  "Europe & Central Asia": "Europe & Central Asia",
+  "Latin America & Caribbean": "Latin America",
+  "Middle East, North Africa, Afghanistan & Pakistan": "Middle East & N. Africa",
+  "North America": "North America",
+  "South Asia": "South Asia",
+  "Sub-Saharan Africa": "Africa south of the Sahara",
+};

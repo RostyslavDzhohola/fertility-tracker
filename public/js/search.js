@@ -1,29 +1,31 @@
-// Search combobox, ARIA 1.2 with list autocomplete (DESIGN §3.6).
+// Search combobox, ARIA 1.2 with list autocomplete. Typo-tolerant (logic.searchPlaces), every place plus the world.
 
 import { h, setAttr, media, focusNoScroll, keepInView } from "./dom.js";
-import { searchPlaces, matchRange, colorFor, fmtTfr, tfrValue } from "./logic.js";
+import { searchPlaces, matchRange, changeColor, fmtPct, riskWord } from "./logic.js";
 
-export function createSearch({ wrap, input, list, clearBtn, status, getPlaces, getRecord, getMode, topPlaces, onSelect }) {
+// getPct(iso3) → % change vs today at the slider year (for the swatch and the number on each row).
+export function createSearch({ wrap, input, list, clearBtn, status, getPlaces, getRecord, getPct, getYear, topPlaces, onSelect }) {
   let options = []; // [{ iso3, el }]
   let active = -1;
   let open = false;
-  let savedScrollY = null;
 
   function optionEl(rec, q) {
+    const pct = getPct(rec.iso3);
     const sw = h("span", { class: "swatch", "aria-hidden": "true" });
-    const c = colorFor(rec, getMode());
+    const c = changeColor(pct);
     if (c) sw.style.setProperty("--sw", c);
     else sw.setAttribute("data-nodata", "");
     const name = h("span", { class: "opt-name" });
     const r = q ? matchRange(rec.name, q) : null;
     if (r) name.append(rec.name.slice(0, r[0]), h("b", null, rec.name.slice(r[0], r[1])), rec.name.slice(r[1]));
     else name.textContent = rec.name;
+    const sub = rec.iso3 === "WLD" ? "Whole world" : riskWord(rec) ? `Risk of shrinking: ${riskWord(rec)}` : rec.region ?? "";
     return h(
       "li",
       { role: "option", id: `opt-${rec.iso3.toLowerCase()}`, "aria-selected": "false", "data-iso3": rec.iso3 },
       sw,
-      name,
-      h("span", { class: "opt-tfr", "aria-hidden": "true" }, fmtTfr(tfrValue(rec))),
+      h("span", { class: "opt-text" }, name, h("span", { class: "opt-sub" }, sub)),
+      h("span", { class: "opt-pct", "aria-hidden": "true" }, pct == null ? "" : `${fmtPct(pct)} by ${getYear()}`),
     );
   }
 
@@ -34,11 +36,10 @@ export function createSearch({ wrap, input, list, clearBtn, status, getPlaces, g
     setAttr(input, "aria-activedescendant", "");
     const nodes = [];
     if (!q.trim()) {
-      const mode = getMode();
       const top = topPlaces(5);
-      const g1 = h("li", { role: "group", "aria-label": mode === "tfr" ? "Lowest births per woman" : "Highest risk" });
+      const g1 = h("li", { role: "group", "aria-label": "Most at risk" });
       const ul1 = h("ul", { role: "presentation" });
-      g1.append(h("div", { class: "group-label", "aria-hidden": "true" }, mode === "tfr" ? "Lowest births per woman" : "Highest risk"), ul1);
+      g1.append(h("div", { class: "group-label", "aria-hidden": "true" }, "Most at risk of shrinking"), ul1);
       for (const rec of top) {
         const el = optionEl(rec, "");
         ul1.append(el);
@@ -49,7 +50,7 @@ export function createSearch({ wrap, input, list, clearBtn, status, getPlaces, g
       if (w) {
         const g2 = h("li", { role: "group", "aria-label": "World" });
         const ul2 = h("ul", { role: "presentation" });
-        g2.append(h("div", { class: "group-label", "aria-hidden": "true" }, "World"), ul2);
+        g2.append(h("div", { class: "group-label", "aria-hidden": "true" }, "Everyone"), ul2);
         const el = optionEl(w, "");
         ul2.append(el);
         options.push({ iso3: "WLD", el });
@@ -66,7 +67,7 @@ export function createSearch({ wrap, input, list, clearBtn, status, getPlaces, g
         options.push({ iso3: rec.iso3, el });
       }
       if (!options.length) {
-        nodes.push(h("li", { role: "option", id: "opt-none", "aria-disabled": "true", "aria-selected": "false" }, "No match. Try a name like 'Korea' or a code like KOR."));
+        nodes.push(h("li", { role: "option", id: "opt-none", class: "opt-none", "aria-disabled": "true", "aria-selected": "false" }, "No match. Try a name like Korea, or a code like KOR."));
         status.textContent = "No matches";
       } else status.textContent = `${options.length} result${options.length === 1 ? "" : "s"}`;
     }
@@ -78,6 +79,7 @@ export function createSearch({ wrap, input, list, clearBtn, status, getPlaces, g
     list.hidden = false;
     open = true;
     input.setAttribute("aria-expanded", "true");
+    wrap.classList.add("open");
   }
 
   function hide() {
@@ -86,12 +88,15 @@ export function createSearch({ wrap, input, list, clearBtn, status, getPlaces, g
     active = -1;
     input.setAttribute("aria-expanded", "false");
     setAttr(input, "aria-activedescendant", "");
+    wrap.classList.remove("open");
   }
 
   function setActive(i) {
     if (!options.length) return;
-    if (active >= 0) options[active]?.el.classList.remove("active");
-    options[active]?.el.setAttribute("aria-selected", "false");
+    if (active >= 0) {
+      options[active]?.el.classList.remove("active");
+      options[active]?.el.setAttribute("aria-selected", "false");
+    }
     active = ((i % options.length) + options.length) % options.length;
     const o = options[active];
     o.el.classList.add("active");
@@ -103,19 +108,11 @@ export function createSearch({ wrap, input, list, clearBtn, status, getPlaces, g
   function choose(iso3) {
     const rec = getRecord(iso3);
     if (!rec) return;
-    input.value = rec.name;
+    input.value = "";
     syncClear();
     hide();
+    if (media.coarse()) input.blur();
     onSelect(iso3);
-    if (media.coarse()) {
-      // Close the on-screen keyboard; restore the scroll position it may have moved (G7).
-      const y = savedScrollY;
-      input.blur();
-      if (y != null)
-        requestAnimationFrame(() => {
-          if (window.scrollY !== y) window.scrollTo({ top: y, behavior: "instant" });
-        });
-    }
   }
 
   function syncClear() {
@@ -124,27 +121,9 @@ export function createSearch({ wrap, input, list, clearBtn, status, getPlaces, g
     wrap.classList.toggle("has-text", has);
   }
 
-  // Typing must never move the page (DESIGN R1). The input sits in the sticky top bar, so the browser has nothing to
-  // reveal; if it scrolls anyway (caret reveal, IME, extensions), put the page back. Only ever restores.
-  let typingY = null;
-  function holdScroll() {
-    const y = typingY;
-    if (y == null) return;
-    const fix = () => {
-      if (document.activeElement === input && window.scrollY !== y) window.scrollTo({ top: y, behavior: "instant" });
-    };
-    fix();
-    requestAnimationFrame(fix);
-  }
-  input.addEventListener("keydown", (e) => (typingY = /^Page(Up|Down)$/.test(e.key) ? null : window.scrollY), true);
-  input.addEventListener("beforeinput", () => (typingY ??= window.scrollY));
-
   input.addEventListener("focus", () => {
-    if (media.coarse()) savedScrollY = window.scrollY;
-    typingY = window.scrollY;
     input.select();
     show();
-    if (!media.coarse()) holdScroll(); // touch: the on-screen keyboard owns the focus scroll (G7 restores after selection)
   });
   input.addEventListener("blur", () => {
     // Let a click on an option land first (mousedown is prevented, so this is a real blur).
@@ -155,9 +134,7 @@ export function createSearch({ wrap, input, list, clearBtn, status, getPlaces, g
   input.addEventListener("input", () => {
     syncClear();
     show();
-    holdScroll();
   });
-  input.addEventListener("keyup", holdScroll);
   input.addEventListener("keydown", (e) => {
     switch (e.key) {
       case "ArrowDown":
@@ -186,7 +163,7 @@ export function createSearch({ wrap, input, list, clearBtn, status, getPlaces, g
           e.preventDefault();
           input.value = "";
           syncClear();
-        }
+        } else input.blur();
         break;
       case "Tab":
         hide();
@@ -220,16 +197,10 @@ export function createSearch({ wrap, input, list, clearBtn, status, getPlaces, g
   });
 
   return {
-    setValue(name) {
-      if (document.activeElement === input && open) return;
-      input.value = name;
-      syncClear();
-    },
-    focusInput() {
-      focusNoScroll(input);
-    },
+    focusInput: () => focusNoScroll(input),
     refresh() {
       if (open) render();
     },
+    close: hide,
   };
 }

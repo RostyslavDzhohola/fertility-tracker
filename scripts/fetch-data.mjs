@@ -33,7 +33,7 @@ const log = (m) => console.log(m);
 const readJson = (p) => readFile(p, "utf8").then(JSON.parse, () => null);
 
 async function readPrevious() {
-  const [index, countries] = await Promise.all([readJson(join(API, "index.json")), readJson(join(API, "countries.json"))]);
+  const [index, countries, scenarios] = await Promise.all([readJson(join(API, "index.json")), readJson(join(API, "countries.json")), readJson(join(API, "scenarios.json"))]);
   // Previous detail files: the baseline for per-country coverage checks and the migration-corridor cache.
   const details = new Map();
   const names = await readdir(join(API, "countries")).catch(() => []);
@@ -51,6 +51,7 @@ async function readPrevious() {
     index,
     countries: countries?.countries ?? null,
     details,
+    scenarios,
     corridors: corridors && { entry: corridorEntry, data: corridors },
   };
 }
@@ -62,8 +63,9 @@ function validateFiles(files) {
     path.endsWith("/index.json") ? "index.schema.json"
       : path.endsWith("/countries.json") ? "countries.schema.json"
         : path.endsWith("/risk.json") ? "risk.schema.json"
-          : /\/countries\/[A-Z]{3}\.json$/.test(path) ? "country.schema.json"
-            : null;
+          : path.endsWith("/scenarios.json") ? "scenarios.schema.json"
+            : /\/countries\/[A-Z]{3}\.json$/.test(path) ? "country.schema.json"
+              : null;
   const errors = [];
   for (const [path, content] of files) {
     if (!path.endsWith(".json")) continue;
@@ -96,8 +98,18 @@ async function verifyOnly() {
   else
     for (const c of countries.countries)
       if (!files.has(`${API_DIR}/countries/${c.iso3}.json`)) errors.push(`missing countries/${c.iso3}.json`);
-  for (const f of ["risk.json", "index.json", "countries.csv", "timeseries.csv", "openapi.json"])
+  const index = JSON.parse(files.get(`${API_DIR}/index.json`) ?? "null");
+  const listed = (index?.endpoints ?? []).map((e) => e.path).filter((p) => !p.includes("{") && p !== "status.json");
+  for (const f of new Set(["risk.json", "index.json", "countries.csv", "timeseries.csv", "openapi.json", ...listed]))
     if (!files.has(`${API_DIR}/${f}`)) errors.push(`missing ${f}`);
+  const scen = JSON.parse(files.get(`${API_DIR}/scenarios.json`) ?? "null");
+  if (scen && countries) {
+    const n = scen.endYear - scen.startYear + 1;
+    for (const c of countries.countries) {
+      const p = scen.places?.[c.iso3];
+      if (!p || p.medium?.length !== n || p.constant?.length !== n) errors.push(`scenarios.json: ${c.iso3} missing or not ${n} years`);
+    }
+  }
   if (errors.length) {
     console.error(`Verification failed (${errors.length} problems):\n  ${errors.slice(0, 40).join("\n  ")}`);
     process.exit(1);
@@ -171,7 +183,7 @@ async function main() {
     process.exit(1);
   }
 
-  const ds = buildDataset({ wpp: src.wpp, ims: src.ims, wb: src.wb, corridors: corridors.data });
+  const ds = buildDataset({ wpp: src.wpp, ims: src.ims, wb: src.wb, corridors: corridors.data, scenarios: src.scenarios });
   const sanity = sanityCheck(ds, previous);
   if (sanity.length) {
     console.error(`Sanity checks failed (${sanity.length}):\n  ${sanity.slice(0, 40).join("\n  ")}`);
