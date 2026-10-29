@@ -47,11 +47,11 @@ export function emailChooser(feedback, ctx, { prefix = "email" } = {}) {
     h("div", { class: "email-apps" }, app("Gmail", m.gmail, true), app("Outlook", m.outlook, true), app("Mail app", m.mailto, false)),
     h("p", { class: "fb-address" }, h("span", { class: "email-text" }, m.address), copyBtn),
   );
+  // Focus stays on the button; Tab moves on to the choices right after it.
   toggle.addEventListener("click", () => {
     const open = panel.hidden;
     panel.hidden = !open;
     toggle.setAttribute("aria-expanded", String(open));
-    if (open) panel.querySelector("a")?.focus({ preventScroll: true });
   });
   return { toggle, panel };
 }

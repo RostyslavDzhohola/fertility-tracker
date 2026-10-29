@@ -782,7 +782,7 @@ export function flowsBetween(series, from, to, { midyear = false } = {}) {
 
 // One plain sentence for flowsBetween(): does moving in hold the place up? name: "Germany", "the United States".
 export function flowsSentence(f, name, { world = false } = {}) {
-  if (!f) return "No yearly figures for births, deaths and moving.";
+  if (!f || !isNum(f.natural)) return "No yearly figures for births, deaths and moving.";
   const fl = (v) => fmtFlow(Math.abs(v), { plus: false });
   const nat = f.natural;
   const mig = world ? 0 : f.netMigration;

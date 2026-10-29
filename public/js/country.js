@@ -246,7 +246,8 @@ export function createCountryPage({ navigate, siteUrl }) {
     if (!f && rec.components) {
       // Until the place's file loads: its latest year from countries.json.
       const c = rec.components;
-      f = { births: c.births, deaths: c.deaths, netMigration: c.netMigration ?? 0, natural: c.naturalChange, change: c.populationChange };
+      const natural = Number.isFinite(c.births) && Number.isFinite(c.deaths) ? c.births - c.deaths : null;
+      f = { births: c.births, deaths: c.deaths, netMigration: c.netMigration ?? 0, natural, change: natural == null ? null : natural + (c.netMigration ?? 0) };
       span = `In ${c.year}, one year`;
     }
     const net = world ? 0 : f?.netMigration ?? 0;

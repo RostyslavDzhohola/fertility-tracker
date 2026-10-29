@@ -108,8 +108,8 @@
     --chart-constant-ink: #f3a274;
     --died: #8b847d;
   }
-  /* Dimmed swatches on a dark card lose their color; dim them less. */
-  .meter-seg i {
+  /* Dimmed swatches on a dark card lose their color; dim them less (beats the .meter-seg i rule further down). */
+  .meter-seg:not(.on) i {
     opacity: 0.72;
   }
 }
@@ -615,6 +615,11 @@ body.page-globe .topbar-inner > * {
   top: calc(100% + 8px);
   z-index: 60;
   width: 320px;
+  /* With the email choices open it can outgrow a short screen (phone on its side): scroll inside. */
+  max-height: calc(100vh - var(--topbar-h) - 24px);
+  max-height: calc(100dvh - var(--topbar-h) - 24px);
+  overflow: auto;
+  overscroll-behavior: contain;
   padding: 18px;
   background: var(--card);
   border-radius: var(--r-md);
