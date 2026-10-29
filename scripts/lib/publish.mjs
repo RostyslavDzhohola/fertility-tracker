@@ -5,6 +5,7 @@ import { mkdir, readdir, readFile, rename, rm, writeFile } from "node:fs/promise
 import { dirname, join } from "node:path";
 import { toCsv } from "./csv.mjs";
 import { REPLACEMENT_TFR } from "./model.mjs";
+import { DOWNGRADE_PCT, LEVEL_RULES, MATCH_PCT } from "./confidence.mjs";
 import { RISK_MODEL } from "./risk.mjs";
 import { API_BASE, SCHEMA_VERSION, SITE_URL, openapi, schemas } from "./schema.mjs";
 import { WPP_CITATION, WPP_CSV, WPP_HOME, WPP_METHODOLOGY, WPP_NEXT_RELEASE, WPP_RELEASED, WPP_SCENARIOS_DOC, WPP_UPDATE } from "./unwpp.mjs";
@@ -94,6 +95,38 @@ function sourcesManifest(manifest) {
       coverage: "Latest reported year per country and indicator",
       datasets: manifest.wb.map((d) => ({ id: d.id, title: d.title, url: d.url, status: d.status, lastUpdated: d.lastUpdated ?? null })),
     },
+    ...(manifest.quality?.length
+      ? [
+          {
+            id: "QUALITY",
+            name: "How sure is each number",
+            publisher: "United Nations (Population Division, Statistics Division), Eurostat, national statistics offices",
+            via:
+              "The UN's own per-country documentation (PDFs extracted once into scripts/data/, with each file's SHA-256), the UN DESA migrant-stock " +
+              "workbook, the Eurostat API, and hand-checked notes (docs/CROSS-CHECK-PROCESS.md)",
+            homepage: `${REPO}/blob/main/docs/METHODOLOGY.md#how-sure-is-each-number`,
+            license: "UN: CC BY 3.0 IGO; Eurostat: CC BY 4.0",
+            citation:
+              "United Nations, DESA, Population Division (2024). World Population Prospects 2024: Data Sources; United Nations Statistics Division, " +
+              "Population and Vital Statistics Report; Eurostat",
+            vintage: manifest.quality.map((d) => d.lastUpdated).filter(Boolean).sort().at(-1) ?? null,
+            nextUpdate: null,
+            coverage: "confidence, forecastRange and crossChecks in countries/{ISO3}.json; confidence (overall level) in countries.json",
+            datasets: manifest.quality.map((d) => ({
+              id: d.id,
+              title: d.title,
+              url: d.url,
+              status: d.status,
+              lastUpdated: d.lastUpdated ?? null,
+              ...(d.file ? { file: d.file } : {}),
+              ...(d.sha256 ? { sha256: d.sha256 } : {}),
+              ...(d.tables ? { tables: d.tables } : {}),
+              ...(d.page ? { page: d.page } : {}),
+              ...(d.current !== undefined ? { current: d.current } : {}),
+            })),
+          },
+        ]
+      : []),
   ];
 }
 
@@ -117,7 +150,16 @@ function dataGaps(ds, manifest) {
     "Taiwan and 20 small territories are not in the World Bank database: their figures come from UN sources only, their region is borrowed from a neighbour, and incomeGroup is null.",
     `Places with fewer than ${RISK_MODEL.minPopulation.toLocaleString("en-US")} people are scored where possible but not ranked: small numbers make rates noisy.`,
   ];
-  for (const d of [...manifest.wpp, ...manifest.ims, ...manifest.wb]) {
+  gaps.push(
+    "confidence (countries/{ISO3}.json) says how sure each place's numbers are: when it was last counted, whether births and deaths are registered, " +
+      "how its migrants were counted, and how wide the UN's own forecast range is. Levels follow confidenceRules in index.json. crossChecks compare UN " +
+      `figures with newer national ones: within ${MATCH_PCT}% they "match". Automatic checks cover Eurostat countries and what national offices report ` +
+      "to the UN Statistics Division; hand-checked notes cover the places listed in scripts/data/crosschecks.json.",
+  );
+  for (const d of manifest.quality ?? []) {
+    if (d.current === false) gaps.push(`A new edition of ${d.title} is online; ${d.file} still holds the previous one until it is extracted again (scripts/extract/README.md).`);
+  }
+  for (const d of [...manifest.wpp, ...manifest.ims, ...manifest.wb, ...(manifest.quality ?? [])]) {
     if (d.status !== "ok") gaps.push(`Source dataset ${d.id} was unavailable in this build (${d.error ?? "unknown error"}); the fields it feeds are null.`);
   }
   return gaps;
@@ -352,7 +394,12 @@ export function renderFiles(ds, manifest) {
       endpoints: [
         endpoint("index.json", "json", "This manifest.", "index.schema.json"),
         endpoint("countries.json", "json", "Summary for every country + WLD (sorted by iso3).", "countries.schema.json"),
-        endpoint("countries/{iso3}.json", "json", "Full record for one country: series 1950-2100, demographic balance, migrant stocks and corridors, risk detail.", "country.schema.json"),
+        endpoint(
+          "countries/{iso3}.json",
+          "json",
+          "Full record for one country: series 1950-2100, demographic balance, migrant stocks and corridors, risk detail, how sure each number is (confidence), the UN's forecast range and newer national figures (crossChecks).",
+          "country.schema.json",
+        ),
         endpoint("risk.json", "json", "Countries ranked by population-decline risk + methodology.", "risk.schema.json"),
         ...(ds.scenarios
           ? [
@@ -370,6 +417,7 @@ export function renderFiles(ds, manifest) {
         endpoint("status.json", "json", "When the weekly refresh last ran and whether it succeeded (written at deploy time; generatedAt elsewhere only moves when numbers change).", "status.schema.json"),
       ],
       dataGaps: dataGaps(ds, manifest),
+      confidenceRules: { levels: ["good", "fair", "poor"], matchPct: MATCH_PCT, downgradePct: DOWNGRADE_PCT, ...LEVEL_RULES },
       links: {
         docs: `${SITE_URL}api/`,
         llms: `${SITE_URL}llms.txt`,

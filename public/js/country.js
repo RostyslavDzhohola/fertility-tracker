@@ -10,7 +10,6 @@ import { peopleRow } from "./people.js";
 import { emailLink } from "./ui.js";
 import { openShare, renderSnapshot, chartVisual } from "./snapshot.js";
 import { sourced, setSourceNavigate, closeSource, refreshSource, checkNote, SRC, WB_INDICATORS, wbIndicatorUrl } from "./sources.js";
-import { crossCheck } from "./crosscheck.js";
 
 const GEN_LABELS = ["Today", "Children", "Grandchildren", "Great-grandchildren"];
 
@@ -55,15 +54,24 @@ export function createCountryPage({ navigate, siteUrl }) {
     more: $("more"),
     moreBody: $("more-body"),
     share: $("cv-share"),
+    sureChip: $("cv-sure"),
+    sure: $("sure"),
+    sureSentence: $("sure-sentence"),
+    sureRows: $("sure-rows"),
+    sureChecksWrap: $("sure-checks-wrap"),
+    sureChecks: $("sure-checks"),
+    sureHow: $("sure-how"),
+    chRange: $("ch-range"),
   };
 
   let current = null; // record
   let chartModel = null; // what the chart shows, for the shared picture
   let series = null; // the place's yearly UN figures, once its file has loaded
+  let detailNow = null; // the place's full file (countries/{ISO3}.json), once loaded
   let token = 0;
   let whatIf = null;
 
-  // What other sources say about the chart's "today" (crosscheck.js), under the chart's sentence.
+  // What other sources say about the chart's "today" (hand-checked crossChecks), under the chart's sentence.
   el.chCheck = h("div", { class: "xcheck-wrap", hidden: true });
   el.chSentence.after(el.chCheck);
   // …and about immigration, under the "Why it's happening" tiles, so the tiles keep similar heights.
@@ -91,6 +99,9 @@ export function createCountryPage({ navigate, siteUrl }) {
   });
 
   setSourceNavigate(navigate);
+
+  // A hand-checked note on one of the place's numbers (countries/{ISO3}.json crossChecks; scripts/data/crosschecks.json).
+  const crossCheck = (iso3, key) => (detailNow?.iso3 === iso3 ? (detailNow.crossChecks ?? []).find((c) => c.kind === "researched" && c.key === key) : null) ?? null;
 
   // ---------------------------------------------------------------- where each number comes from
 
@@ -142,6 +153,9 @@ export function createCountryPage({ navigate, siteUrl }) {
         ["Kind", future && scenario === "constant" ? "UN what-if: every country keeps its 2023 babies per woman (constant-fertility scenario)" : kindOf(year)],
       ],
       note: forecastNote(year),
+      quote: detailNow?.iso3 === rec.iso3 && detailNow.confidence?.unSources?.population
+        ? { text: detailNow.confidence.unSources.population, label: "What the UN based it on (WPP 2024 Data Sources)", href: SRC.wppDataSources.file }
+        : null,
       // Ukraine's "today" rests on an assumed return of refugees: say what newer counts show.
       check: year > data.latestEstimateYear && year <= data.today ? crossCheck(rec.iso3, "today") : null,
       src: SRC.wppScenarios,
@@ -330,6 +344,7 @@ export function createCountryPage({ navigate, siteUrl }) {
   function renderChart(rec, detail) {
     const today = data.today;
     series = detail?.series ?? null;
+    detailNow = detail ?? null;
     lastFlowsYear = null;
     renderFlows();
     renderMove(rec);
@@ -360,7 +375,198 @@ export function createCountryPage({ navigate, siteUrl }) {
     el.chCheck.replaceChildren(...(chk ? [checkNote(chk, { cls: "xcheck" })] : []));
     el.chCheck.hidden = !chk;
     chartModel = { iso3: rec.iso3, past: pastAll, medium, constant, today };
-    chart.setData({ past: pastAll, medium, constant, today, lastEstimate: data.latestEstimateYear, peak, name: placeName(), year: state.year, mix: state.mix });
+    const range = rangePoints(detail?.forecastRange);
+    chart.setData({ past: pastAll, medium, constant, range, today, lastEstimate: data.latestEstimateYear, peak, name: placeName(), year: state.year, mix: state.mix });
+    renderRangeNote(rec, detail);
+    renderSure(rec, detail);
+  }
+
+  // The UN's own range around its forecast, as chart points: { lower80, upper80, lower95, upper95 } of [year, people].
+  function rangePoints(fr) {
+    if (!fr) return null;
+    const pts = (k) => (fr[k] ?? []).map((v, i) => [fr.startYear + i, v]);
+    return { lower80: pts("lower80"), upper80: pts("upper80"), lower95: pts("lower95"), upper95: pts("upper95") };
+  }
+
+  function renderRangeNote(rec, detail) {
+    const f = detail?.confidence?.forecast;
+    const ok = !!(detail?.forecastRange && f?.at?.length);
+    el.chRange.hidden = !ok;
+    if (!ok) return el.chRange.replaceChildren();
+    el.chRange.replaceChildren(
+      h("span", { class: "ch-range-key", "aria-hidden": "true" }, h("i", { class: "k80" }), h("i", { class: "k95" })),
+      sourced("Shaded: the UN's own range for its forecast", () => forecastInfo(rec, detailNow?.confidence?.forecast), { key: "ch-range" }),
+      " (darker: 80% likely, lighter: 95%).",
+    );
+  }
+
+  // ---------------------------------------------------------------- how sure is this
+
+  const sureLink = "https://github.com/RostyslavDzhohola/fertility-tracker/blob/main/docs/METHODOLOGY.md#how-sure-is-each-number";
+  const ownLink = "https://github.com/RostyslavDzhohola/fertility-tracker/blob/main/docs/METHODOLOGY.md";
+  const listYears = (ys) => (ys?.length ? (ys.length > 6 ? `${ys.slice(0, 2).join(", ")} … ${ys.slice(-3).join(", ")} (${ys.length} in all)` : ys.join(", ")) : "none");
+  const regWords = { C: "complete (90% or more registered)", U: "incomplete (under 90%)", "|": "from other sources, not the register" };
+  const regRow = (label, v) => [label, v ? `${v.year}: ${regWords[v.code] ?? "no completeness given"}${v.byRegistration ? ", counted by date registered" : ""}` : "not reported"];
+
+  function todayInfo(rec, c) {
+    const t = c.today;
+    const u = c.unSources;
+    return {
+      title: `When ${L.theName(rec)} was last counted`,
+      rows: [
+        ["Censuses the UN used", listYears(t.unCensuses)],
+        ...(t.unRegisters?.length ? [["Population registers", listYears(t.unRegisters)]] : []),
+        ["Official estimates", t.unOfficialEstimatesThrough ? `used by the UN up to ${t.unOfficialEstimatesThrough}` : "none used"],
+        ["Latest census reported", t.latestCensus ? `${L.fmtDate(t.latestCensus.date)}: ${L.fmtWords(t.latestCensus.total)} people${t.latestCensus.provisional ? " (first results)" : ""}` : "none reported to the UN Statistics Division"],
+      ],
+      note: "A census counts everyone on one day. Between censuses, the UN adds births, takes away deaths and estimates who moved, so the older the count, the bigger the guess.",
+      quote: u?.population ? { text: u.population, label: `UN, WPP 2024 Data Sources${u.page ? `, p. ${u.page}` : ""}`, href: SRC.wppDataSources.file } : null,
+      src: SRC.wppDataSources,
+      links: [{ label: "Latest censuses, UN Statistics Division (PDF)", href: "https://unstats.un.org/unsd/demographic-social/products/vitstats/seratab2.pdf" }],
+      api: { href: apiOf(rec), field: "confidence.today" },
+    };
+  }
+
+  function birthsDeathsInfo(rec, c) {
+    const b = c.birthsDeaths;
+    const u = c.unSources;
+    return {
+      title: `How births and deaths are counted in ${L.theName(rec)}`,
+      rows: [
+        regRow("Births registered", b.births),
+        regRow("Deaths registered", b.deaths),
+        ["The UN used", [b.unRegisteredBirthsThrough ? `registered births to ${b.unRegisteredBirthsThrough}` : "no registered births", b.unRegisteredDeathsThrough ? `registered deaths to ${b.unRegisteredDeathsThrough}` : "no registered deaths"].join("; ")],
+        ...(b.unBirthsAdjusted || b.unDeathsAdjusted ? [["Corrected", `The UN adjusted ${[b.unBirthsAdjusted && "births", b.unDeathsAdjusted && "deaths"].filter(Boolean).join(" and ")} for ones that weren't registered`]] : []),
+      ],
+      quote: u?.fertility ? { text: u.fertility, label: `UN, WPP 2024 Data Sources${u.page ? `, p. ${u.page}` : ""}`, href: SRC.wppDataSources.file } : null,
+      src: SRC.unsd,
+      links: [{ label: "What the UN used (PDF)", href: SRC.wppDataSources.file }],
+      api: { href: apiOf(rec), field: "confidence.birthsDeaths" },
+    };
+  }
+
+  function immigrationInfo(rec, c) {
+    const m = c.immigration;
+    const how = { B: "By country of birth", C: "By citizenship", I: "Not counted: modelled by the UN" };
+    const basis = {
+      officialFlows: "official counts of people moving",
+      flowEstimates: "estimates of people moving",
+      destinationCensuses: "people born here counted in other countries' censuses",
+      residual: "what's left after births and deaths are taken from the change in population",
+      unhcr: "refugee counts from the UN refugee agency",
+      other: "other sources",
+    };
+    return {
+      title: `How ${L.theName(rec)}'s people born abroad were counted`,
+      rows: [
+        ["Counted", [...(m.dataType ?? "")].map((k) => how[k]).filter(Boolean).join(", and ") || "–"],
+        ["Updated for 2024", m.reassessed2024 == null ? "–" : m.reassessed2024 ? "Yes: one of 60 places the UN fully reassessed" : "No: the UN carried its 2020 figure forward"],
+        ["Refugees living here", m.refugeesAdded ? "Added from the UN refugee agency's counts" : "Not added (people who fled abroad are counted where they live now)"],
+        ...(m.netMigrationBasis?.length ? [["Net migration from", m.netMigrationBasis.map((k) => basis[k] ?? k).join("; ")]] : []),
+      ],
+      quote: c.unSources?.migration ? { text: c.unSources.migration, label: "UN, WPP 2024 Data Sources (net migration)", href: SRC.wppDataSources.file } : null,
+      src: SRC.desa,
+      links: [{ label: "UN key facts: the 60 places reassessed (PDF, p. 1)", href: "https://www.un.org/development/desa/pd/sites/www.un.org.development.desa.pd/files/undesa_pd_2025_intlmigstock_2024_key_facts_and_figures_advance-unedited.pdf" }],
+      api: { href: apiOf(rec), field: "confidence.immigration" },
+    };
+  }
+
+  function forecastInfo(rec, f) {
+    if (!f?.at?.length) return null;
+    const r = (p, a, b) => `${L.fmtWords(p[a])} to ${L.fmtWords(p[b])}`;
+    return {
+      title: `How sure the UN is about ${possessive(L.theName(rec))} future`,
+      rows: f.at.flatMap((p) => [
+        [`${p.year}, forecast`, L.fmtWords(p.medium)],
+        [`${p.year}, 80% likely`, r(p, "lower80", "upper80")],
+        [`${p.year}, 95% likely`, r(p, "lower95", "upper95")],
+        ...(p.zeroMigration != null ? [[`${p.year}, if nobody moved`, L.fmtWords(p.zeroMigration)]] : []),
+      ]),
+      note:
+        "The UN runs its model thousands of times with different births, deaths and migration. The range holds the middle 80% and 95% of those runs. It can't foresee wars, pandemics or new laws, so the real range is wider.",
+      src: SRC.wppRange,
+      api: { href: apiOf(rec), field: "forecastRange" },
+    };
+  }
+
+  const possessive = (n) => L.possessive(n);
+  const levelWord = (part, level) => L.SURE_WORDS[part]?.[level] ?? "";
+
+  function sureRow(rec, part, level, text, info, word = levelWord(part, level)) {
+    return h(
+      "li",
+      { class: "sure-row", "data-level": level ?? "none" },
+      h("span", { class: "sure-dot", "aria-hidden": "true" }),
+      h(
+        "div",
+        { class: "sure-body" },
+        h("p", { class: "sure-head" }, h("b", null, L.SURE_TITLES[part]), " ", sourced(h("span", { class: "sure-word" }, word || "Unknown"), info, { key: `sure-${part}` })),
+        h("p", { class: "sure-text" }, text),
+      ),
+    );
+  }
+
+  function checkItem(c) {
+    const when = c.kind === "researched" ? `Checked by hand, ${L.fmtDate(c.accessed)}` : `${L.checkSourceLabel(c)}${c.asOf ? `, as of ${L.fmtDate(c.asOf)}` : ""}`;
+    return h(
+      "li",
+      { class: "sure-check", "data-verdict": c.coverageDiffers ? "context" : c.verdict },
+      h("p", null, h("span", { class: "sure-badge" }, L.checkBadge(c)), " ", L.checkText(c)),
+      c.notes?.length ? h("details", { class: "sure-note" }, h("summary", null, "Their note"), h("p", null, c.notes.join(" "))) : "",
+      h(
+        "p",
+        { class: "src-links" },
+        ...c.links.map((l) => h("a", { href: l.href, target: "_blank", rel: "noopener" }, l.label, h("span", { "aria-hidden": "true" }, "\u00a0↗"))),
+        h("span", { class: "sure-when" }, when),
+      ),
+    );
+  }
+
+  function renderSure(rec, detail) {
+    const c = detail?.confidence;
+    const ok = !!c?.level || !!c?.forecast?.at?.length;
+    el.sure.hidden = !ok;
+    el.sureChip.hidden = !c?.level;
+    if (!ok) {
+      el.sureChip.replaceChildren();
+      return;
+    }
+    const now = data.today;
+    if (c.level) {
+      const go = h("button", { type: "button", class: "sure-chip", "data-level": c.level }, h("span", { class: "sure-dot", "aria-hidden": "true" }), `${L.SURE_WORDS.overall[c.level]}: how sure is this?`);
+      // Jump to the section, below the sticky bars (scroll-margin-top in style.css), then move focus there.
+      go.addEventListener("click", () => {
+        const margin = parseFloat(getComputedStyle(el.sure).scrollMarginTop) || 0;
+        window.scrollTo({ top: Math.max(0, el.sure.getBoundingClientRect().top + window.scrollY - margin), behavior: media.reduced() ? "auto" : "smooth" });
+        focusNoScroll(el.sure);
+      });
+      el.sureChip.replaceChildren(go);
+    }
+    setText(el.sureSentence, L.sureSummary(rec, c, now) ?? "How sure the UN is about the future, from its own range.");
+    const rows = [];
+    if (c.today?.level) rows.push(sureRow(rec, "today", c.today.level, L.sureTodayText(c.today, now), () => todayInfo(rec, c), L.sureTodayWord(c.today)));
+    if (c.birthsDeaths?.level) rows.push(sureRow(rec, "birthsDeaths", c.birthsDeaths.level, L.sureBirthsDeathsText(c.birthsDeaths, detail.crossChecks ?? []), () => birthsDeathsInfo(rec, c)));
+    if (c.immigration?.level) rows.push(sureRow(rec, "immigration", c.immigration.level, L.sureImmigrationText(c.immigration), () => immigrationInfo(rec, c)));
+    if (c.forecast?.level) rows.push(sureRow(rec, "forecast", c.forecast.level, L.sureForecastText(c.forecast), () => forecastInfo(rec, c.forecast)));
+    el.sureRows.replaceChildren(...rows);
+    // Hand-checked notes on today's number and on net migration already sit next to them (under the chart and under
+    // "Why it's happening"): here, only a pointer to them.
+    const all = detail.crossChecks ?? [];
+    const inline = all.filter((x) => x.kind === "researched" && (x.key === "today" || x.key === "net"));
+    const checks = all.filter((x) => !inline.includes(x));
+    el.sureChecksWrap.hidden = false;
+    el.sureChecks.replaceChildren(
+      ...checks.map(checkItem),
+      ...(inline.length ? [h("li", { class: "sure-pointer" }, `More notes from other sources sit ${inline.some((x) => x.key === "today") ? "under the chart" : ""}${inline.length > 1 ? " and " : ""}${inline.some((x) => x.key === "net") ? "under “Why it's happening”" : ""}.`)] : []),
+      ...(!all.length ? [h("li", { class: "sure-pointer" }, `No newer national figure found yet for ${L.theName(rec)}. Countries are checked by hand a few at a time, weakest data first.`)] : []),
+    );
+    el.sureHow.replaceChildren(
+      "How we grade: ",
+      h("a", { href: sureLink, target: "_blank", rel: "noopener" }, "the rules", h("span", { "aria-hidden": "true" }, "\u00a0↗")),
+      ". The colors, the risk level and the 100-people pictures on this page are our own simple math on these numbers: ",
+      h("a", { href: ownLink, target: "_blank", rel: "noopener" }, "how it works", h("span", { "aria-hidden": "true" }, "\u00a0↗")),
+      ".",
+    );
   }
 
   // ---------------------------------------------------------------- why it's happening
@@ -851,6 +1057,7 @@ export function createCountryPage({ navigate, siteUrl }) {
     }
     const my = ++token;
     series = null;
+    detailNow = null;
     lastFlowsYear = null;
     renderHero(rec);
     setText(el.ppTitle, `Start with 100 people in ${L.theName(rec)}`);

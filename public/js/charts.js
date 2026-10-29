@@ -1,5 +1,6 @@
 // The country page's population chart, 1950–2100 (DESIGN-v3 §3 block 3): past as a solid line, the two futures labelled
-// at their ends, the peak annotated, and a marker that follows the shared year. Press and drag
+// at their ends, the UN's own range shaded around its forecast, the peak annotated, and a marker that follows the
+// shared year. Press and drag
 // (or tap) moves the year; a pointer just passing over it does nothing, so a resting mouse can't stop Play.
 // Plain SVG; viewBox in CSS pixels, re-rendered on resize.
 
@@ -23,6 +24,19 @@ function pathFrom(points, x, y) {
   return d;
 }
 
+let chartSeq = 0;
+
+// A closed area between two lines of [year, value] points (the same years), or "" when either has no values.
+function areaFrom(lower, upper, x, y) {
+  const ok = (p) => p && p[1] != null && Number.isFinite(p[1]);
+  const lo = (lower ?? []).filter(ok);
+  const hi = (upper ?? []).filter(ok);
+  if (lo.length < 2 || hi.length < 2) return "";
+  const top = hi.map((p, i) => `${i ? "L" : "M"}${x(p[0]).toFixed(1)},${y(p[1]).toFixed(1)}`).join("");
+  const bottom = [...lo].reverse().map((p) => `L${x(p[0]).toFixed(1)},${y(p[1]).toFixed(1)}`).join("");
+  return `${top}${bottom}Z`;
+}
+
 function valueAt(points, year) {
   if (!points?.length) return null;
   if (year <= points[0][0]) return points[0][1];
@@ -39,7 +53,7 @@ function valueAt(points, year) {
 
 // opts: { onScrub(year) }: any year 1950–2100.
 export function createPopChart(container, { onScrub } = {}) {
-  let model = null; // { past, medium, constant, today, peak, name }
+  let model = null; // { past, medium, constant, range: { lower80, upper80, lower95, upper95 } | null, today, peak, name }
   let geo = null;
   let svg = null;
   let marker = null;
@@ -97,6 +111,19 @@ export function createPopChart(container, { onScrub } = {}) {
       xt.append(t);
     }
     svg.append(xt);
+
+    // The UN's own range around its forecast (80% and 95% prediction intervals), clipped to the plot: for small places
+    // the 95% range can run far above the lines, and the scale follows the lines, not the range.
+    if (model.range) {
+      const clipId = `pc-clip-${(chartSeq = (chartSeq + 1) % 1e6)}`;
+      svg.append(s("defs", null, s("clipPath", { id: clipId }, s("rect", { x: m.left, y: m.top - 8, width: iw, height: ih + 8 }))));
+      const bands = s("g", { class: "bands", "clip-path": `url(#${clipId})`, "aria-hidden": "true" });
+      for (const [lo, hi, cls] of [["lower95", "upper95", "b95"], ["lower80", "upper80", "b80"]]) {
+        const d = areaFrom(model.range[lo], model.range[hi], x, y);
+        if (d) bands.append(s("path", { class: `band ${cls}`, d }));
+      }
+      svg.append(bands);
+    }
 
     // Lines.
     const lines = s("g", { class: "lines" });
@@ -233,6 +260,9 @@ export function createPopChart(container, { onScrub } = {}) {
     }
     placeBubble(marker, xx, v != null ? geo.y(v) : geo.m.top, `${Math.round(yr)}: ${fmtCompact(v)}`);
     svg.classList.toggle("constant", mix >= 0.5);
+    // The range belongs to the UN forecast: it fades out as "If birth rates stay the same" takes over.
+    const bands = svg.querySelector(".bands");
+    if (bands) bands.style.opacity = String(1 - mix);
     for (const p of svg.querySelectorAll(".line[data-s]")) p.style.opacity = p.dataset.s === "medium" ? String(1 - 0.45 * mix) : String(0.55 + 0.45 * mix);
   }
 

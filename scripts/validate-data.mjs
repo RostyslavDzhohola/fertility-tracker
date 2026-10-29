@@ -26,6 +26,8 @@ import {
   indicatorsAccumulator,
   POPULATION_COLUMNS,
   populationAccumulator,
+  RANGE_VARIANTS,
+  SCENARIO_VARIANTS,
   readGzipCsv,
   readUpdateCsv,
   WPP_CSV,
@@ -96,12 +98,12 @@ async function loadUn() {
   }
   if (!skip.has("scenarios")) {
     const t2 = Date.now();
-    const make = () => populationAccumulator({ startYear: 2024, endYear: 2100 });
+    const make = () => populationAccumulator({ startYear: 2024, endYear: 2100, variants: { ...SCENARIO_VARIANTS, ...RANGE_VARIANTS } });
     const mainPop = await readGzipCsv(WPP_CSV.populationBySex, make, { required: POPULATION_COLUMNS });
     const updPop = await readUpdateCsv(update.entries, WPP_UPDATE.files.populationBySex, populationAccumulator({ startYear: 2024, endYear: 2100, variants: { Medium: "medium" } }), { required: POPULATION_COLUMNS });
     un.scen = { main: mainPop.value, update: updPop };
     un.vintage.populationBySex = mainPop.lastModified;
-    log(`ok   UN WPP total population by sex, Medium + Constant fertility (${mainPop.value.size} places) ${((Date.now() - t2) / 1000).toFixed(1)}s`);
+    log(`ok   UN WPP total population by sex, Medium + Constant fertility + 80/95% ranges + Zero migration (${mainPop.value.size} places) ${((Date.now() - t2) / 1000).toFixed(1)}s`);
   }
   return un;
 }

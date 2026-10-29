@@ -1,0 +1,2102 @@
+{
+  "about": "Hand-checked notes: what newer or more direct primary sources say about a UN figure on the site. Each note names its sources, quotes the numbers it uses, and has the date it was checked. Process and rules: docs/CROSS-CHECK-PROCESS.md. Evidence for these entries: docs/DATA-CROSS-CHECK.md.",
+  "checked": "2026-10-29",
+  "places": {
+    "AFG": [
+      {
+        "key": "today",
+        "text": "Afghanistan's statistics office (NSIA) estimates 36.4 million people for the year 2025-26. The UN's figure for mid-2025 is 43.8 million, 20% higher. Neither is a count: the last census was in 1979, and NSIA's figure is a projection forward from a 2003-05 household listing.",
+        "figure": {
+          "value": 36435197,
+          "what": "NSIA estimate of the population living in Afghanistan, solar year 1404 (2025-26)",
+          "date": "2025"
+        },
+        "unFigure": {
+          "value": 43844111,
+          "what": "UN population on 1 July 2025 (forecast)",
+          "date": ""
+        },
+        "verdict": "un-higher",
+        "links": [
+          {
+            "label": "National Statistics and Information Authority (NSIA), Estimated Population of Afghanistan 2025-26, September 2025",
+            "href": "https://nsia.gov.af:8443/wp-content/uploads/2025/09/%D8%A8%D8%B1%D8%A7%D9%88%D8%B1%D8%AF-%D9%86%D9%81%D9%88%D8%B3-%DA%A9%D8%B4%D9%88%D8%B1-%D8%B3%D8%A7%D9%84-1404.pdf"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "The total population of the country in 1404 (2025-26) is estimated to be about 36.4 million persons, of which around 18.6 million persons (51.0%) are males and 17.8 million persons (49.0%) are females",
+            "href": "https://nsia.gov.af:8443/wp-content/uploads/2025/09/%D8%A8%D8%B1%D8%A7%D9%88%D8%B1%D8%AF-%D9%86%D9%81%D9%88%D8%B3-%DA%A9%D8%B4%D9%88%D8%B1-%D8%B3%D8%A7%D9%84-1404.pdf"
+          },
+          {
+            "text": "Total 707,717 792,283 1,500,000 12,466,511 12,999,214 25,465,725 4,678,470 4,791,002 9,469,472 17,852,698 18,582,499 36,435,197",
+            "href": "https://nsia.gov.af:8443/wp-content/uploads/2025/09/%D8%A8%D8%B1%D8%A7%D9%88%D8%B1%D8%AF-%D9%86%D9%81%D9%88%D8%B3-%DA%A9%D8%B4%D9%88%D8%B1-%D8%B3%D8%A7%D9%84-1404.pdf"
+          },
+          {
+            "text": "The Population Estimates publication of 1404 (2025-26) has been prepared based on the data obtained from household listing of 1381-1384 (2003-05), using the (Pt = P0 ert) formula.",
+            "href": "https://nsia.gov.af:8443/wp-content/uploads/2025/09/%D8%A8%D8%B1%D8%A7%D9%88%D8%B1%D8%AF-%D9%86%D9%81%D9%88%D8%B3-%DA%A9%D8%B4%D9%88%D8%B1-%D8%B3%D8%A7%D9%84-1404.pdf"
+          },
+          {
+            "text": "Due to the existence of security and economic problems, the second complete population census of the country after the population census of 1358 has not yet been conducted",
+            "href": "https://nsia.gov.af:8443/wp-content/uploads/2025/09/%D8%A8%D8%B1%D8%A7%D9%88%D8%B1%D8%AF-%D9%86%D9%81%D9%88%D8%B3-%DA%A9%D8%B4%D9%88%D8%B1-%D8%B3%D8%A7%D9%84-1404.pdf"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "net",
+        "text": "UNHCR counted 2.9 million Afghans returning from Iran and Pakistan in 2025, and 1.37 million more in 2026 up to 24 October. The UN forecast that about 74,000 more people would leave than arrive in 2025. These returns, many of them deportations, add people the forecast does not include.",
+        "figure": {
+          "value": 2900000,
+          "what": "Afghans who returned to Afghanistan from Iran and Pakistan in 2025 (UNHCR); 1,366,140 more returned in 2026 up to 24 October",
+          "date": "2025"
+        },
+        "unFigure": {
+          "value": -74404,
+          "what": "UN net migration in 2025 (forecast)",
+          "date": ""
+        },
+        "verdict": "un-lower",
+        "links": [
+          {
+            "label": "UNHCR briefing note, UNHCR seeks support for solutions as 5.4 million Afghans return since late 2023, February 2026",
+            "href": "https://www.unhcr.org/news/briefing-notes/unhcr-seeks-support-solutions-5-4-million-afghans-return-since-late-2023"
+          },
+          {
+            "label": "UNHCR Operational Data Portal, Afghanistan situation (total returns in 2026, updated 24 October 2026)",
+            "href": "https://data.unhcr.org/en/situations/afghanistan"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "So far this year, nearly 150,000 Afghans have returned from Iran and Pakistan. These arrivals come on top of already unprecedented returns – 2.9 million people in 2025, bringing the total to some 5.4 million since October 2023.",
+            "href": "https://www.unhcr.org/news/briefing-notes/unhcr-seeks-support-solutions-5-4-million-afghans-return-since-late-2023"
+          },
+          {
+            "text": "Total Returns to Afghanistan in 2026 JSON 1,366,140 Last updated 24 Oct 2026 Source - IOM, UNHCR",
+            "href": "https://data.unhcr.org/en/situations/afghanistan"
+          },
+          {
+            "text": "Deportations to Afghanistan in 2026 JSON 619,030 Last updated 24 Oct 2026",
+            "href": "https://data.unhcr.org/en/situations/afghanistan"
+          }
+        ],
+        "accessed": "2026-10-29"
+      }
+    ],
+    "AGO": [
+      {
+        "key": "today",
+        "text": "Angola's 2024 census, published by its statistics office (INE) in November 2025, found 36.6 million people on 19 September 2024. That total already adds back people a follow-up survey showed the census had missed. The UN's figure for mid-2024 is 37.9 million, about 3.5% higher, and higher still by the census date.",
+        "figure": {
+          "value": 36604681,
+          "what": "People living in Angola, 2024 census final result (adjusted for missed people)",
+          "date": "2024-09-19"
+        },
+        "unFigure": {
+          "value": 37885849,
+          "what": "UN forecast of Angola's population on 1 July 2024 (about 38.1 million by 19 September 2024)",
+          "date": ""
+        },
+        "verdict": "un-higher",
+        "links": [
+          {
+            "label": "INE Angola, Relatório Síntese dos Resultados Definitivos do Censo 2024, November 2025",
+            "href": "https://www.ine.gov.ao/Arquivos/arquivosCarregados//Carregados/Publicacao_638992698392651704.pdf"
+          },
+          {
+            "label": "INE Angola, Resultados Definitivos do Recenseamento Geral da População e Habitação 2024 (full report)",
+            "href": "https://censo2024.ine.gov.ao/Relatorio_Geral_Angola_Censo2024.pdf"
+          },
+          {
+            "label": "INE Angola, Divulgação dos resultados definitivos do Censo 2024, 20 November 2025",
+            "href": "https://www.ine.gov.ao/Arquivos/arquivosCarregados/Carregados/Noticia_638993743841845426.pdf"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "Os resultados definitivos do Censo 2024 mostram que , em 19 de Setembro de 2024 (momento censitário), a população residente em Angola era de 36 604 681 habitantes, sendo 17 931 985 homens, representando 49% da população total , e 18 672 69 6 mulheres, representando 51%.",
+            "href": "https://www.ine.gov.ao/Arquivos/arquivosCarregados//Carregados/Publicacao_638992698392651704.pdf"
+          },
+          {
+            "text": "O erro líquido de subcobertura do Censo para a população apresentou uma taxa de 28,3% a nível nacional. Isto significa que, sem o ajuste do IC, o Censo teria subestimado a população em quase um terço.",
+            "href": "https://censo2024.ine.gov.ao/Relatorio_Geral_Angola_Censo2024.pdf"
+          },
+          {
+            "text": "A avaliação da qualidade do Censo de 2024, através do Inquérito de Cobertura (IC) de 2025, foi essencial para corrigir os erros de subcobertura e obter uma contagem populacional fidedigna, utilizando o Método de Estimação por Sistema Dual.",
+            "href": "https://censo2024.ine.gov.ao/Relatorio_Geral_Angola_Censo2024.pdf"
+          },
+          {
+            "text": "1. Total da população do Censo 2024: 36 604 681 pessoas sendo 51% são mulheres e 49% são homens;",
+            "href": "https://www.ine.gov.ao/Arquivos/arquivosCarregados/Carregados/Noticia_638993743841845426.pdf"
+          }
+        ],
+        "accessed": "2026-10-29"
+      }
+    ],
+    "BGD": [
+      {
+        "key": "today",
+        "text": "The Bangladesh Bureau of Statistics estimates 174.81 million people on 31 December 2025, building on its 2022 census (169.83 million after correcting for people missed). The UN's figure for the same moment is about 176.75 million, 1.1% higher, so the two match.",
+        "figure": {
+          "value": 174810000,
+          "what": "BBS estimated population of Bangladesh",
+          "date": "2025-12-31"
+        },
+        "unFigure": {
+          "value": 176752472,
+          "what": "average of the UN's 1 July 2025 and 1 July 2026 forecasts (175,686,899 and 177,818,044), standing in for 1 January 2026",
+          "date": ""
+        },
+        "verdict": "matches",
+        "links": [
+          {
+            "label": "Bangladesh Bureau of Statistics, Statistical Yearbook Bangladesh 2025 (posted May 2026)",
+            "href": "https://objectstorage.ap-dcc-gazipur-1.oraclecloud15.com/n/axvjbnqprylg/b/V2Ministry/o/office-bbs/2026/5/28b3bbba-9e5c-47b9-8ec5-ebab10e19655.pdf"
+          },
+          {
+            "label": "Bangladesh Bureau of Statistics, Population and Housing Census 2022, National Report (Volume I), Nov 2023",
+            "href": "https://objectstorage.ap-dcc-gazipur-1.oraclecloud15.com/n/axvjbnqprylg/b/V2Ministry/o/office-bbs/2024/12/9ce5bd160bb14a1ab1eabe886adddb9a.pdf"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "According to the latest estimations from the Demography and Health Wing of the BBS, the country's estimated population stood at 174.81 million as of 31 December 2025.",
+            "href": "https://objectstorage.ap-dcc-gazipur-1.oraclecloud15.com/n/axvjbnqprylg/b/V2Ministry/o/office-bbs/2026/5/28b3bbba-9e5c-47b9-8ec5-ebab10e19655.pdf"
+          },
+          {
+            "text": "It is noted from the data that in 2022 census, the total enumerated population is recorded as 16,51,58,616 and the adjusted population, 16,98,28,911.",
+            "href": "https://objectstorage.ap-dcc-gazipur-1.oraclecloud15.com/n/axvjbnqprylg/b/V2Ministry/o/office-bbs/2024/12/9ce5bd160bb14a1ab1eabe886adddb9a.pdf"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "immigrants",
+        "text": "UNHCR counted 1,206,500 refugees and asylum-seekers from Myanmar, mostly Rohingya, in Bangladesh on 30 September 2026, close to the UN's 1.25 million people born in Myanmar. But the 2022 census found only 27,842 foreigners living in Bangladesh, far short of the UN's 2.9 million people born abroad.",
+        "figure": {
+          "value": 1206500,
+          "what": "refugees and asylum-seekers from Myanmar in Bangladesh, UNHCR",
+          "date": "2026-09-30"
+        },
+        "unFigure": {
+          "value": 1246705,
+          "what": "UN DESA people born in Myanmar living in Bangladesh, mid-2024 (all born abroad: 2,906,338)",
+          "date": ""
+        },
+        "verdict": "un-higher",
+        "links": [
+          {
+            "label": "UNHCR Operational Data Portal, Myanmar situation (data as of 30 Sep 2026)",
+            "href": "https://data.unhcr.org/en/situations/myanmar"
+          },
+          {
+            "label": "Bangladesh Bureau of Statistics, Population and Housing Census 2022, National Report (Volume I), Table 3.2.41, Nov 2023",
+            "href": "https://objectstorage.ap-dcc-gazipur-1.oraclecloud15.com/n/axvjbnqprylg/b/V2Ministry/o/office-bbs/2024/12/9ce5bd160bb14a1ab1eabe886adddb9a.pdf"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "Estimated Myanmar Refugees and Asylum Seekers JSON 1,638,800 Last updated 30 Sep 2026 Source - UNHCR JSON Location name Source Data date Population Bangladesh UNHCR 30 Sep 2026 73.6% 1,206,500",
+            "href": "https://data.unhcr.org/en/situations/myanmar"
+          },
+          {
+            "text": "In the census, a total of 27,842 population have been reported as foreigner, of which 21,208 are recorded as male and 6,634 as female.",
+            "href": "https://objectstorage.ap-dcc-gazipur-1.oraclecloud15.com/n/axvjbnqprylg/b/V2Ministry/o/office-bbs/2024/12/9ce5bd160bb14a1ab1eabe886adddb9a.pdf"
+          }
+        ],
+        "accessed": "2026-10-29"
+      }
+    ],
+    "CHN": [
+      {
+        "key": "today",
+        "text": "China's statistics office counted 1,404.89 million people at the end of 2025, 3.39 million fewer than a year before. The UN's figure for the same moment is about 1,414.5 million, 0.7% higher, so the two match.",
+        "figure": {
+          "value": 1404890000,
+          "what": "national population of mainland China at year-end (excludes Hong Kong, Macao, Taiwan and foreigners)",
+          "date": "2025-12-31"
+        },
+        "unFigure": {
+          "value": 1414505092,
+          "what": "average of the UN's 1 July 2025 and 1 July 2026 forecasts (1,416,096,094 and 1,412,914,089), standing in for 1 January 2026",
+          "date": ""
+        },
+        "verdict": "matches",
+        "links": [
+          {
+            "label": "National Bureau of Statistics of China, Statistical Communiqué on the 2025 National Economic and Social Development, 28 Feb 2026",
+            "href": "https://www.stats.gov.cn/english/PressRelease/202602/t20260228_1962661.html"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "By the end of 2025, the total number of national population [5] reached 1,404.89 million, a decrease of 3.39 million over that at the end of 2024.",
+            "href": "https://www.stats.gov.cn/english/PressRelease/202602/t20260228_1962661.html"
+          },
+          {
+            "text": "[5] The national population refers to the population of the 31 provinces, autonomous regions and municipalities directly under the central government and servicemen of the Chinese mainland, excluding residents of Hong Kong, Macao and Taiwan and foreigners",
+            "href": "https://www.stats.gov.cn/english/PressRelease/202602/t20260228_1962661.html"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "births",
+        "text": "China counted 7.92 million births in 2025. The UN forecast 8.71 million, about 10% more. A year earlier it went the other way: China counted 9.54 million births in 2024 against the UN's 8.82 million, so the UN's birth figures for these years are less certain than its population total.",
+        "figure": {
+          "value": 7920000,
+          "what": "births registered in 2025",
+          "date": "2025"
+        },
+        "unFigure": {
+          "value": 8709352,
+          "what": "UN forecast of births in 2025",
+          "date": ""
+        },
+        "verdict": "un-higher",
+        "links": [
+          {
+            "label": "National Bureau of Statistics of China, Statistical Communiqué on the 2025 National Economic and Social Development, 28 Feb 2026",
+            "href": "https://www.stats.gov.cn/english/PressRelease/202602/t20260228_1962661.html"
+          },
+          {
+            "label": "National Bureau of Statistics of China, Statistical Communiqué on the 2024 National Economic and Social Development, 28 Feb 2025",
+            "href": "https://www.stats.gov.cn/english/PressRelease/202502/t20250228_1958822.html"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "There were 7.92 million births in 2025 with a crude birth rate of 5.63 per thousand; and there were 11.31 million deaths with a crude death rate of 8.04 per thousand.",
+            "href": "https://www.stats.gov.cn/english/PressRelease/202602/t20260228_1962661.html"
+          },
+          {
+            "text": "There were 9.54 million births in 2024 with a crude birth rate of 6.77 per thousand; and there were 10.93 million deaths with a crude death rate of 7.76 per thousand.",
+            "href": "https://www.stats.gov.cn/english/PressRelease/202502/t20250228_1958822.html"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "immigrants",
+        "text": "China's 2020 census registered 1,430,695 people from abroad living on the mainland: 845,697 foreigners plus residents from Hong Kong, Macao and Taiwan. That counts nationality, not country of birth. The UN puts people born abroad at 1.64 million in mid-2024, a similar size.",
+        "figure": {
+          "value": 1430695,
+          "what": "foreigners and residents from Hong Kong, Macao and Taiwan registered in the census (by nationality, not birthplace)",
+          "date": "2020-11-01"
+        },
+        "unFigure": {
+          "value": 1638718,
+          "what": "UN DESA people born abroad living in China, mid-2024",
+          "date": ""
+        },
+        "verdict": "context",
+        "links": [
+          {
+            "label": "National Bureau of Statistics of China, Communiqué of the Seventh National Population Census (No. 8), 11 May 2021",
+            "href": "https://www.stats.gov.cn/english/PressRelease/202105/t20210510_1817193.html"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "The census saw a registration of 371380 residents from Hong Kong Special Administrative Region (SAR), 55732 residents from Macao SAR, 157886 residents from Taiwan, and 845697 foreigners residing in 31 provinces, totaling 1430695 persons.",
+            "href": "https://www.stats.gov.cn/english/PressRelease/202105/t20210510_1817193.html"
+          }
+        ],
+        "accessed": "2026-10-29"
+      }
+    ],
+    "CMR": [
+      {
+        "key": "today",
+        "text": "Cameroon's census office (BUCREP) estimated 28.9 million people in 2023; the UN's mid-2023 figure, 28.4 million, is 1.7% lower. A new census finished counting on 15 September 2026 with 22.8 million people registered, about 80% of the 30.1 million expected; final results will follow a check survey.",
+        "figure": {
+          "value": 28856127,
+          "what": "BUCREP estimate of Cameroon's total population, 2023 (as reported by UNFPA)",
+          "date": "2023"
+        },
+        "unFigure": {
+          "value": 28372687,
+          "what": "UN estimate of Cameroon's population on 1 July 2023",
+          "date": ""
+        },
+        "verdict": "matches",
+        "links": [
+          {
+            "label": "UNFPA, Cameroun: Évaluation du programme pays 2022-2026, rapport final (March 2026)",
+            "href": "https://www.unfpa.org/sites/default/files/2026-04/CMR%20EPP8_Rapport%20Final%20v.3_05.03.2026%20ok.pdf"
+          },
+          {
+            "label": "UNFPA Cameroon, 4th GPHC/GALC: Cameroon Concludes Main Enumeration Phase of the Joint General Census Operations, 2 October 2026",
+            "href": "https://cameroon.unfpa.org/en/news/4th-gphcgalc-cameroon-concludes-main-enumeration-phase-joint-general-census-operations"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "Population totale 28 856 127 2023 / BUCREP2",
+            "href": "https://www.unfpa.org/sites/default/files/2026-04/CMR%20EPP8_Rapport%20Final%20v.3_05.03.2026%20ok.pdf"
+          },
+          {
+            "text": "The official assessment indicates that 22,783,682 individuals were registered , representing nearly 80% of the national target population estimated at 30.14 million inhabitants.",
+            "href": "https://cameroon.unfpa.org/en/news/4th-gphcgalc-cameroon-concludes-main-enumeration-phase-joint-general-census-operations"
+          },
+          {
+            "text": "the session officially proclaimed the completion of the main enumeration phase—concluded on September 15, 2026—while formally adopting the operational roadmap for post-census activities.",
+            "href": "https://cameroon.unfpa.org/en/news/4th-gphcgalc-cameroon-concludes-main-enumeration-phase-joint-general-census-operations"
+          },
+          {
+            "text": "Between September and December 2026, an independent Post-Enumeration Survey (PES) will rigorously assess collection precision.",
+            "href": "https://cameroon.unfpa.org/en/news/4th-gphcgalc-cameroon-concludes-main-enumeration-phase-joint-general-census-operations"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "immigrants",
+        "text": "The UN refugee agency counted 444,000 refugees and asylum seekers living in Cameroon at the end of 2024, down from 483,000 two years earlier. The UN's figure of 643,000 people born abroad in mid-2024 also counts people who are not refugees. We found no national count of people born abroad to check it against.",
+        "figure": {
+          "value": 443740,
+          "what": "Refugees and asylum seekers living in Cameroon (UNHCR), end-2024",
+          "date": "2024-12-31"
+        },
+        "unFigure": {
+          "value": 642948,
+          "what": "UN DESA: people born abroad living in Cameroon, mid-2024",
+          "date": ""
+        },
+        "verdict": "context",
+        "links": [
+          {
+            "label": "UNHCR Refugee Data Finder API, refugees and asylum seekers hosted in Cameroon, 2022–2025",
+            "href": "https://api.unhcr.org/population/v1/population/?limit=20&dataset=population&displayType=totals&yearFrom=2022&yearTo=2025&coa=CMR&columns%5B%5D=refugees&columns%5B%5D=asylum_seekers&columns%5B%5D=idps&columns%5B%5D=returned_refugees&columns%5B%5D=returned_idps"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "{\"year\":2022,\"coo_id\":\"-\",\"coo_name\":\"-\",\"coo\":\"-\",\"coo_iso\":\"-\",\"coa_id\":39,\"coa_name\":\"Cameroon\",\"coa\":\"CMR\",\"coa_iso\":\"CMR\",\"refugees\":473887,\"asylum_seekers\":9247,\"idps\":989079,\"returned_refugees\":10774,\"returned_idps\":38159}",
+            "href": "https://api.unhcr.org/population/v1/population/?limit=20&dataset=population&displayType=totals&yearFrom=2022&yearTo=2025&coa=CMR&columns%5B%5D=refugees&columns%5B%5D=asylum_seekers&columns%5B%5D=idps&columns%5B%5D=returned_refugees&columns%5B%5D=returned_idps"
+          },
+          {
+            "text": "{\"year\":2024,\"coo_id\":\"-\",\"coo_name\":\"-\",\"coo\":\"-\",\"coo_iso\":\"-\",\"coa_id\":39,\"coa_name\":\"Cameroon\",\"coa\":\"CMR\",\"coa_iso\":\"CMR\",\"refugees\":427706,\"asylum_seekers\":16034,\"idps\":1036775,\"returned_refugees\":24190,\"returned_idps\":12811}",
+            "href": "https://api.unhcr.org/population/v1/population/?limit=20&dataset=population&displayType=totals&yearFrom=2022&yearTo=2025&coa=CMR&columns%5B%5D=refugees&columns%5B%5D=asylum_seekers&columns%5B%5D=idps&columns%5B%5D=returned_refugees&columns%5B%5D=returned_idps"
+          }
+        ],
+        "accessed": "2026-10-29"
+      }
+    ],
+    "COD": [
+      {
+        "key": "today",
+        "text": "DR Congo's statistics office (INS), projecting from the 1984 census, estimated 98.4 million people in 2019 in its 2020 statistical yearbook, its latest published national estimate we found. The UN's figure for mid-2019 is 92.9 million, about 5.5% lower.",
+        "figure": {
+          "value": 98370000,
+          "what": "INS estimated population of DR Congo in 2019, projected from the 1984 census",
+          "date": "2019"
+        },
+        "unFigure": {
+          "value": 92947442,
+          "what": "UN estimate of DR Congo's population on 1 July 2019",
+          "date": ""
+        },
+        "verdict": "un-lower",
+        "links": [
+          {
+            "label": "Institut National de la Statistique (RDC), Annuaire statistique RDC 2020, March 2021 (copy hosted by CCI France)",
+            "href": "https://aws-a.medias-ccifi.org/fileadmin/repcongo/user_upload/ANNUAIRE-STAT.-2020_RDC_2_.pdf"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "Tableau 28 ››  Superficie et population estimée de la RDC par province en 2019 N° Provinces Chef-lieu Superficie/km² Population (en milliers) RDC 2 345 410 98 370",
+            "href": "https://aws-a.medias-ccifi.org/fileadmin/repcongo/user_upload/ANNUAIRE-STAT.-2020_RDC_2_.pdf"
+          },
+          {
+            "text": "(I) que les données sur la population sont tirées des projections démographiques effectuées par l’Institut National de la Statistique sur base des données du recensement de 1984, faute de mieux.",
+            "href": "https://aws-a.medias-ccifi.org/fileadmin/repcongo/user_upload/ANNUAIRE-STAT.-2020_RDC_2_.pdf"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "net",
+        "text": "The UN refugee agency's count of Congolese refugees and asylum seekers abroad rose by 158,000 between the end of 2022 and the end of 2024, to 1.23 million. The UN's figures show only 42,000 more people leaving than arriving over 2023–2024. Another 6.9 million people were displaced inside the country at the end of 2024.",
+        "figure": {
+          "value": -157763,
+          "what": "Rise in Congolese refugees and asylum seekers abroad (UNHCR), end-2022 to end-2024, shown as an outflow",
+          "date": "2022-12-31 to 2024-12-31"
+        },
+        "unFigure": {
+          "value": -41960,
+          "what": "UN net migration for DR Congo, 2023 plus 2024",
+          "date": ""
+        },
+        "verdict": "context",
+        "links": [
+          {
+            "label": "UNHCR Refugee Data Finder API, people displaced from DR Congo, 2022–2025",
+            "href": "https://api.unhcr.org/population/v1/population/?limit=20&dataset=population&displayType=totals&yearFrom=2022&yearTo=2025&coo=COD&columns%5B%5D=refugees&columns%5B%5D=asylum_seekers&columns%5B%5D=idps&columns%5B%5D=returned_refugees&columns%5B%5D=returned_idps"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "{\"year\":2022,\"coo_id\":41,\"coo_name\":\"Dem. Rep. of the Congo\",\"coo\":\"COD\",\"coo_iso\":\"COD\",\"coa_id\":\"-\",\"coa_name\":\"-\",\"coa\":\"-\",\"coa_iso\":\"-\",\"refugees\":932680,\"asylum_seekers\":135099,\"idps\":5541021,\"returned_refugees\":11253,\"returned_idps\":1216942}",
+            "href": "https://api.unhcr.org/population/v1/population/?limit=20&dataset=population&displayType=totals&yearFrom=2022&yearTo=2025&coo=COD&columns%5B%5D=refugees&columns%5B%5D=asylum_seekers&columns%5B%5D=idps&columns%5B%5D=returned_refugees&columns%5B%5D=returned_idps"
+          },
+          {
+            "text": "{\"year\":2024,\"coo_id\":41,\"coo_name\":\"Dem. Rep. of the Congo\",\"coo\":\"COD\",\"coo_iso\":\"COD\",\"coa_id\":\"-\",\"coa_name\":\"-\",\"coa\":\"-\",\"coa_iso\":\"-\",\"refugees\":1060086,\"asylum_seekers\":165456,\"idps\":6905511,\"returned_refugees\":575,\"returned_idps\":2361409}",
+            "href": "https://api.unhcr.org/population/v1/population/?limit=20&dataset=population&displayType=totals&yearFrom=2022&yearTo=2025&coo=COD&columns%5B%5D=refugees&columns%5B%5D=asylum_seekers&columns%5B%5D=idps&columns%5B%5D=returned_refugees&columns%5B%5D=returned_idps"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "immigrants",
+        "text": "The UN refugee agency counted 518,000 refugees and asylum seekers living in DR Congo at the end of 2024. The UN's figure of 1.09 million people born abroad in mid-2024 is about twice that, because it also counts people born abroad who are not refugees. We found no national count to check it against.",
+        "figure": {
+          "value": 518445,
+          "what": "Refugees and asylum seekers living in DR Congo (UNHCR), end-2024",
+          "date": "2024-12-31"
+        },
+        "unFigure": {
+          "value": 1085090,
+          "what": "UN DESA: people born abroad living in DR Congo, mid-2024",
+          "date": ""
+        },
+        "verdict": "context",
+        "links": [
+          {
+            "label": "UNHCR Refugee Data Finder API, refugees and asylum seekers hosted in DR Congo, 2022–2025",
+            "href": "https://api.unhcr.org/population/v1/population/?limit=20&dataset=population&displayType=totals&yearFrom=2022&yearTo=2025&coa=COD&columns%5B%5D=refugees&columns%5B%5D=asylum_seekers&columns%5B%5D=idps&columns%5B%5D=returned_refugees&columns%5B%5D=returned_idps"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "{\"year\":2024,\"coo_id\":\"-\",\"coo_name\":\"-\",\"coo\":\"-\",\"coo_iso\":\"-\",\"coa_id\":41,\"coa_name\":\"Dem. Rep. of the Congo\",\"coa\":\"COD\",\"coa_iso\":\"COD\",\"refugees\":517404,\"asylum_seekers\":1041,\"idps\":6905511,\"returned_refugees\":15466,\"returned_idps\":2361409}",
+            "href": "https://api.unhcr.org/population/v1/population/?limit=20&dataset=population&displayType=totals&yearFrom=2022&yearTo=2025&coa=COD&columns%5B%5D=refugees&columns%5B%5D=asylum_seekers&columns%5B%5D=idps&columns%5B%5D=returned_refugees&columns%5B%5D=returned_idps"
+          }
+        ],
+        "accessed": "2026-10-29"
+      }
+    ],
+    "EGY": [
+      {
+        "key": "today",
+        "text": "Egypt's statistics agency CAPMAS says the population inside the country reached 109 million on 9 May 2026. Its clock adds births and subtracts deaths from health-ministry records. The UN's figure for that date is about 119.8 million, about 10% higher.",
+        "figure": {
+          "value": 109000000,
+          "what": "population living inside Egypt, CAPMAS population clock",
+          "date": "2026-05-09"
+        },
+        "unFigure": {
+          "value": 119850000,
+          "what": "UN figure for 9 May 2026, read off the line between the UN's 1 July 2025 (118,365,995) and 1 July 2026 (120,101,175) values",
+          "date": ""
+        },
+        "verdict": "un-higher",
+        "links": [
+          {
+            "label": "CAPMAS (Egypt's statistics agency), press release: Egypt's population inside the country reaches 109 million, 9 May 2026",
+            "href": "https://www.capmas.gov.eg/news/3461"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "بلغ عدد سكــان جمهوريـة مصـــر العربيـة بالداخــل (109 مليـــون نسمة) يــوم السبت الموافق 9/5/2026.",
+            "href": "https://www.capmas.gov.eg/news/3461"
+          },
+          {
+            "text": "وكان عدد السكان قد بلغ (108 مليون نسمة) يــوم السبت الموافق 16/8/2025 وفقاً لما أعلنته الساعة السكانية بالجهاز المركزي للتعبئة العامة والإحصاء المرتبطة بقاعدة بيانات تسجيل المواليد والوفيات بوزارة الصحة والسكان.",
+            "href": "https://www.capmas.gov.eg/news/3461"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "births",
+        "text": "CAPMAS counted 1.452 million births between 16 August 2025 and 9 May 2026, an average of 5,439 a day, or about 1.99 million a year. The UN forecast 2.45 million births in 2025, about 23% more.",
+        "figure": {
+          "value": 1985000,
+          "what": "births per year at CAPMAS's average of 5,439 a day (16 Aug 2025 to 9 May 2026; yearly total is our arithmetic)",
+          "date": "2025-2026"
+        },
+        "unFigure": {
+          "value": 2450027,
+          "what": "UN forecast of births in Egypt in 2025",
+          "date": ""
+        },
+        "verdict": "un-higher",
+        "links": [
+          {
+            "label": "CAPMAS (Egypt's statistics agency), press release: Egypt's population inside the country reaches 109 million, 9 May 2026",
+            "href": "https://www.capmas.gov.eg/news/3461"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "وقد بلــغ عدد المواليد (1.452) مليـون خـــلال الفترة من (16/8/2025إلى9/5/2026) بمتوســط (5439 مولود) يومياً",
+            "href": "https://www.capmas.gov.eg/news/3461"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "immigrants",
+        "text": "UNHCR had 1,098,708 refugees and asylum-seekers registered in Egypt on 30 June 2026, 851,947 of them from Sudan. That is already 96% of the UN's figure of 1.14 million people born abroad in mid-2024, which also has to cover migrant workers and other foreigners.",
+        "figure": {
+          "value": 1098708,
+          "what": "refugees and asylum-seekers registered with UNHCR in Egypt (by nationality, not birthplace)",
+          "date": "2026-06-30"
+        },
+        "unFigure": {
+          "value": 1139820,
+          "what": "UN DESA people born abroad living in Egypt, mid-2024",
+          "date": ""
+        },
+        "verdict": "context",
+        "links": [
+          {
+            "label": "UNHCR, Sudan Situation update, June 2026",
+            "href": "https://data.unhcr.org/en/documents/download/123533"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "As of 30 June, the registered refugees and asylum-seekers population in Egypt stood at 1,098,708 individuals, including those who arrived in Egypt before the conflict. Sudanese nationals constitute the largest group at 851,947 individuals (78 per cent), followed by other nationalities at 152,882 (14 per cent).",
+            "href": "https://data.unhcr.org/en/documents/download/123533"
+          },
+          {
+            "text": "Returns to Sudan from neighbouring countries since 2024 reached 1.12 million, with 61,055 people recorded entering Sudan from Egypt in June alone.",
+            "href": "https://data.unhcr.org/en/documents/download/123533"
+          }
+        ],
+        "accessed": "2026-10-29"
+      }
+    ],
+    "ETH": [
+      {
+        "key": "today",
+        "text": "The Ethiopian Statistics Service projects 111.7 million people for July 2025. The UN's figure for mid-2025 is 135.5 million, about 24 million or 21% higher. We found no recent count that shows which of the two is closer.",
+        "figure": {
+          "value": 111652998,
+          "what": "Ethiopian Statistics Service projected population, July 2025",
+          "date": "2025-07"
+        },
+        "unFigure": {
+          "value": 135472051,
+          "what": "UN forecast of Ethiopia's population on 1 July 2025",
+          "date": ""
+        },
+        "verdict": "un-higher",
+        "links": [
+          {
+            "label": "Ethiopian Statistics Service, Population Size by Sex, Region, Zone and Wereda: July 2025 (posted August 2025)",
+            "href": "https://ess.gov.et/wp-content/uploads/2025/08/projected-population-of-ethiopia-2025.pdf"
+          },
+          {
+            "label": "Ethiopian Statistics Service, Population Size by Sex, Area and Density by Region, Zone and Wereda: July 2024 (via Wayback Machine)",
+            "href": "https://www.statsethiopia.gov.et/wp-content/uploads/2024/07/Projected_Population-2024.pdf"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "Population Size by Sex, Region, Zone and  Wereda : July  2025.",
+            "href": "https://ess.gov.et/wp-content/uploads/2025/08/projected-population-of-ethiopia-2025.pdf"
+          },
+          {
+            "text": "COUNTRY Total* 55,943,999 55,708,999 111,652,998 13,417,999 13,565,000 26,982,999 42,526,000 42,143,999 84,669,999",
+            "href": "https://ess.gov.et/wp-content/uploads/2025/08/projected-population-of-ethiopia-2025.pdf"
+          },
+          {
+            "text": "COUNTRY Total* 54,874,000 54,625,000 ######### 12,872,000 13,015,000 25,887,000 42,002,000 41,610,000 83,612,000",
+            "href": "https://www.statsethiopia.gov.et/wp-content/uploads/2024/07/Projected_Population-2024.pdf"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "immigrants",
+        "text": "The UN refugee agency counted 1.07 million refugees and asylum seekers living in Ethiopia at the end of 2024. The UN's figure of 1.17 million people born abroad in mid-2024 is about 9% higher; it also counts people born abroad who are not refugees.",
+        "figure": {
+          "value": 1071881,
+          "what": "Refugees and asylum seekers living in Ethiopia (UNHCR), end-2024",
+          "date": "2024-12-31"
+        },
+        "unFigure": {
+          "value": 1168455,
+          "what": "UN DESA: people born abroad living in Ethiopia, mid-2024",
+          "date": ""
+        },
+        "verdict": "context",
+        "links": [
+          {
+            "label": "UNHCR Refugee Data Finder API, refugees and asylum seekers hosted in Ethiopia, 2022–2025",
+            "href": "https://api.unhcr.org/population/v1/population/?limit=20&dataset=population&displayType=totals&yearFrom=2022&yearTo=2025&coa=ETH&columns%5B%5D=refugees&columns%5B%5D=asylum_seekers&columns%5B%5D=idps&columns%5B%5D=returned_refugees&columns%5B%5D=returned_idps"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "{\"year\":2024,\"coo_id\":\"-\",\"coo_name\":\"-\",\"coo\":\"-\",\"coo_iso\":\"-\",\"coa_id\":58,\"coa_name\":\"Ethiopia\",\"coa\":\"ETH\",\"coa_iso\":\"ETH\",\"refugees\":1008826,\"asylum_seekers\":63055,\"idps\":2272533,\"returned_refugees\":99215,\"returned_idps\":2438438}",
+            "href": "https://api.unhcr.org/population/v1/population/?limit=20&dataset=population&displayType=totals&yearFrom=2022&yearTo=2025&coa=ETH&columns%5B%5D=refugees&columns%5B%5D=asylum_seekers&columns%5B%5D=idps&columns%5B%5D=returned_refugees&columns%5B%5D=returned_idps"
+          }
+        ],
+        "accessed": "2026-10-29"
+      }
+    ],
+    "GBR": [
+      {
+        "key": "immigrants",
+        "text": "The UK's statistics office counts more: 13.1 million people born outside the UK in June 2024 (18.9%).",
+        "figure": {
+          "value": 13115000,
+          "what": "people living in the UK born outside it, ONS estimate",
+          "date": "2024-06-30"
+        },
+        "unFigure": {
+          "value": 11845479,
+          "what": "UN DESA estimate for mid-2024",
+          "date": "2024-07-01"
+        },
+        "verdict": "un-lower",
+        "links": [
+          {
+            "label": "ONS, May 2026",
+            "href": "https://www.ons.gov.uk/peoplepopulationandcommunity/populationandmigration/internationalmigration/bulletins/longterminternationalmigrationprovisional/yearendingdecember2025"
+          },
+          {
+            "label": "ONS: population by country of birth",
+            "href": "https://www.ons.gov.uk/peoplepopulationandcommunity/populationandmigration/internationalmigration/datasets/populationoftheunitedkingdombycountryofbirthandnationality"
+          }
+        ],
+        "quotes": [],
+        "accessed": "2026-10-29"
+      }
+    ],
+    "IDN": [
+      {
+        "key": "today",
+        "text": "Indonesia's statistics office (BPS) found 284.67 million people in its 2025 intercensal population survey, SUPAS 2025, released in May 2026, after the UN's 2024 figures were made. The UN's mid-2025 figure is 285.72 million, 0.4% higher: the two match.",
+        "figure": {
+          "value": 284670000,
+          "what": "population of Indonesia from the SUPAS 2025 survey, mid-2025",
+          "date": "2025"
+        },
+        "unFigure": {
+          "value": 285721236,
+          "what": "UN forecast for 1 July 2025",
+          "date": ""
+        },
+        "verdict": "matches",
+        "links": [
+          {
+            "label": "BPS-Statistics Indonesia, Berita Resmi Statistik No. 51/05/Th. XXIX: Hasil Survei Penduduk Antar Sensus (SUPAS 2025), 5 May 2026",
+            "href": "https://www.bps.go.id/id/pressrelease/2026/05/05/2645/supas-2025--angka-kelahiran-total--tfr--sebesar-2-13---angka-kematian-bayi--imr--sebesar-14-12--dan-persentase-lansia-mencapai-11-97-persen-.html"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "Jumlah penduduk Indonesia hasil SUPAS 2025 mencapai 284,67 juta jiwa. Selama periode 2010–2025, jumlah penduduk mengalami peningkatan dari 237,64 juta jiwa hasil SP2010 menjadi 284,67 juta jiwa hasil SUPAS 2025.",
+            "href": "https://www.bps.go.id/id/pressrelease/2026/05/05/2645/supas-2025--angka-kelahiran-total--tfr--sebesar-2-13---angka-kematian-bayi--imr--sebesar-14-12--dan-persentase-lansia-mencapai-11-97-persen-.html"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "net",
+        "text": "The SUPAS 2025 survey found about 537,000 people moved to Indonesia and about one million left over 2022–2025, a net loss of 53 people per 100,000 each year, roughly 150,000 a year. The UN shows a net loss of only about 38,000 a year, so the survey points to more people leaving.",
+        "figure": {
+          "value": -151000,
+          "what": "net international migration per year, 2022–2025: survey rate of −53 per 100,000 people a year applied to 284.67 million (our arithmetic)",
+          "date": "2022-2025"
+        },
+        "unFigure": {
+          "value": -38469,
+          "what": "UN net migration forecast for 2024 (2022 and 2023 estimates: −37,501 each)",
+          "date": ""
+        },
+        "verdict": "un-higher",
+        "links": [
+          {
+            "label": "BPS-Statistics Indonesia, Berita Resmi Statistik No. 51/05/Th. XXIX: Hasil Survei Penduduk Antar Sensus (SUPAS 2025), 5 May 2026",
+            "href": "https://www.bps.go.id/id/pressrelease/2026/05/05/2645/supas-2025--angka-kelahiran-total--tfr--sebesar-2-13---angka-kematian-bayi--imr--sebesar-14-12--dan-persentase-lansia-mencapai-11-97-persen-.html"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "Hasil SUPAS 2025 menunjukkan bahwa angka migrasi masuk internasional tercatat sebesar 0,61 (rata-rata 61 orang masuk ke Indonesia per 100.000 penduduk tiap tahun) atau mencapai 537 ribu migran internasional yang masuk ke Indonesia pada periode 2022–2025. Pada periode yang sama, angka migrasi keluar internasional adalah sebesar 1,14 (rata-rata 114 orang keluar dari Indonesia per 100.000 penduduk tiap tahun) atau sebanyak satu juta orang migran keluar dari Indonesia.",
+            "href": "https://www.bps.go.id/id/pressrelease/2026/05/05/2645/supas-2025--angka-kelahiran-total--tfr--sebesar-2-13---angka-kematian-bayi--imr--sebesar-14-12--dan-persentase-lansia-mencapai-11-97-persen-.html"
+          },
+          {
+            "text": "Angka migrasi neto internasional tercatat sebesar –0,53. Hal tersebut berarti ada pengurangan rata-rata 53 orang setiap 100.000 penduduk Indonesia setiap tahunnya karena migrasi internasional.",
+            "href": "https://www.bps.go.id/id/pressrelease/2026/05/05/2645/supas-2025--angka-kelahiran-total--tfr--sebesar-2-13---angka-kematian-bayi--imr--sebesar-14-12--dan-persentase-lansia-mencapai-11-97-persen-.html"
+          }
+        ],
+        "accessed": "2026-10-29"
+      }
+    ],
+    "IND": [
+      {
+        "key": "today",
+        "text": "The Indian government's official projection, made by the Technical Group on Population Projections in 2020, puts the population at 1.429 billion on 1 July 2026. The UN's figure for the same date is 1.477 billion, about 3% higher. The Indian figure is a projection forward from the 2011 census.",
+        "figure": {
+          "value": 1429404000,
+          "what": "Projected total population on 1 July 2026 (Technical Group on Population Projections, Ministry of Health & Family Welfare)",
+          "date": "2026-07-01"
+        },
+        "unFigure": {
+          "value": 1476625576,
+          "what": "UN population on 1 July 2026 (forecast)",
+          "date": ""
+        },
+        "verdict": "un-higher",
+        "links": [
+          {
+            "label": "Ministry of Health & Family Welfare, National Commission on Population, Report of the Technical Group on Population Projections for India and States 2011-2036, July 2020 (Table 11)",
+            "href": "https://main.mohfw.gov.in/sites/default/files/Population%20Projection%20Report%202011-2036%20-%20upload_compressed_0.pdf"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "Projected Total Population by Sex as on 1st July - 2011 - 2036 : India, States and Union Territories* ('000)",
+            "href": "https://main.mohfw.gov.in/sites/default/files/Population%20Projection%20Report%202011-2036%20-%20upload_compressed_0.pdf"
+          },
+          {
+            "text": "2026 14,29,404 7,33,798 6,95,606",
+            "href": "https://main.mohfw.gov.in/sites/default/files/Population%20Projection%20Report%202011-2036%20-%20upload_compressed_0.pdf"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "births",
+        "text": "India's civil registration system recorded 25.44 million births in 2022, up from 24.20 million in 2021. The UN estimates 23.29 million births in 2022, about 8% fewer than were registered.",
+        "figure": {
+          "value": 25439164,
+          "what": "Births registered in 2022 (Civil Registration System, Office of the Registrar General)",
+          "date": "2022"
+        },
+        "unFigure": {
+          "value": 23286125,
+          "what": "UN births in 2022",
+          "date": ""
+        },
+        "verdict": "un-lower",
+        "links": [
+          {
+            "label": "Office of the Registrar General, India, Vital Statistics of India based on the Civil Registration System 2022 (published June 2025)",
+            "href": "https://dc.crsorgi.gov.in/assets/download/Annual-Reports/crs/2022.pdf"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "The number of registered births has increased to 254.4 lakhs in 2022 from 242.0 lakhs in 2021.",
+            "href": "https://dc.crsorgi.gov.in/assets/download/Annual-Reports/crs/2022.pdf"
+          },
+          {
+            "text": "Number of Registered Births 2,42,01,614 2,54,39,164 Number of Registered Deaths 1,02,24,506 86,49,930",
+            "href": "https://dc.crsorgi.gov.in/assets/download/Annual-Reports/crs/2022.pdf"
+          }
+        ],
+        "accessed": "2026-10-29"
+      }
+    ],
+    "IRN": [
+      {
+        "key": "net",
+        "text": "UNHCR counted more than 1.9 million Afghans who returned or were deported from Iran to Afghanistan in 2025, and 581,600 more in 2026 up to 3 October. The UN's forecast shows Iran gaining about 117,000 people from migration in 2025, so it misses this large outflow.",
+        "figure": {
+          "value": -1900000,
+          "what": "Afghans who returned or were deported from Iran to Afghanistan in 2025 (an outflow, not a full net migration figure)",
+          "date": "2025"
+        },
+        "unFigure": {
+          "value": 116786,
+          "what": "UN net migration forecast for Iran in 2025",
+          "date": ""
+        },
+        "verdict": "un-higher",
+        "links": [
+          {
+            "label": "UNHCR, Afghanistan situation: Afghan returns from Iran, emergency update, published 8 Oct 2026",
+            "href": "https://data.unhcr.org/en/documents/download/124400"
+          },
+          {
+            "label": "UNHCR briefing note: UNHCR warns regional conflicts could drive increased returns to Afghanistan, 10 Mar 2026",
+            "href": "https://www.unhcr.org/uk/news/briefing-notes/unhcr-warns-regional-conflicts-could-drive-increased-returns-afghanistan"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "In 2025, more than 1.9 million Afghans returned or were deported from Iran – many not by choice. In 2026, a further 581,600 Afghans have returned.",
+            "href": "https://data.unhcr.org/en/documents/download/124400"
+          },
+          {
+            "text": "Over 5 million Afghans returned from neighbouring countries over the past two years – almost 1.9 million from Iran in 2025 alone.",
+            "href": "https://www.unhcr.org/uk/news/briefing-notes/unhcr-warns-regional-conflicts-could-drive-increased-returns-afghanistan"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "immigrants",
+        "text": "UNHCR counts 1.65 million refugees and others in need of protection in Iran in 2026. That is a narrower group than the UN's 3.84 million people born abroad in mid-2024. Almost 1.9 million Afghans also returned or were deported from Iran in 2025.",
+        "figure": {
+          "value": 1650000,
+          "what": "refugees and others in need of international protection in Iran (not everyone born abroad)",
+          "date": "2026"
+        },
+        "unFigure": {
+          "value": 3840654,
+          "what": "UN DESA people born abroad living in Iran, mid-2024",
+          "date": ""
+        },
+        "verdict": "context",
+        "links": [
+          {
+            "label": "UNHCR, Afghanistan situation: Afghan returns from Iran, emergency update, published 8 Oct 2026",
+            "href": "https://data.unhcr.org/en/documents/download/124400"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "1.65 Million Refugees and others in need of international protection in Iran Source: UNHCR",
+            "href": "https://data.unhcr.org/en/documents/download/124400"
+          },
+          {
+            "text": "On 20 March 2025, headcount slips for an estimated 2 million Afghans in Iran expired, after which the Government introduced a regularization and return scheme, requiring slip holders to undergo assessments to determine whether they can remain.",
+            "href": "https://data.unhcr.org/en/documents/download/124400"
+          }
+        ],
+        "accessed": "2026-10-29"
+      }
+    ],
+    "IRQ": [
+      {
+        "key": "today",
+        "text": "Iraq's 2024 census, with final results announced in November 2025, counted 46,118,793 people, foreigners included. The UN's figure for November 2024 works out to about 46.42 million, under 1% higher, so the two match.",
+        "figure": {
+          "value": 46118793,
+          "what": "Population counted by the 2024 General Population and Housing Census (Iraqis and foreigners), final results",
+          "date": "2024"
+        },
+        "unFigure": {
+          "value": 46422800,
+          "what": "UN population for 20 November 2024, read off a straight line between its 1 July 2024 and 1 July 2025 values",
+          "date": ""
+        },
+        "verdict": "matches",
+        "links": [
+          {
+            "label": "Central Statistical Organization (COSIT), Annual Statistical Abstract 2024-2025, Part Two: Population Census",
+            "href": "https://cosit.gov.iq/documents/AAS2024/02.pdf"
+          },
+          {
+            "label": "Ministry of Planning, Minister announces final results of the General Population Census, 26 November 2025 (Arabic)",
+            "href": "https://mop.gov.iq/archives/35531"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "Grand Total 16,239,549 16,124,100 32,363,649 6,922,055 6,833,089 13,755,144 23,161,604 22,957,189 46,118,793 Grand Total",
+            "href": "https://cosit.gov.iq/documents/AAS2024/02.pdf"
+          },
+          {
+            "text": "أعلن السيد نائب رئيس مجلس الوزراء – وزير التخطيط، الدكتور محمد علي تميم، اليوم الأربعاء، النتائج النهائية للتعداد العام للسكان في العراق، مؤكّدًا أن إجمالي عدد السكان بلغ 46,118,793 نسمة.",
+            "href": "https://mop.gov.iq/archives/35531"
+          },
+          {
+            "text": "• عدد السكان (عراقيون + أجانب): 46,118,793 فردًا.",
+            "href": "https://mop.gov.iq/archives/35531"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "immigrants",
+        "text": "The 2024 census counted 340,131 foreigners living in Iraq. The UN counts 370,980 people born abroad in mid-2024, 9% more. The two measure slightly different things, but the figures are close.",
+        "figure": {
+          "value": 340131,
+          "what": "Foreign nationals counted by the 2024 census",
+          "date": "2024-11"
+        },
+        "unFigure": {
+          "value": 370980,
+          "what": "UN DESA: people born abroad living in Iraq, mid-2024",
+          "date": ""
+        },
+        "verdict": "context",
+        "links": [
+          {
+            "label": "Ministry of Planning, Minister announces final results of the General Population Census, 26 November 2025 (Arabic)",
+            "href": "https://mop.gov.iq/archives/35531"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "• عدد السكان الأجانب في العراق: 340,131 شخصًا. • إجمالي عدد العراقيين: 45,778,662 فردًا.",
+            "href": "https://mop.gov.iq/archives/35531"
+          }
+        ],
+        "accessed": "2026-10-29"
+      }
+    ],
+    "LBN": [
+      {
+        "key": "net",
+        "text": "UNHCR estimates 630,697 Syrians returned to Syria from Lebanon between 8 December 2024 and 30 April 2026. The UN's forecast shows Lebanon losing about 17,000 people to migration in 2024 and 10,000 in 2025, and counts 785,000 Syria-born residents in mid-2024, before these returns. The two count different things.",
+        "figure": {
+          "value": -630697,
+          "what": "Syrian refugees estimated to have returned to Syria from Lebanon, 8 Dec 2024 to 30 Apr 2026 (an outflow, not a full net migration figure)",
+          "date": "2024-12-08 to 2026-04-30"
+        },
+        "unFigure": {
+          "value": -10230,
+          "what": "UN net migration forecast for Lebanon in 2025 (2024: −17,267)",
+          "date": ""
+        },
+        "verdict": "context",
+        "links": [
+          {
+            "label": "UNHCR, Comprehensive Overview of Refugee Returns Dashboard (Syria), as of 30 Apr 2026",
+            "href": "https://data.unhcr.org/en/documents/download/122248"
+          },
+          {
+            "label": "UNHCR, Returns to Syria – Regional Update, September 2026",
+            "href": "https://data.unhcr.org/en/documents/download/124199"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "Since 8 December 2024, an estimated 1,630,874 Syrians have returned.",
+            "href": "https://data.unhcr.org/en/documents/download/122248"
+          },
+          {
+            "text": "Breakdwon by Country of Return [chart labels:] Türkiye 639,995 Lebanon 630,697 Jordan 284,881 Iraq 41,179 Egypt 27,970",
+            "href": "https://data.unhcr.org/en/documents/download/122248"
+          },
+          {
+            "text": "Following hostilities in March 2026, assistance was temporarily suspended and later resumed under a force-majeure framework before regular voluntary repatriation activities restarted on 1 July 2026.",
+            "href": "https://data.unhcr.org/en/documents/download/124199"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "today",
+        "text": "Lebanon's statistics office surveyed 39,000 households and estimated 4.842 million residents in mid-2018, not counting refugee camps, army barracks or informal settlements; 20% were not Lebanese citizens. The UN's 2018 figure is 5.98 million. The two are not directly comparable.",
+        "figure": {
+          "value": 4842000,
+          "what": "people living in ordinary homes in Lebanon (excludes refugee camps, barracks and informal settlements), CAS/ILO household survey",
+          "date": "2018"
+        },
+        "unFigure": {
+          "value": 5984120,
+          "what": "UN estimate for 1 July 2018",
+          "date": ""
+        },
+        "verdict": "context",
+        "links": [
+          {
+            "label": "Central Administration of Statistics Lebanon and ILO, Labour Force and Household Living Conditions Survey 2018–2019 (copy on UNHCR's data portal), Dec 2019",
+            "href": "https://data.unhcr.org/en/documents/download/73718"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "The population of Lebanon for mid-2018 was estimated at around 4.842 million people, excluding people living in non-residential units, such as army barracks, refugee camps and adjacent gatherings, and informal settlements. Eighty per cent of residents are Lebanese and 20 per cent are citizens of other countries.",
+            "href": "https://data.unhcr.org/en/documents/download/73718"
+          }
+        ],
+        "accessed": "2026-10-29"
+      }
+    ],
+    "MMR": [
+      {
+        "key": "today",
+        "text": "Myanmar's 2024 census (provisional results) puts the population at 51.3 million on 30 September 2024. The UN's figure for that date is about 54.6 million, 6% higher. The census counted only 32.2 million people in person; the other 19.1 million is an estimate, made with remote-sensing technology, for areas where counting was not possible.",
+        "figure": {
+          "value": 51316756,
+          "what": "2024 census provisional total: 32,191,407 counted plus 19,125,349 estimated for areas not counted",
+          "date": "2024-09-30"
+        },
+        "unFigure": {
+          "value": 54587490,
+          "what": "UN population for 30 September 2024, read off a straight line between its 1 July 2024 and 1 July 2025 values",
+          "date": ""
+        },
+        "verdict": "un-higher",
+        "links": [
+          {
+            "label": "Department of Population, Ministry of Immigration and Population, 2024 Population and Housing Census Provisional Results",
+            "href": "https://dop.gov.mm/sites/dop.gov.mm/files/publication_docs/provisional_result_eng_final_21_jan.pdf"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "The Provisional Results indicate that the total population of Myanmar on Census Night (September 30, 2024) was 51,316,756. This figure includes an enumerated population of 32,191,407 persons and an estimated population of 19,125,349 persons derived using Remote Sensing technology for areas where enumeration was not possible.",
+            "href": "https://dop.gov.mm/sites/dop.gov.mm/files/publication_docs/provisional_result_eng_final_21_jan.pdf"
+          },
+          {
+            "text": "reaching 35.3 million in 1983, and 51.5 million in 2014. As of the 2024 Census, Myanmar’s population, including the estimated population of unenumerated areas, stands at 51.3 million.",
+            "href": "https://dop.gov.mm/sites/dop.gov.mm/files/publication_docs/provisional_result_eng_final_21_jan.pdf"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "net",
+        "text": "UNHCR estimates 304,500 refugees and asylum-seekers have arrived in other Asia-Pacific countries since 1 February 2021 (to 31 August 2026). That is more than the UN's total net outflow for 2021 to 2026, about 224,000, though the two count different things. UN agencies also report 4.06 million people displaced inside Myanmar.",
+        "figure": {
+          "value": 304500,
+          "what": "Myanmar refugees and asylum-seekers who arrived in other Asia-Pacific countries since 1 February 2021",
+          "date": "2026-08-31"
+        },
+        "unFigure": {
+          "value": -223669,
+          "what": "Sum of UN net migration for Myanmar, 2021 to 2026",
+          "date": ""
+        },
+        "verdict": "context",
+        "links": [
+          {
+            "label": "UNHCR Operational Data Portal, Myanmar situation (updated to October 2026)",
+            "href": "https://data.unhcr.org/en/situations/myanmar"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "Estimated Myanmar refugees and asylum-seekers arriving in other countries in the Asia-Pacific region since 1 February 2021 JSON 304,500 Last updated 31 Aug 2026 Source - UNHCR",
+            "href": "https://data.unhcr.org/en/situations/myanmar"
+          },
+          {
+            "text": "IDPs in Myanmar JSON 4,058,100 Last updated 19 Oct 2026 Source - UN in Myanmar",
+            "href": "https://data.unhcr.org/en/situations/myanmar"
+          }
+        ],
+        "accessed": "2026-10-29"
+      }
+    ],
+    "NGA": [
+      {
+        "key": "today",
+        "text": "Nigeria's statistics office (NBS), using the National Population Commission's projection from the 2006 census, puts the 2023 population at 221.3 million. The UN's figure for mid-2023 is 227.9 million, 3% higher. No census has been held since 2006, so neither figure rests on a recent count.",
+        "figure": {
+          "value": 221250127,
+          "what": "National Population Commission projection of Nigeria's population for 2023, from the 2006 census, published by NBS",
+          "date": "2023"
+        },
+        "unFigure": {
+          "value": 227882945,
+          "what": "UN estimate of Nigeria's population on 1 July 2023",
+          "date": ""
+        },
+        "verdict": "un-higher",
+        "links": [
+          {
+            "label": "National Bureau of Statistics (Nigeria), Demographic Bulletin 2023 (PDF)",
+            "href": "http://microdata.nigerianstat.gov.ng/index.php/catalog/182/download/1392/Demographic%20Bulletin%202023.pdf"
+          },
+          {
+            "label": "NBS microdata catalogue, Nigeria – Demographic Bulletin",
+            "href": "http://microdata.nigerianstat.gov.ng/index.php/catalog/182"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "The projected population of Nigeria from the National Population Commission in 2023 stood at 221,250,127, comprising 112,434,239 males and 108,815,888 females.",
+            "href": "http://microdata.nigerianstat.gov.ng/index.php/catalog/182/download/1392/Demographic%20Bulletin%202023.pdf"
+          },
+          {
+            "text": "Based on 2006 Population and Housing Census figures, Nigeria has 140,431,790 inhabitants, 71,345,488 males, and 69,086,302 females. The population is projected to be 221,250,127 in 2023, comprising 112,434,239 males and 108,815,888 females.",
+            "href": "http://microdata.nigerianstat.gov.ng/index.php/catalog/182/download/1392/Demographic%20Bulletin%202023.pdf"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "net",
+        "text": "The UN refugee agency counted 555,000 Nigerians as refugees or asylum seekers abroad at the end of 2024, up from 475,000 two years earlier: about 40,000 a year. That is in the same range as the UN's net departures of 52,000 to 58,000 a year in 2022–2023. A further 3.4 million people were displaced inside Nigeria.",
+        "figure": {
+          "value": 554894,
+          "what": "Nigerian refugees and asylum seekers abroad (UNHCR), end-2024",
+          "date": "2024-12-31"
+        },
+        "unFigure": {
+          "value": -57936,
+          "what": "UN net migration for Nigeria in 2023",
+          "date": ""
+        },
+        "verdict": "context",
+        "links": [
+          {
+            "label": "UNHCR Refugee Data Finder API, people displaced from Nigeria, 2022–2025",
+            "href": "https://api.unhcr.org/population/v1/population/?limit=20&dataset=population&displayType=totals&yearFrom=2022&yearTo=2025&coo=NIG&columns%5B%5D=refugees&columns%5B%5D=asylum_seekers&columns%5B%5D=idps&columns%5B%5D=returned_refugees&columns%5B%5D=returned_idps"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "{\"year\":2022,\"coo_id\":141,\"coo_name\":\"Nigeria\",\"coo\":\"NIG\",\"coo_iso\":\"NGA\",\"coa_id\":\"-\",\"coa_name\":\"-\",\"coa\":\"-\",\"coa_iso\":\"-\",\"refugees\":391120,\"asylum_seekers\":83402,\"idps\":3286881,\"returned_refugees\":19693,\"returned_idps\":139622}",
+            "href": "https://api.unhcr.org/population/v1/population/?limit=20&dataset=population&displayType=totals&yearFrom=2022&yearTo=2025&coo=NIG&columns%5B%5D=refugees&columns%5B%5D=asylum_seekers&columns%5B%5D=idps&columns%5B%5D=returned_refugees&columns%5B%5D=returned_idps"
+          },
+          {
+            "text": "{\"year\":2024,\"coo_id\":141,\"coo_name\":\"Nigeria\",\"coo\":\"NIG\",\"coo_iso\":\"NGA\",\"coa_id\":\"-\",\"coa_name\":\"-\",\"coa\":\"-\",\"coa_iso\":\"-\",\"refugees\":467605,\"asylum_seekers\":87289,\"idps\":3432959,\"returned_refugees\":37696,\"returned_idps\":35721}",
+            "href": "https://api.unhcr.org/population/v1/population/?limit=20&dataset=population&displayType=totals&yearFrom=2022&yearTo=2025&coo=NIG&columns%5B%5D=refugees&columns%5B%5D=asylum_seekers&columns%5B%5D=idps&columns%5B%5D=returned_refugees&columns%5B%5D=returned_idps"
+          }
+        ],
+        "accessed": "2026-10-29"
+      }
+    ],
+    "PAK": [
+      {
+        "key": "today",
+        "text": "Pakistan's 2023 census, which began on 1 March 2023, counted 241.49 million people. For that date the UN's figure works out to about 246.2 million, 2% higher, so the two match.",
+        "figure": {
+          "value": 241499431,
+          "what": "Population counted by the 7th Population and Housing Census (began 1 March 2023)",
+          "date": "2023-03-01"
+        },
+        "unFigure": {
+          "value": 246236552,
+          "what": "UN population for 1 March 2023, read off a straight line between its 1 July 2022 and 1 July 2023 values",
+          "date": ""
+        },
+        "verdict": "matches",
+        "links": [
+          {
+            "label": "Pakistan Bureau of Statistics, Announcement of results of 7th Population and Housing Census-2023, 5 August 2023",
+            "href": "https://www.pbs.gov.pk/wp-content/uploads/2024/02/Press-Release.pdf"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "7th Population and Housing Census was started on 1st March, 2023 and has counted 241.49 million people across Pakistan with a growth rate of 2.55 % as reported by Pakistan Bureau of Statistics (PBS).",
+            "href": "https://www.pbs.gov.pk/wp-content/uploads/2024/02/Press-Release.pdf"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "immigrants",
+        "text": "The 2023 census counted 2.13 million foreign nationals in Pakistan, 1.92 million of them Afghans. The UN's figure of 4.18 million people born abroad (mid-2024) has the same Afghan count, plus 1.6 million people born in India. The census counts citizenship, the UN counts birthplace, so the two measure different things.",
+        "figure": {
+          "value": 2126079,
+          "what": "Non-Pakistani nationals counted by the 2023 census (Afghan 1,923,453; Bengali 26,900; Chinese 3,568; others 172,158)",
+          "date": "2023"
+        },
+        "unFigure": {
+          "value": 4175958,
+          "what": "UN DESA: people born abroad living in Pakistan, mid-2024 (Afghanistan 1,923,453; India 1,597,134)",
+          "date": ""
+        },
+        "verdict": "context",
+        "links": [
+          {
+            "label": "Pakistan Bureau of Statistics, 7th Population & Housing Census 2023, National Census Report (section 4.4, Tables 4.15-4.16)",
+            "href": "https://www.pbs.gov.pk/wp-content/uploads/2020/07/National-Census-Report-2023.pdf"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "Table 4.16 shows that the majority of non-nationals in Census 2023 are Afghanis i.e. 1,923,453 while remaining are almost nominal with Bengali (26,900), Chinese (3,568) and Others (172,158) living in Pakistan.",
+            "href": "https://www.pbs.gov.pk/wp-content/uploads/2020/07/National-Census-Report-2023.pdf"
+          },
+          {
+            "text": "A person's nationality is where they are a legal citizen, usually in the country where they were born.",
+            "href": "https://www.pbs.gov.pk/wp-content/uploads/2020/07/National-Census-Report-2023.pdf"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "net",
+        "text": "UNHCR counted 819,000 Afghans returning from Pakistan to Afghanistan between 1 April and 22 November 2025, and a further 721,700 in 2026 up to 24 October. The UN's forecast for Pakistan's 2025 net migration is about 1.2 million more people leaving than arriving. The two measure different things.",
+        "figure": {
+          "value": 819000,
+          "what": "Afghans who returned from Pakistan to Afghanistan, 1 April to 22 November 2025 (UNHCR); 721,700 more in 2026 to 24 October (IOM, UNHCR)",
+          "date": "2025"
+        },
+        "unFigure": {
+          "value": -1235336,
+          "what": "UN net migration for Pakistan in 2025 (forecast)",
+          "date": ""
+        },
+        "verdict": "context",
+        "links": [
+          {
+            "label": "UNHCR, Afghanistan Situation: Afghan Returns, Emergency Update #16, 26 November 2025",
+            "href": "https://data.unhcr.org/en/documents/download/119818"
+          },
+          {
+            "label": "UNHCR Operational Data Portal, Afghanistan situation (total returns in 2026 by country, updated 24 October 2026)",
+            "href": "https://data.unhcr.org/en/situations/afghanistan"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "From 1 April to 22 November, 819,000 Afghans returned from Pakistan to Afghanistan, including 70,000 deportees (9%).",
+            "href": "https://data.unhcr.org/en/documents/download/119818"
+          },
+          {
+            "text": "Total Returns to Afghanistan in 2026 by country JSON .CSV Country of origin Source Data date Population Pakistan IOM, UNHCR 24 Oct 2026 52.8% 721,700",
+            "href": "https://data.unhcr.org/en/situations/afghanistan"
+          }
+        ],
+        "accessed": "2026-10-29"
+      }
+    ],
+    "RUS": [
+      {
+        "key": "today",
+        "text": "Russia's statistics office Rosstat estimated 146.12 million residents on 1 January 2025, counting Crimea and Sevastopol (2.46 million) but leaving out Donetsk, Luhansk, Zaporizhzhia and Kherson. Without Crimea and Sevastopol that is 143.66 million; the UN's figure for that date, 144.41 million, is 0.5% higher, so they match.",
+        "figure": {
+          "value": 143659377,
+          "what": "Rosstat resident population on 1 January 2025 (146,119,928) minus Republic of Crimea (1,902,249) and Sevastopol (558,302), to match the UN's borders",
+          "date": "2025-01-01"
+        },
+        "unFigure": {
+          "value": 144408908,
+          "what": "average of the UN's 1 July 2024 and 1 July 2025 figures (144,820,423 and 143,997,393), standing in for 1 January 2025",
+          "date": ""
+        },
+        "verdict": "matches",
+        "links": [
+          {
+            "label": "Rosstat, Estimate of the resident population on 1 January 2025 and average for 2024, and its components (spreadsheet), 14 Mar 2025",
+            "href": "https://rosstat.gov.ru/storage/mediabank/OkPopul_Comp2025_Site.xlsx"
+          },
+          {
+            "label": "Rosstat, Demography page (population tables and footnotes)",
+            "href": "https://rosstat.gov.ru/folder/12781"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "Российская Федеpация* | 146150789 | -30861 | -599454 | 568593 | 0 | 146119928 | 146135359",
+            "href": "https://rosstat.gov.ru/storage/mediabank/OkPopul_Comp2025_Site.xlsx"
+          },
+          {
+            "text": "Республика Крым | 1909499 | -7250 | -11410 | 4160 | 0 | 1902249 | 1905874",
+            "href": "https://rosstat.gov.ru/storage/mediabank/OkPopul_Comp2025_Site.xlsx"
+          },
+          {
+            "text": "г. Севастополь | 561374 | -3072 | -2490 | -582 | 0 | 558302 | 559838",
+            "href": "https://rosstat.gov.ru/storage/mediabank/OkPopul_Comp2025_Site.xlsx"
+          },
+          {
+            "text": "*Без учета статистической информации по Донецкой Народной Республике (ДНР), Луганской Народной Республике (ЛНР), Запорожской и Херсонской областям.",
+            "href": "https://rosstat.gov.ru/storage/mediabank/OkPopul_Comp2025_Site.xlsx"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "net",
+        "text": "Rosstat recorded a net gain of 568,593 people from migration in 2024. The UN shows a net loss of 178,042 people for 2024. Births minus deaths agree closely (Rosstat −599,454, UN −592,272), so the two differ mainly on migration.",
+        "figure": {
+          "value": 568593,
+          "what": "net migration into Russia in 2024, Rosstat (includes Crimea and Sevastopol, which together recorded +3,578)",
+          "date": "2024"
+        },
+        "unFigure": {
+          "value": -178042,
+          "what": "UN net migration figure for Russia in 2024",
+          "date": ""
+        },
+        "verdict": "un-lower",
+        "links": [
+          {
+            "label": "Rosstat, Estimate of the resident population on 1 January 2025 and average for 2024, and its components (spreadsheet), 14 Mar 2025",
+            "href": "https://rosstat.gov.ru/storage/mediabank/OkPopul_Comp2025_Site.xlsx"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "Российская Федеpация* | 146150789 | -30861 | -599454 | 568593 | 0 | 146119928 | 146135359 (columns: population on 1 January 2024 | total change | natural increase | migration increase | ... | population on 1 January 2025 | average for 2024)",
+            "href": "https://rosstat.gov.ru/storage/mediabank/OkPopul_Comp2025_Site.xlsx"
+          }
+        ],
+        "accessed": "2026-10-29"
+      }
+    ],
+    "SDN": [
+      {
+        "key": "net",
+        "text": "UNHCR's count of Sudanese refugees and asylum seekers abroad rose from 0.92 million at the end of 2022 to 2.78 million at the end of 2024, a rise of 1.85 million. The UN puts net departures over 2023–2024 at 1.89 million. In 2025 UNHCR recorded 651,000 refugees returning to Sudan; the UN expects 291,000 more arrivals than departures that year.",
+        "figure": {
+          "value": -1852882,
+          "what": "Rise in Sudanese refugees and asylum seekers registered abroad, end-2022 to end-2024 (shown as an outflow)",
+          "date": "2022-12-31 to 2024-12-31"
+        },
+        "unFigure": {
+          "value": -1894255,
+          "what": "UN net migration for Sudan, 2023 plus 2024",
+          "date": ""
+        },
+        "verdict": "context",
+        "links": [
+          {
+            "label": "UNHCR Refugee Data Finder API, people displaced from Sudan, 2022–2025",
+            "href": "https://api.unhcr.org/population/v1/population/?limit=20&dataset=population&displayType=totals&yearFrom=2022&yearTo=2025&coo=SUD&columns%5B%5D=refugees&columns%5B%5D=asylum_seekers&columns%5B%5D=idps&columns%5B%5D=returned_refugees&columns%5B%5D=returned_idps"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "{\"year\":2022,\"coo_id\":177,\"coo_name\":\"Sudan\",\"coo\":\"SUD\",\"coo_iso\":\"SDN\",\"coa_id\":\"-\",\"coa_name\":\"-\",\"coa\":\"-\",\"coa_iso\":\"-\",\"refugees\":837188,\"asylum_seekers\":86838,\"idps\":3552717,\"returned_refugees\":12313,\"returned_idps\":\"0\"}",
+            "href": "https://api.unhcr.org/population/v1/population/?limit=20&dataset=population&displayType=totals&yearFrom=2022&yearTo=2025&coo=SUD&columns%5B%5D=refugees&columns%5B%5D=asylum_seekers&columns%5B%5D=idps&columns%5B%5D=returned_refugees&columns%5B%5D=returned_idps"
+          },
+          {
+            "text": "{\"year\":2024,\"coo_id\":177,\"coo_name\":\"Sudan\",\"coo\":\"SUD\",\"coo_iso\":\"SDN\",\"coa_id\":\"-\",\"coa_name\":\"-\",\"coa\":\"-\",\"coa_iso\":\"-\",\"refugees\":2094373,\"asylum_seekers\":682535,\"idps\":11559970,\"returned_refugees\":6472,\"returned_idps\":\"0\"}",
+            "href": "https://api.unhcr.org/population/v1/population/?limit=20&dataset=population&displayType=totals&yearFrom=2022&yearTo=2025&coo=SUD&columns%5B%5D=refugees&columns%5B%5D=asylum_seekers&columns%5B%5D=idps&columns%5B%5D=returned_refugees&columns%5B%5D=returned_idps"
+          },
+          {
+            "text": "{\"year\":2025,\"coo_id\":177,\"coo_name\":\"Sudan\",\"coo\":\"SUD\",\"coo_iso\":\"SDN\",\"coa_id\":\"-\",\"coa_name\":\"-\",\"coa\":\"-\",\"coa_iso\":\"-\",\"refugees\":2820737,\"asylum_seekers\":940297,\"idps\":9139309,\"returned_refugees\":651456,\"returned_idps\":2913113}",
+            "href": "https://api.unhcr.org/population/v1/population/?limit=20&dataset=population&displayType=totals&yearFrom=2022&yearTo=2025&coo=SUD&columns%5B%5D=refugees&columns%5B%5D=asylum_seekers&columns%5B%5D=idps&columns%5B%5D=returned_refugees&columns%5B%5D=returned_idps"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "immigrants",
+        "text": "UNHCR counted 0.84 million refugees and asylum seekers from other countries living in Sudan at the end of 2024, down from 1.13 million at the end of 2022. UNHCR says many refugees in Sudan have had to flee since the war began in April 2023. The UN's 2.4 million people born abroad (mid-2024) is a wider measure.",
+        "figure": {
+          "value": 837988,
+          "what": "Refugees and asylum seekers from other countries living in Sudan (UNHCR), end-2024",
+          "date": "2024-12-31"
+        },
+        "unFigure": {
+          "value": 2397113,
+          "what": "UN DESA: people born abroad living in Sudan, mid-2024",
+          "date": ""
+        },
+        "verdict": "context",
+        "links": [
+          {
+            "label": "UNHCR Refugee Data Finder API, refugees and asylum seekers hosted in Sudan, 2022–2025",
+            "href": "https://api.unhcr.org/population/v1/population/?limit=20&dataset=population&displayType=totals&yearFrom=2022&yearTo=2025&coa=SUD&columns%5B%5D=refugees&columns%5B%5D=asylum_seekers&columns%5B%5D=idps&columns%5B%5D=returned_refugees&columns%5B%5D=returned_idps"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "{\"year\":2022,\"coo_id\":\"-\",\"coo_name\":\"-\",\"coo\":\"-\",\"coo_iso\":\"-\",\"coa_id\":177,\"coa_name\":\"Sudan\",\"coa\":\"SUD\",\"coa_iso\":\"SDN\",\"refugees\":1097128,\"asylum_seekers\":31830,\"idps\":3552717,\"returned_refugees\":49067,\"returned_idps\":\"0\"}",
+            "href": "https://api.unhcr.org/population/v1/population/?limit=20&dataset=population&displayType=totals&yearFrom=2022&yearTo=2025&coa=SUD&columns%5B%5D=refugees&columns%5B%5D=asylum_seekers&columns%5B%5D=idps&columns%5B%5D=returned_refugees&columns%5B%5D=returned_idps"
+          },
+          {
+            "text": "{\"year\":2024,\"coo_id\":\"-\",\"coo_name\":\"-\",\"coo\":\"-\",\"coo_iso\":\"-\",\"coa_id\":177,\"coa_name\":\"Sudan\",\"coa\":\"SUD\",\"coa_iso\":\"SDN\",\"refugees\":793395,\"asylum_seekers\":44593,\"idps\":11559970,\"returned_refugees\":306567,\"returned_idps\":\"0\"}",
+            "href": "https://api.unhcr.org/population/v1/population/?limit=20&dataset=population&displayType=totals&yearFrom=2022&yearTo=2025&coa=SUD&columns%5B%5D=refugees&columns%5B%5D=asylum_seekers&columns%5B%5D=idps&columns%5B%5D=returned_refugees&columns%5B%5D=returned_idps"
+          },
+          {
+            "text": "Since the start of the conflict in Sudan in mid-April 2023, large numbers of civilians have been forced to flee, including people who were already internally displaced and refugees from other countries who had sought safety in Sudan. Hundreds of thousands of people have fled into neighbouring countries or returned home in adverse circumstances – notably to the Central African Republic, Chad, Egypt, Ethiopia, Libya, South Sudan and Uganda.",
+            "href": "https://data.unhcr.org/en/situations/sudansituation"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "today",
+        "text": "UNHCR counted 11.6 million people displaced inside Sudan at the end of 2024, after the war began in April 2023. That is not a count of the whole population, so it cannot be compared directly with the UN's 50.4 million for mid-2024. We found no newer official national population count.",
+        "figure": {
+          "value": 11559970,
+          "what": "People displaced inside Sudan (UNHCR), end-2024",
+          "date": "2024-12-31"
+        },
+        "unFigure": {
+          "value": 50448963,
+          "what": "UN forecast of Sudan's total population, 1 July 2024",
+          "date": ""
+        },
+        "verdict": "context",
+        "links": [
+          {
+            "label": "UNHCR Refugee Data Finder API, people displaced from Sudan, 2022–2025",
+            "href": "https://api.unhcr.org/population/v1/population/?limit=20&dataset=population&displayType=totals&yearFrom=2022&yearTo=2025&coo=SUD&columns%5B%5D=refugees&columns%5B%5D=asylum_seekers&columns%5B%5D=idps&columns%5B%5D=returned_refugees&columns%5B%5D=returned_idps"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "{\"year\":2024,\"coo_id\":177,\"coo_name\":\"Sudan\",\"coo\":\"SUD\",\"coo_iso\":\"SDN\",\"coa_id\":\"-\",\"coa_name\":\"-\",\"coa\":\"-\",\"coa_iso\":\"-\",\"refugees\":2094373,\"asylum_seekers\":682535,\"idps\":11559970,\"returned_refugees\":6472,\"returned_idps\":\"0\"}",
+            "href": "https://api.unhcr.org/population/v1/population/?limit=20&dataset=population&displayType=totals&yearFrom=2022&yearTo=2025&coo=SUD&columns%5B%5D=refugees&columns%5B%5D=asylum_seekers&columns%5B%5D=idps&columns%5B%5D=returned_refugees&columns%5B%5D=returned_idps"
+          }
+        ],
+        "accessed": "2026-10-29"
+      }
+    ],
+    "SOM": [
+      {
+        "key": "today",
+        "text": "Somalia's statistics office still bases its figures on the 2014 Population Estimation Survey, which estimated 12.3 million people, and assumes 2.8% growth a year since. The UN's figure for mid-2014 is 13.3 million, about 8% higher, and the UN assumes faster growth after that, so the gap has widened.",
+        "figure": {
+          "value": 12316895,
+          "what": "Population Estimation Survey of Somalia (PESS) estimate of total population, 18 pre-war regions",
+          "date": "2014"
+        },
+        "unFigure": {
+          "value": 13339491,
+          "what": "UN estimate of Somalia's population on 1 July 2014",
+          "date": ""
+        },
+        "verdict": "un-higher",
+        "links": [
+          {
+            "label": "UNFPA / Federal Republic of Somalia, Population Estimation Survey 2014 for the 18 pre-war regions of Somalia, October 2014",
+            "href": "https://somalia.unfpa.org/sites/default/files/pub-pdf/Population-Estimation-Survey-of-Somalia-PESS-2013-2014.pdf"
+          },
+          {
+            "label": "Somalia National Bureau of Statistics, Somalia Gross Domestic Product (GDP) 2025, statistical release, June 2026",
+            "href": "https://nbs.gov.so/wp-content/uploads/2026/06/Somalia-GDP-2025.pdf"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "The extensive survey estimated that the total population of Somalis was 12,316,895.",
+            "href": "https://somalia.unfpa.org/sites/default/files/pub-pdf/Population-Estimation-Survey-of-Somalia-PESS-2013-2014.pdf"
+          },
+          {
+            "text": "Population Estimation Survey of Somalia (PESS):  The PESS provided estimates of population levels for 2014. Annual population growth in subsequent years is estimated at a fixed rate of 2.8 percent.",
+            "href": "https://nbs.gov.so/wp-content/uploads/2026/06/Somalia-GDP-2025.pdf"
+          },
+          {
+            "text": "In current prices, 2025 GDP levels were $13,234 million, up from $12,348 million in 2024. GDP per capita in current prices increased from $761 in 2024 to $793 in 2025.",
+            "href": "https://nbs.gov.so/wp-content/uploads/2026/06/Somalia-GDP-2025.pdf"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "net",
+        "text": "The UN refugee agency's count of Somali refugees and asylum seekers abroad rose from 844,000 at the end of 2022 to 1.13 million at the end of 2024. Over the same two years the UN's figures show about 73,000 more people arriving in Somalia than leaving. A further 3.9 million people were displaced inside Somalia at the end of 2024.",
+        "figure": {
+          "value": -287616,
+          "what": "Rise in Somali refugees and asylum seekers abroad (UNHCR), end-2022 to end-2024, shown as an outflow",
+          "date": "2022-12-31 to 2024-12-31"
+        },
+        "unFigure": {
+          "value": 73076,
+          "what": "UN net migration for Somalia, 2023 plus 2024",
+          "date": ""
+        },
+        "verdict": "context",
+        "links": [
+          {
+            "label": "UNHCR Refugee Data Finder API, people displaced from Somalia, 2022–2025",
+            "href": "https://api.unhcr.org/population/v1/population/?limit=20&dataset=population&displayType=totals&yearFrom=2022&yearTo=2025&coo=SOM&columns%5B%5D=refugees&columns%5B%5D=asylum_seekers&columns%5B%5D=idps&columns%5B%5D=returned_refugees&columns%5B%5D=returned_idps"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "{\"year\":2022,\"coo_id\":172,\"coo_name\":\"Somalia\",\"coo\":\"SOM\",\"coo_iso\":\"SOM\",\"coa_id\":\"-\",\"coa_name\":\"-\",\"coa\":\"-\",\"coa_iso\":\"-\",\"refugees\":786794,\"asylum_seekers\":56893,\"idps\":2967500,\"returned_refugees\":3063,\"returned_idps\":607256}",
+            "href": "https://api.unhcr.org/population/v1/population/?limit=20&dataset=population&displayType=totals&yearFrom=2022&yearTo=2025&coo=SOM&columns%5B%5D=refugees&columns%5B%5D=asylum_seekers&columns%5B%5D=idps&columns%5B%5D=returned_refugees&columns%5B%5D=returned_idps"
+          },
+          {
+            "text": "{\"year\":2024,\"coo_id\":172,\"coo_name\":\"Somalia\",\"coo\":\"SOM\",\"coo_iso\":\"SOM\",\"coa_id\":\"-\",\"coa_name\":\"-\",\"coa\":\"-\",\"coa_iso\":\"-\",\"refugees\":894120,\"asylum_seekers\":237183,\"idps\":3861643,\"returned_refugees\":1959,\"returned_idps\":290750}",
+            "href": "https://api.unhcr.org/population/v1/population/?limit=20&dataset=population&displayType=totals&yearFrom=2022&yearTo=2025&coo=SOM&columns%5B%5D=refugees&columns%5B%5D=asylum_seekers&columns%5B%5D=idps&columns%5B%5D=returned_refugees&columns%5B%5D=returned_idps"
+          }
+        ],
+        "accessed": "2026-10-29"
+      }
+    ],
+    "SYR": [
+      {
+        "key": "net",
+        "text": "UNHCR estimates 1,838,018 Syrian refugees returned to Syria between 8 December 2024 and 29 October 2026, mostly from Lebanon (740,921) and Türkiye (718,143). The UN forecast net migration of about 728,000 for Syria for 2025 and 2026 together. Returns alone are already well above that.",
+        "figure": {
+          "value": 1838018,
+          "what": "Syrian refugees who returned to Syria since 8 December 2024 (UNHCR estimate, registered and unregistered)",
+          "date": "2026-10-29"
+        },
+        "unFigure": {
+          "value": 727515,
+          "what": "Sum of UN net migration for Syria in 2025 and 2026 (forecast)",
+          "date": ""
+        },
+        "verdict": "un-lower",
+        "links": [
+          {
+            "label": "UNHCR, Syrian Arab Republic: Comprehensive Overview of Refugee Returns Dashboard, as of 29 October 2026",
+            "href": "https://data.unhcr.org/en/documents/download/124686"
+          },
+          {
+            "label": "UNHCR Operational Data Portal, Syrian Arab Republic country page (IDP returnees)",
+            "href": "https://data.unhcr.org/en/country/syr"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "Since 8 December 2024, an estimated 1,838,018* Syrians have returned.This estimate is calculated by triangulating multiple data sources, including population-movement reporting and border-monitoring data.",
+            "href": "https://data.unhcr.org/en/documents/download/124686"
+          },
+          {
+            "text": "Türkiye 718,143 Lebanon 740,921 Jordan 300,675 Iraq 42,077 Egypt 28,903 other 7,299",
+            "href": "https://data.unhcr.org/en/documents/download/124686"
+          },
+          {
+            "text": "*The figures include registered and unregistered Syrians, as well as individuals in transit. It is subject to future adjustment, and should not be considered Final",
+            "href": "https://data.unhcr.org/en/documents/download/124686"
+          }
+        ],
+        "accessed": "2026-10-29"
+      }
+    ],
+    "UGA": [
+      {
+        "key": "today",
+        "text": "Uganda's May 2024 census counted 45.9 million people. Building on it, and adding back the 4.3% the census missed, the Uganda Bureau of Statistics puts the mid-2025 population at 48.2 million. The UN's figure for mid-2025 is 51.4 million, about 7% higher.",
+        "figure": {
+          "value": 48152090,
+          "what": "UBOS projection of Uganda's population on 30 June 2025, based on the 2024 census adjusted for undercount",
+          "date": "2025-06-30"
+        },
+        "unFigure": {
+          "value": 51384894,
+          "what": "UN forecast of Uganda's population on 1 July 2025",
+          "date": ""
+        },
+        "verdict": "un-higher",
+        "links": [
+          {
+            "label": "Uganda Bureau of Statistics, Population Projections 2025–2050 (October 2025)",
+            "href": "https://www.ubos.org/wp-content/uploads/publications/Population-Projections-2025_2050.pdf"
+          },
+          {
+            "label": "Uganda Bureau of Statistics, National Population and Housing Census 2024, Final Report Volume 1 (Main), December 2024",
+            "href": "https://statistics.ubos.org/nphc/reports/National-Population-and-Housing-Census-2024-Final-Report-Volume-1-Main.pdf"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "2025 23,397,860 24,754,230 48,152,090  23,754,190 25,097,300 48,851,490",
+            "href": "https://www.ubos.org/wp-content/uploads/publications/Population-Projections-2025_2050.pdf"
+          },
+          {
+            "text": "Table 2: Mid-year and End of year population projections (2025-2050) Mid-Year (30th June)  End of Year (31st December) Year Male Female Total  Male Female Total",
+            "href": "https://www.ubos.org/wp-content/uploads/publications/Population-Projections-2025_2050.pdf"
+          },
+          {
+            "text": "The PES revealed an undercount of 4.3%, which was factored into the adjustment of the base population.",
+            "href": "https://www.ubos.org/wp-content/uploads/publications/Population-Projections-2025_2050.pdf"
+          },
+          {
+            "text": "1. Population Size and Growth : Uganda’s population as of May 2024 was 45,905,417 persons, reflecting an average annual growth rate of 2.9 percent since the last Census in 2014.",
+            "href": "https://statistics.ubos.org/nphc/reports/National-Population-and-Housing-Census-2024-Final-Report-Volume-1-Main.pdf"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "immigrants",
+        "text": "Uganda's 2024 census counted 1.02 million people from other countries who had lived there at least six months, almost half from South Sudan. The UN counts 2.06 million people born abroad in mid-2024, about twice as many. The UN refugee agency registered 1.76 million refugees in Uganda at the end of 2024, but the census found only 0.81 million.",
+        "figure": {
+          "value": 1022577,
+          "what": "Immigrants (non-Ugandans resident at least six months) counted in the 2024 census",
+          "date": "2024-05"
+        },
+        "unFigure": {
+          "value": 2057759,
+          "what": "UN DESA: people born abroad living in Uganda, mid-2024",
+          "date": ""
+        },
+        "verdict": "un-higher",
+        "links": [
+          {
+            "label": "Uganda Bureau of Statistics, National Population and Housing Census 2024, Final Report Volume 1 (Main), section 9.2",
+            "href": "https://statistics.ubos.org/nphc/reports/National-Population-and-Housing-Census-2024-Final-Report-Volume-1-Main.pdf"
+          },
+          {
+            "label": "UNHCR Refugee Data Finder API, refugees and asylum seekers in Uganda, 2023–2025",
+            "href": "https://api.unhcr.org/population/v1/population/?limit=20&dataset=population&displayType=totals&yearFrom=2023&yearTo=2025&coa=UGA&columns%5B%5D=refugees&columns%5B%5D=asylum_seekers"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "This section presents immigration statistics measured by number of Non Ugandans who resided in Uganda on the census night and had stayed for atleast six months. The Census focused on country of birth and previous residence.",
+            "href": "https://statistics.ubos.org/nphc/reports/National-Population-and-Housing-Census-2024-Final-Report-Volume-1-Main.pdf"
+          },
+          {
+            "text": "Results from the census show that there was a total of 1,022,577 immigrants at the time of enumeration.",
+            "href": "https://statistics.ubos.org/nphc/reports/National-Population-and-Housing-Census-2024-Final-Report-Volume-1-Main.pdf"
+          },
+          {
+            "text": "There were a total of 805,589 refugees/ asylum seekers during the time of census, accounting for two percent of the population.",
+            "href": "https://statistics.ubos.org/nphc/reports/National-Population-and-Housing-Census-2024-Final-Report-Volume-1-Main.pdf"
+          },
+          {
+            "text": "{\"year\":2024,\"coo_id\":\"-\",\"coo_name\":\"-\",\"coo\":\"-\",\"coo_iso\":\"-\",\"coa_id\":199,\"coa_name\":\"Uganda\",\"coa\":\"UGA\",\"coa_iso\":\"UGA\",\"refugees\":1759492,\"asylum_seekers\":37105}",
+            "href": "https://api.unhcr.org/population/v1/population/?limit=20&dataset=population&displayType=totals&yearFrom=2023&yearTo=2025&coa=UGA&columns%5B%5D=refugees&columns%5B%5D=asylum_seekers"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "net",
+        "text": "The UN expects about 118,000 more people to leave Uganda than arrive in 2024. Yet the UN refugee agency's count of refugees in Uganda rose from 1.58 million at the end of 2023 to 1.76 million at the end of 2024 and 1.94 million at the end of 2025, a gain of about 180,000 a year.",
+        "figure": {
+          "value": 181994,
+          "what": "Rise in UNHCR-registered refugees in Uganda, end-2023 to end-2024",
+          "date": "2024"
+        },
+        "unFigure": {
+          "value": -117924,
+          "what": "UN net migration for Uganda in 2024",
+          "date": ""
+        },
+        "verdict": "context",
+        "links": [
+          {
+            "label": "UNHCR Refugee Data Finder API, refugees and asylum seekers in Uganda, 2023–2025",
+            "href": "https://api.unhcr.org/population/v1/population/?limit=20&dataset=population&displayType=totals&yearFrom=2023&yearTo=2025&coa=UGA&columns%5B%5D=refugees&columns%5B%5D=asylum_seekers"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "{\"year\":2023,\"coo_id\":\"-\",\"coo_name\":\"-\",\"coo\":\"-\",\"coo_iso\":\"-\",\"coa_id\":199,\"coa_name\":\"Uganda\",\"coa\":\"UGA\",\"coa_iso\":\"UGA\",\"refugees\":1577498,\"asylum_seekers\":37657}",
+            "href": "https://api.unhcr.org/population/v1/population/?limit=20&dataset=population&displayType=totals&yearFrom=2023&yearTo=2025&coa=UGA&columns%5B%5D=refugees&columns%5B%5D=asylum_seekers"
+          },
+          {
+            "text": "{\"year\":2024,\"coo_id\":\"-\",\"coo_name\":\"-\",\"coo\":\"-\",\"coo_iso\":\"-\",\"coa_id\":199,\"coa_name\":\"Uganda\",\"coa\":\"UGA\",\"coa_iso\":\"UGA\",\"refugees\":1759492,\"asylum_seekers\":37105}",
+            "href": "https://api.unhcr.org/population/v1/population/?limit=20&dataset=population&displayType=totals&yearFrom=2023&yearTo=2025&coa=UGA&columns%5B%5D=refugees&columns%5B%5D=asylum_seekers"
+          },
+          {
+            "text": "{\"year\":2025,\"coo_id\":\"-\",\"coo_name\":\"-\",\"coo\":\"-\",\"coo_iso\":\"-\",\"coa_id\":199,\"coa_name\":\"Uganda\",\"coa\":\"UGA\",\"coa_iso\":\"UGA\",\"refugees\":1936719,\"asylum_seekers\":35249}",
+            "href": "https://api.unhcr.org/population/v1/population/?limit=20&dataset=population&displayType=totals&yearFrom=2023&yearTo=2025&coa=UGA&columns%5B%5D=refugees&columns%5B%5D=asylum_seekers"
+          }
+        ],
+        "accessed": "2026-10-29"
+      }
+    ],
+    "UKR": [
+      {
+        "key": "today",
+        "text": "The UN's forecast assumed two thirds of Ukraine's refugees would be home by 2026. Newer counts don't show that: 4.36 million Ukrainians were under temporary protection in the EU in August 2026, more than in December 2024 (4.19 million), and the UN refugee agency recorded about 350,000 refugee returns in 2024–2025.",
+        "figure": {
+          "value": 4363955,
+          "what": "Ukrainians under temporary protection in the EU",
+          "date": "2026-08-31"
+        },
+        "unFigure": null,
+        "verdict": "context",
+        "links": [
+          {
+            "label": "UN assumption (table II.3.B, p. 49)",
+            "href": "https://population.un.org/wpp/assets/Files/WPP2024_Methodology-Report_Final.pdf"
+          },
+          {
+            "label": "Eurostat: temporary protection",
+            "href": "https://ec.europa.eu/eurostat/databrowser/view/migr_asytpsm/default/table?lang=en"
+          },
+          {
+            "label": "UNHCR: refugees from Ukraine",
+            "href": "https://data.unhcr.org/en/documents/details/121051"
+          },
+          {
+            "label": "UNHCR: returns",
+            "href": "https://api.unhcr.org/population/v1/population/?year=2025&coo=UKR"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "Recent statistical analysis for 35 countries with ongoing refugee crises by […] (2024) also validates the projection assumption that two thirds of refugees will return to their country of origin within 5 years.",
+            "href": "https://population.un.org/wpp/assets/Files/WPP2024_Methodology-Report_Final.pdf"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "net",
+        "text": "The light bars for 2024 and 2025 are the UN's assumed return of two thirds of refugees (+2.85 million). Newer counts don't show it: Ukrainians under temporary protection in the EU rose to 4.36 million by August 2026, and the UN refugee agency recorded about 350,000 refugee returns in 2024–2025.",
+        "figure": {
+          "value": 348315,
+          "what": "refugee returns to Ukraine recorded by UNHCR, 2024 and 2025 combined",
+          "date": "2025"
+        },
+        "unFigure": {
+          "value": 2850000,
+          "what": "UN net migration assumed for 2024 and 2025 combined",
+          "date": "2025"
+        },
+        "verdict": "un-higher",
+        "links": [
+          {
+            "label": "UN assumption (table II.3.B, p. 49)",
+            "href": "https://population.un.org/wpp/assets/Files/WPP2024_Methodology-Report_Final.pdf"
+          },
+          {
+            "label": "Eurostat: temporary protection",
+            "href": "https://ec.europa.eu/eurostat/databrowser/view/migr_asytpsm/default/table?lang=en"
+          },
+          {
+            "label": "UNHCR: returns",
+            "href": "https://api.unhcr.org/population/v1/population/?year=2025&coo=UKR"
+          }
+        ],
+        "quotes": [],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "immigrants",
+        "text": "The UN didn't newly assess Ukraine for 2024: it carried forward its 2020 estimate. Ukraine's last census was in 2001, and the mix of birth countries matches it, scaled down.",
+        "figure": null,
+        "unFigure": null,
+        "verdict": "context",
+        "links": [
+          {
+            "label": "UN key facts, p. 1",
+            "href": "https://www.un.org/development/desa/pd/sites/www.un.org.development.desa.pd/files/undesa_pd_2025_intlmigstock_2024_key_facts_and_figures_advance-unedited.pdf"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "In the new edition of these data, a total of 60 countries and areas received a full reassessment of trends in the number of international migrants residing in the territory. For the remaining countries and areas, the estimates generated in 2024 reflect extrapolations of estimates published in the 2020 edition of the dataset.",
+            "href": "https://www.un.org/development/desa/pd/sites/www.un.org.development.desa.pd/files/undesa_pd_2025_intlmigstock_2024_key_facts_and_figures_advance-unedited.pdf"
+          }
+        ],
+        "accessed": "2026-10-29"
+      }
+    ],
+    "USA": [
+      {
+        "key": "net",
+        "text": "Newer US numbers are much lower than the UN's 2024 forecast (1.18 million for 2026): the Census Bureau counted 1.26 million for July 2024–June 2025 and expects about 321,000 for the year to July 2026; the Congressional Budget Office projects 570,000 for 2026.",
+        "figure": {
+          "value": 321000,
+          "what": "Census Bureau projection of net international migration, year to July 2026",
+          "date": "2026-07-01"
+        },
+        "unFigure": {
+          "value": 1177848,
+          "what": "UN net migration forecast for 2026",
+          "date": "2026"
+        },
+        "verdict": "un-higher",
+        "links": [
+          {
+            "label": "Census Bureau, Jan 2026",
+            "href": "https://www.census.gov/newsroom/press-releases/2026/population-growth-slows.html"
+          },
+          {
+            "label": "CBO, Jan 2026",
+            "href": "https://www.cbo.gov/publication/61879"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "Between July 1, 2024, and June 30, 2025, net international migration was 1.3 million, a notable drop from 2.7 million the year before (a decline of 53.8%). If current trends continue, net international migration is projected to be approximately 321,000 by July 2026, representing another decline of nearly 1 million since July 1, 2025.",
+            "href": "https://www.census.gov/newsroom/press-releases/2026/population-growth-slows.html"
+          },
+          {
+            "text": "CBO now projects net immigration of 410,000 people (instead of 2.0 million) in 2025, 570,000 (instead of 1.6 million) in 2026, a total of 2.9 million (instead of 3.2 million) from 2028 to 2030, and 1.2 million (instead of 1.1 million) in 2035.",
+            "href": "https://www.cbo.gov/publication/61879"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "immigrants",
+        "text": "Checks out: the Census Bureau's 2024 count is 50.2 million, plus 2.0 million born in Puerto Rico and the US island areas, whom the UN counts as born abroad. Both include people without legal status.",
+        "figure": {
+          "value": 52274689,
+          "what": "Census Bureau 2024 foreign-born (50,234,858) plus people born in Puerto Rico (1,852,356) and the US island areas (187,475)",
+          "date": "2024"
+        },
+        "unFigure": {
+          "value": 52375047,
+          "what": "UN DESA estimate for mid-2024",
+          "date": "2024-07-01"
+        },
+        "verdict": "matches",
+        "links": [
+          {
+            "label": "Census Bureau: the foreign-born",
+            "href": "https://www.census.gov/topics/population/foreign-born/about.html"
+          },
+          {
+            "label": "Census Bureau ACS 2024, table B05002",
+            "href": "https://api.census.gov/data/2024/acs/acs1/groups/B05002.json"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "anyone who is not a U.S. citizen at birth. This includes naturalized U.S. citizens, lawful permanent residents (immigrants), temporary migrants (such as foreign students), humanitarian migrants (such as refugees and asylees), and unauthorized migrants.",
+            "href": "https://www.census.gov/topics/population/foreign-born/about.html"
+          }
+        ],
+        "accessed": "2026-10-29"
+      }
+    ],
+    "UZB": [
+      {
+        "key": "today",
+        "text": "Uzbekistan's census of 15 January 2026, its first since independence, counted 39.05 million people (preliminary). The UN puts the population at about 37.39 million for that date, 4% fewer. The census total includes 2.09 million residents who were temporarily away. The statistics office's own estimate for 1 January 2026 was 38.24 million.",
+        "figure": {
+          "value": 39047321,
+          "what": "Population counted by the 2026 census (preliminary), including 2,090,953 residents temporarily away",
+          "date": "2026-01-15"
+        },
+        "unFigure": {
+          "value": 37388826,
+          "what": "Average of the UN's 1 July 2025 and 1 July 2026 values, compared with mid-January 2026",
+          "date": ""
+        },
+        "verdict": "un-lower",
+        "links": [
+          {
+            "label": "National Statistics Committee, Preliminary results of the 2026 Population and Agriculture Census, 30 June 2026",
+            "href": "https://stat.uz/img/news/kitob-eng_p70815.pdf"
+          },
+          {
+            "label": "National Statistics Committee, news page for the preliminary census results, 30 June 2026",
+            "href": "https://stat.uz/en/press-center/news-of-committee/68981-o-zbekiston-respublikasida-2026-yilda-o-tkazilgan-aholi-va-qishloq-xo-jaligini-ro-yxatga-olishning-dastlabki-natijalari-2"
+          },
+          {
+            "label": "National Statistics Committee, Press release: Demographic situation, January-December 2025, 27 January 2026",
+            "href": "https://stat.uz/img/news/demografiya-press-reliz-en_p24116.pdf"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "The tables on the preliminary results of the census have been compiled on the basis of the data of the 2026 Population and Agriculture Census of the Republic of Uzbekistan, as at the precise moment of the census – 15 January 2026.",
+            "href": "https://stat.uz/img/news/kitob-eng_p70815.pdf"
+          },
+          {
+            "text": "Distribution of the population by place-of-residence status Total population, people Permanently resides at this dwelling Permanently resides at this dwelling but is temporarily absent Republic of Uzbekistan 39 047 321 36 956 368 2 090 953",
+            "href": "https://stat.uz/img/news/kitob-eng_p70815.pdf"
+          },
+          {
+            "text": "As of January 1, 2026, the permanent population of the Republic of Uzbekistan stood at 38 236,7 thousand people, an increase of 1,8 percent compared to the same period last year.",
+            "href": "https://stat.uz/img/news/demografiya-press-reliz-en_p24116.pdf"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "immigrants",
+        "text": "The 2026 census (preliminary) found 189,557 people living in Uzbekistan who were born in another country. The UN counts 1.15 million people born abroad in mid-2024, about six times as many. Most of the UN's figure is people born in Russia and Ukraine.",
+        "figure": {
+          "value": 189557,
+          "what": "People counted by the 2026 census who were born in another country (preliminary)",
+          "date": "2026-01-15"
+        },
+        "unFigure": {
+          "value": 1154963,
+          "what": "UN DESA: people born abroad living in Uzbekistan, mid-2024",
+          "date": ""
+        },
+        "verdict": "un-higher",
+        "links": [
+          {
+            "label": "National Statistics Committee, Preliminary results of the 2026 Population and Agriculture Census, 30 June 2026 (Place of birth section)",
+            "href": "https://stat.uz/img/news/kitob-eng_p70815.pdf"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "Distribution of the population by place of birth, by region Total population, people of which: In the Republic of Uzbekistan In another country Republic of Uzbekistan 39 047 321 38 857 764 189 557",
+            "href": "https://stat.uz/img/news/kitob-eng_p70815.pdf"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "deaths",
+        "text": "Uzbekistan's statistics office recorded 177,100 deaths and 879,600 births in 2025. The UN's figure for 2025 is 223,900 deaths, 26% more than recorded, and 911,200 births, 4% more. Recorded births fell by 46,800 from 2024, faster than the UN expected.",
+        "figure": {
+          "value": 177100,
+          "what": "Deaths recorded in January-December 2025",
+          "date": "2025"
+        },
+        "unFigure": {
+          "value": 223890,
+          "what": "UN deaths in 2025 (forecast)",
+          "date": ""
+        },
+        "verdict": "un-higher",
+        "links": [
+          {
+            "label": "National Statistics Committee, Press release: Demographic situation, January-December 2025, 27 January 2026",
+            "href": "https://stat.uz/img/news/demografiya-press-reliz-en_p24116.pdf"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "In January-December 2025, there were 879,6 thousand births and 177,1 thousand deaths, resulting in a natural increase of 702,5 thousand people.",
+            "href": "https://stat.uz/img/news/demografiya-press-reliz-en_p24116.pdf"
+          },
+          {
+            "text": "The number of births in January-December of this year decreased by 46,8 thousand compared to the corresponding period of 2024.",
+            "href": "https://stat.uz/img/news/demografiya-press-reliz-en_p24116.pdf"
+          }
+        ],
+        "accessed": "2026-10-29"
+      }
+    ],
+    "VEN": [
+      {
+        "key": "today",
+        "text": "Venezuela's statistics office (INE) posts an official projection, printed in 2005, that shows 34.94 million people in 2025. It assumes no net migration after 1990. The UN puts mid-2025 at 28.52 million, 18% lower.",
+        "figure": {
+          "value": 34938434,
+          "what": "INE official population projection for 2025 (published 2005, assumes zero net migration from 1990)",
+          "date": "2025"
+        },
+        "unFigure": {
+          "value": 28516896,
+          "what": "UN forecast for 1 July 2025",
+          "date": ""
+        },
+        "verdict": "un-lower",
+        "links": [
+          {
+            "label": "Instituto Nacional de Estadística (INE), República Bolivariana de Venezuela: Estimaciones y Proyecciones de Población 1950-2050, printed Oct 2005 (posted on ine.gob.ve 2026)",
+            "href": "https://ine.gob.ve/wp-content/uploads/2026/03/1950-2050-REP.-BOL.-VENEZUELA-PROYECCION-POBLACION.pdf"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "CUADRO 2. POBLACIÓN TOTAL, SEGÚN GRUPO DE EDAD Y SEXO 1990 • 2050 GRUPO DE EDAD 2025 2030 2035 Y SEXO ... TOTAL ... 34.938.434 36.608.147 38.061.788",
+            "href": "https://ine.gob.ve/wp-content/uploads/2026/03/1950-2050-REP.-BOL.-VENEZUELA-PROYECCION-POBLACION.pdf"
+          },
+          {
+            "text": "Con relación a la mortalidad se consideró una sola hipótesis, y respecto de la Migración Internacional se estableció un saldo migratorio nulo a partir de 1990.",
+            "href": "https://ine.gob.ve/wp-content/uploads/2026/03/1950-2050-REP.-BOL.-VENEZUELA-PROYECCION-POBLACION.pdf"
+          },
+          {
+            "text": "Impreso en octubre de 2005",
+            "href": "https://ine.gob.ve/wp-content/uploads/2026/03/1950-2050-REP.-BOL.-VENEZUELA-PROYECCION-POBLACION.pdf"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "net",
+        "text": "R4V, the platform led by UNHCR and IOM, counts 6,978,009 refugees and migrants from Venezuela in Latin America and the Caribbean (20 August 2026). The UN counts 8.33 million people born in Venezuela living abroad worldwide in mid-2024. The UN figure covers more countries, so the two are not directly comparable.",
+        "figure": {
+          "value": 6978009,
+          "what": "refugees and migrants from Venezuela in Latin America and the Caribbean, from host-government figures (by nationality; excludes other regions)",
+          "date": "2026-08-20"
+        },
+        "unFigure": {
+          "value": 8328514,
+          "what": "UN DESA people born in Venezuela living abroad, worldwide, mid-2024",
+          "date": ""
+        },
+        "verdict": "context",
+        "links": [
+          {
+            "label": "R4V Inter-Agency Coordination Platform for Refugees and Migrants from Venezuela (UNHCR and IOM), key figures",
+            "href": "https://www.r4v.info/en/home"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "Key Figures Refugees and migrants from Venezuela in Latin America and the Caribbean 6,978,009 View more... 20 Aug 2026 Residence permits and regular stay granted 5,191,063 View more... 15 Feb 2026",
+            "href": "https://www.r4v.info/en/home"
+          }
+        ],
+        "accessed": "2026-10-29"
+      }
+    ],
+    "YEM": [
+      {
+        "key": "today",
+        "text": "The UN's humanitarian office (OCHA) uses a total population of 35.3 million for Yemen in its 2026 response plan. The UN's population figure for mid-2026 is 43.0 million, 22% higher. OCHA's page showed 41.8 million as late as June 2026. Neither is a census count.",
+        "figure": {
+          "value": 35300000,
+          "what": "Total population used by OCHA for the Yemen Humanitarian Needs and Response Plan, 2026",
+          "date": "2026"
+        },
+        "unFigure": {
+          "value": 42961653,
+          "what": "UN population on 1 July 2026 (forecast)",
+          "date": ""
+        },
+        "verdict": "un-higher",
+        "links": [
+          {
+            "label": "UN OCHA, Yemen country page: Humanitarian Needs and Response Plan key figures (page as of 10 September 2026)",
+            "href": "https://www.unocha.org/yemen"
+          },
+          {
+            "label": "UN OCHA, Yemen Humanitarian Needs and Response Plan 2026 (March 2026)",
+            "href": "https://www.unocha.org/attachments/02a8c55b-2df0-4e6f-9833-4c619ffc999a/Yemen_2026_HNRP_EN_FINAL.pdf"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "Total population (2026) 35.3M People in need",
+            "href": "https://www.unocha.org/yemen"
+          },
+          {
+            "text": "An estimated 18.3 million people19 (52 per cent of the population) face acute food insecurity.",
+            "href": "https://www.unocha.org/attachments/02a8c55b-2df0-4e6f-9833-4c619ffc999a/Yemen_2026_HNRP_EN_FINAL.pdf"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "immigrants",
+        "text": "UNHCR counts 65,308 refugees and asylum-seekers in Yemen (August 2026), mostly from Somalia and Ethiopia. An IOM report cites about 132,300 stranded migrants, a figure from the January 2025 humanitarian plan. The UN counts 393,000 people born abroad (mid-2024), 285,000 of them born in Somalia. These count different groups.",
+        "figure": {
+          "value": 65308,
+          "what": "Refugees and asylum-seekers registered in Yemen (UNHCR), of whom 41,171 from Somalia and 17,337 from Ethiopia",
+          "date": "2026-08-31"
+        },
+        "unFigure": {
+          "value": 392997,
+          "what": "UN DESA: people born abroad living in Yemen, mid-2024 (Somalia 285,211)",
+          "date": ""
+        },
+        "verdict": "context",
+        "links": [
+          {
+            "label": "UNHCR Operational Data Portal, Yemen country page (updated 31 August 2026)",
+            "href": "https://data.unhcr.org/en/country/yem"
+          },
+          {
+            "label": "IOM Regional Data Hub, Migration Along the Eastern Route, Q4 2025 report (March 2026)",
+            "href": "https://ehsa.iom.int/sites/g/files/tmzbdl2706/files/documents/2026-03/q4_2025_eastern_route_report.pdf"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "Refugees and Asylum seekers JSON 65,308 Last updated 31 Aug 2026 Source - UNHCR",
+            "href": "https://data.unhcr.org/en/country/yem"
+          },
+          {
+            "text": "Somalia Government, UNHCR 31 Aug 2026 63.0% 41,171 Ethiopia Government, UNHCR 31 Aug 2026 26.5% 17,337",
+            "href": "https://data.unhcr.org/en/country/yem"
+          },
+          {
+            "text": "While the number of stranded migrants in Yemen is difficult to estimate, the January 2025 Humanitarian Needs and Response Plan indicates approximately 132,300 stranded migrants in the country.",
+            "href": "https://ehsa.iom.int/sites/g/files/tmzbdl2706/files/documents/2026-03/q4_2025_eastern_route_report.pdf"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "net",
+        "text": "IOM tracked 107,900 migrant arrivals in Yemen from the Horn of Africa in 2025, up from 60,900 in 2024, even though data collection was suspended from May to July 2025. These are arrivals only, not net migration. The UN puts net migration at about 16,000 more people leaving than arriving in 2025.",
+        "figure": {
+          "value": 107900,
+          "what": "Migrant arrivals in Yemen from the Horn of Africa tracked by IOM in 2025 (gross arrivals)",
+          "date": "2025"
+        },
+        "unFigure": {
+          "value": -16291,
+          "what": "UN net migration for Yemen in 2025 (forecast)",
+          "date": ""
+        },
+        "verdict": "context",
+        "links": [
+          {
+            "label": "IOM Regional Data Hub, Migration Along the Eastern Route, Q4 2025 report (March 2026)",
+            "href": "https://ehsa.iom.int/sites/g/files/tmzbdl2706/files/documents/2026-03/q4_2025_eastern_route_report.pdf"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "Arrivals from the Horn of Africa in Yemen also rose substantially, increasing by 77% (from 60,900 in 2024 to 107,900 in 2025) despite a data collection suspension from May to July 2025.",
+            "href": "https://ehsa.iom.int/sites/g/files/tmzbdl2706/files/documents/2026-03/q4_2025_eastern_route_report.pdf"
+          }
+        ],
+        "accessed": "2026-10-29"
+      }
+    ]
+  }
+}

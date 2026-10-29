@@ -51,6 +51,29 @@ export const SRC = {
     publisher: "World Bank",
     home: "https://data.worldbank.org/",
   },
+  // How sure each number is (countries/{ISO3}.json confidence).
+  wppDataSources: {
+    name: "World Population Prospects 2024: Data Sources",
+    publisher: "UN Population Division",
+    home: "https://population.un.org/wpp/",
+    file: "https://population.un.org/wpp/assets/Files/WPP2024_Data_Sources.pdf",
+    fileLabel: "What the UN used, country by country (PDF)",
+  },
+  unsd: {
+    name: "UN Statistics Division, Population and Vital Statistics Report",
+    publisher: "UN Statistics Division",
+    home: "https://unstats.un.org/unsd/demographic-social/products/vitstats/",
+    file: "https://unstats.un.org/unsd/demographic-social/products/vitstats/seratab3.pdf",
+    fileLabel: "Births and deaths each country reported (PDF)",
+  },
+  wppRange: {
+    name: "UN World Population Prospects 2024: probabilistic projections",
+    publisher: "UN Population Division",
+    home: "https://population.un.org/wpp/",
+    file: `${WPP_CSV}WPP2024_TotalPopulationBySex.csv.gz`,
+    fileLabel: "UN data file (CSV: Lower/Upper 80 and 95 PI, Zero migration)",
+    method: "https://population.un.org/wpp/assets/Files/WPP2024_Methodology-Report_Final.pdf",
+  },
 };
 
 // World Bank indicator codes for the headline fields that can come from it.
@@ -78,7 +101,8 @@ const infoIcon = () =>
   );
 
 // info: { title, rows: [[label, text]], src: SRC.*, links: [{ label, href, nav? }], api: { href, field }, note,
-//         check: { text, links } (what other primary sources say; crosscheck.js) }, or a function returning it (read
+//         quote: { text, label, href } (the publisher's own words),
+//         check: { text, links } (what other primary sources say; crossChecks) }, or a function returning it (read
 //         when the card opens, for a number that changes with the slider).
 // content: text or nodes shown in the button. key: names the number across redraws ("flow-births"): when Play redraws
 // it, an open card moves to the new button and shows its numbers. Returns the button.
@@ -140,7 +164,7 @@ function show(button, { focus = true, scroll = true } = {}) {
   const info = typeof button.srcInfo === "function" ? button.srcInfo() : button.srcInfo;
   if (!info) return;
   if (open) open.button.setAttribute("aria-expanded", "false");
-  const ext = (label, href) => h("a", { href, target: "_blank", rel: "noopener" }, label, h("span", { "aria-hidden": "true" }, " ↗"));
+  const ext = (label, href) => h("a", { href, target: "_blank", rel: "noopener" }, label, h("span", { "aria-hidden": "true" }, "\u00a0↗"));
   const src = info.src;
   const links = [
     ...(src?.file ? [ext(src.fileLabel ?? "Source file", src.file)] : []),
@@ -156,6 +180,14 @@ function show(button, { focus = true, scroll = true } = {}) {
     ),
     info.rows?.length ? h("dl", { class: "src-rows" }, ...info.rows.flatMap(([k, v]) => [h("dt", null, k), h("dd", null, v)])) : "",
     info.note ? h("p", { class: "src-note" }, info.note) : "",
+    info.quote?.text
+      ? h(
+          "details",
+          { class: "src-quote" },
+          h("summary", null, "The UN's own words"),
+          h("blockquote", null, h("p", null, `“${info.quote.text}”`), info.quote.label ? h("footer", null, "— ", info.quote.href ? ext(info.quote.label, info.quote.href) : info.quote.label) : ""),
+        )
+      : "",
     info.check ? checkNote(info.check) : "",
     src ? h("p", { class: "src-from" }, "Source: ", ext(src.name, src.home), src.method ? [" · ", ext("how it's made", src.method)] : "") : "",
     links.length ? h("p", { class: "src-links" }, ...links) : "",

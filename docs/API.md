@@ -21,8 +21,8 @@ population-decline risk score. No key, no sign-up, refreshed weekly.
 | Path | What |
 | --- | --- |
 | `index.json` | Manifest: sources with exact URLs and vintages, endpoints, data gaps, links, `generatedAt`, `contentHash`. |
-| `countries.json` | One summary record per country + `WLD` (238), sorted by iso3. About 310 KB raw, 42 KB gzipped. |
-| `countries/{ISO3}.json` | Everything for one country: all headline fields, yearly series 1950-2100, migrant stock history, migration corridors, full risk breakdown. About 35 KB. |
+| `countries.json` | One summary record per country + `WLD` (238), sorted by iso3. About 313 KB raw, 43 KB gzipped. |
+| `countries/{ISO3}.json` | Everything for one country: all headline fields, yearly series 1950-2100, migrant stock history, migration corridors, full risk breakdown, how sure each number is, the UN's forecast range and newer national figures. About 45 KB. |
 | `risk.json` | Ranked countries (highest risk first) with component points and inputs, unranked records with reasons, and the full methodology. |
 | `scenarios.json` | Population of every country + `WLD`, each year: UN estimates 1950-2023, then 2024-2100 under two UN scenarios: "UN forecast" (medium) and "If birth rates stay the same" (constant fertility). About 445 KB raw, 210 KB gzipped. |
 | `countries.csv` | One row per country, nested fields flattened with `_` (`components_births`, `projection_change2100Pct`, …). |
@@ -82,6 +82,7 @@ Each record (South Korea, October 2026):
 | `projection` | UN WPP 2024 medium variant: populations in 2050 and 2100 and the % change from `basePopulation` in `baseYear` (the latest UN estimate year, not the headline population year), peak year, first year at half of the baseline population, start of more-deaths-than-births. Label the baseline when showing the % change next to the headline `population`. |
 | `generations` | `ratio = tfr / 2.1`: each ~30-year generation is this fraction of the last. `halvingYears` = years for generation size to halve (null if ratio ≥ 1). |
 | `risk` | Score 0-100, tier (`Critical` ≥ 70, `High` ≥ 55, `Elevated` ≥ 40, `Moderate` ≥ 20, `Low`), rank (1 = highest risk; null if unranked), top 3 plain-English factors. |
+| `confidence` | How sure the place's numbers are, overall: `good`, `fair` or `poor` (null for `WLD`). The parts and the newer figures behind it are in `countries/{ISO3}.json`. |
 
 ## `countries/{ISO3}.json`
 
@@ -100,6 +101,24 @@ Everything in the summary, plus:
 - `migrationCorridors`: `{year, source, immigrantsTotal, emigrantsTotal, topOrigins[], topDestinations[]}`. Each
   partner is `{iso3, name, people}`: top 10 countries of birth of immigrants, and top 10 countries where emigrants live.
   `null` where UN DESA has no corridor data.
+- `confidence` (null for `WLD`): how sure the place's numbers are. `level` is the overall `good` / `fair` / `poor`
+  (rules: `index.json` `confidenceRules`; [METHODOLOGY.md](METHODOLOGY.md#how-sure-is-each-number)). Parts:
+  - `today`: `level`, `lastCount` (newest census or register year), `unCensuses`, `unRegisters`, `register`,
+    `unOfficialEstimatesThrough`, `latestCensus` `{date, total, provisional}`, `downgraded`.
+  - `birthsDeaths`: `level`, `births` and `deaths` `{year, code (C complete, U incomplete, | other sources), byRegistration}`,
+    `unRegisteredBirthsThrough`, `unRegisteredDeathsThrough`, `unBirthsAdjusted`, `unDeathsAdjusted`.
+  - `immigration`: `level`, `dataType` (`B` by country of birth, `C` by citizenship, `I` modelled), `refugeesAdded`,
+    `reassessed2024`, `netMigrationBasis` (`officialFlows`, `flowEstimates`, `destinationCensuses`, `residual`, `unhcr`, `other`).
+  - `forecast`: `level`, `at`: `{year, medium, lower80, upper80, lower95, upper95, zeroMigration}` for 2050 and 2100.
+  - `unSources`: the UN's own sentences on what it used (`population`, `fertility`, `mortality`, `migration`) and the
+    `page` in *WPP 2024: Data Sources*.
+- `forecastRange`: `{startYear, lower80, upper80, lower95, upper95, zeroMigration}`, people on 1 July for each year
+  2024-2100 (the UN's 80% and 95% prediction intervals and its Zero-migration scenario).
+- `crossChecks`: newer or more direct figures next to the UN's. Each has `key` (`today`, `census`, `births`, `deaths`,
+  `immigrants`, `net`), `kind` (`eurostat`, `unsd`: automatic; `researched`: hand-checked), `figure` and `unFigure`
+  `{value, what, date}`, `gapPct` ((UN − other) ÷ other × 100), `verdict` (`matches` within 2%, `un-higher`,
+  `un-lower`, `context`) and `links`. Automatic ones add `asOf` and the national office's `notes`; hand-checked ones
+  add `text`, `quotes` and `accessed`.
 - `links`: `self`, `countries`, `risk`, `docs`, `site` (the country's page on the live tracker,
   `https://fertility-tracker-live.vercel.app/country/{ISO3}`).
 

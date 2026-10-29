@@ -74,7 +74,8 @@
         "migrantStock",
         "projection",
         "generations",
-        "risk"
+        "risk",
+        "confidence"
       ],
       "properties": {
         "iso3": {
@@ -563,6 +564,19 @@
             }
           },
           "additionalProperties": false
+        },
+        "confidence": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "How sure this place's numbers are, overall: good, fair or poor (details in countries/{ISO3}.json confidence). Null for WLD.",
+          "enum": [
+            "good",
+            "fair",
+            "poor",
+            null
+          ]
         }
       },
       "additionalProperties": false

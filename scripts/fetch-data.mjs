@@ -18,6 +18,7 @@ import { useCache } from "./lib/http.mjs";
 import { API_DIR, finalize, renderFiles, writeFiles } from "./lib/publish.mjs";
 import { sanityCheck, sourceDecision } from "./lib/sanity.mjs";
 import { schemas, validate } from "./lib/schema.mjs";
+import { fetchConfidenceSources } from "./lib/confidence.mjs";
 import { fetchCorridors, fetchSources } from "./lib/sources.mjs";
 
 const args = process.argv.slice(2);
@@ -158,10 +159,10 @@ async function main() {
   const t0 = Date.now();
 
   const previous = await readPrevious();
-  const src = await fetchSources(log);
+  const [src, quality] = await Promise.all([fetchSources(log), fetchConfidenceSources(log)]);
 
   // Refuse to publish if a required source is down, or if a source that worked last time is down now.
-  const decision = sourceDecision([...src.manifest.wpp, ...src.manifest.ims, ...src.manifest.wb], previous.index, { force });
+  const decision = sourceDecision([...src.manifest.wpp, ...src.manifest.ims, ...src.manifest.wb, ...quality.entries], previous.index, { force });
   for (const w of decision.warnings) log(`WARN ${w}`);
   if (!decision.publish) {
     console.error(`Refusing to publish; existing data left untouched:\n  ${decision.problems.join("\n  ")}`);
@@ -175,7 +176,7 @@ async function main() {
         data: previous.corridors?.data ?? null,
       }
     : await fetchCorridors({ codes: [...src.wpp.population.entities.keys()], entities: src.wpp.population.entities, previous: previous.corridors, log });
-  const manifest = { ...src.manifest, ims: [...src.manifest.ims, ...(corridors.entry ? [corridors.entry] : [])] };
+  const manifest = { ...src.manifest, ims: [...src.manifest.ims, ...(corridors.entry ? [corridors.entry] : [])], quality: quality.entries };
   const corridorDecision = sourceDecision(corridors.entry ? [corridors.entry] : [], previous.index, { force });
   for (const w of corridorDecision.warnings) log(`WARN ${w}`);
   if (!corridorDecision.publish) {
@@ -183,7 +184,7 @@ async function main() {
     process.exit(1);
   }
 
-  const ds = buildDataset({ wpp: src.wpp, ims: src.ims, wb: src.wb, corridors: corridors.data, scenarios: src.scenarios });
+  const ds = buildDataset({ wpp: src.wpp, ims: src.ims, wb: src.wb, corridors: corridors.data, scenarios: src.scenarios, quality });
   const sanity = sanityCheck(ds, previous);
   if (sanity.length) {
     console.error(`Sanity checks failed (${sanity.length}):\n  ${sanity.slice(0, 40).join("\n  ")}`);

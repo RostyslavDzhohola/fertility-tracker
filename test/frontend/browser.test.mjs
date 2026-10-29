@@ -1506,3 +1506,71 @@ test("the population chart moves the year only on press and drag, never on hover
     await page.close();
   }
 });
+
+test("how sure is this: every country page grades its numbers, quotes the UN's sources and shades the forecast range", opts, async () => {
+  const page = await openPage({ path: "/country/UKR?year=2026" });
+  try {
+    await page.waitFor(`!document.getElementById("sure").hidden && document.querySelectorAll("#sure-rows .sure-row").length === 4`, 6000);
+    const r = await page.eval(`({
+      chip: document.querySelector("#cv-sure .sure-chip")?.textContent,
+      chipLevel: document.querySelector("#cv-sure .sure-chip")?.dataset.level,
+      sentence: document.getElementById("sure-sentence").textContent,
+      rows: [...document.querySelectorAll("#sure-rows .sure-row")].map((li) => [li.dataset.level, li.querySelector(".sure-head b").textContent, li.querySelector(".sure-word").textContent]),
+      checks: document.querySelectorAll("#sure-checks .sure-check").length,
+      bands: document.querySelectorAll("#pop-chart .bands .band").length,
+      range: document.getElementById("ch-range").hidden,
+    })`);
+    assert.equal(r.chip, "Mostly estimated: how sure is this?");
+    assert.equal(r.chipLevel, "poor");
+    assert.equal(r.sentence, "Ukraine's numbers are mostly estimated: its last census was in 2001.");
+    assert.deepEqual(r.rows[0], ["poor", "Last head count", "Not counted in a long time"]);
+    assert.deepEqual(r.rows.map((x) => x[1]), ["Last head count", "Births and deaths", "People born abroad", "The forecast"]);
+    assert.ok(r.checks >= 3, `${r.checks} newer counts`);
+    assert.equal(r.bands, 2, "80% and 95% bands");
+    assert.equal(r.range, false);
+    // The head-count card quotes what the UN says it used.
+    await page.eval(`document.querySelector("#sure-rows .sure-row .src").click(), 0`);
+    const card = await page.eval(`({ title: document.getElementById("src-pop-title").textContent, quote: document.querySelector("#src-pop .src-quote p")?.textContent ?? "", rows: document.querySelector("#src-pop .src-rows")?.textContent ?? "" })`);
+    assert.equal(card.title, "When Ukraine was last counted");
+    assert.match(card.quote, /1959, 1970, 1979, 1989, 2001 censuses/);
+    assert.match(card.rows, /Censuses the UN used1959, 1970, 1979, 1989, 2001/);
+    // The range fades out when the other future is chosen.
+    await page.eval(`document.querySelector("#cv-controls .seg[data-s=constant]").click(), 0`);
+    await page.waitFor(`FT.state.mix === 1 && Number(document.querySelector("#pop-chart .bands").style.opacity) === 0`, 4000);
+    // The chip jumps to the section and puts focus there.
+    await page.eval(`window.scrollTo(0, 0), document.querySelector("#cv-sure .sure-chip").click(), 0`);
+    await sleep(900);
+    const at = await page.eval(`({ top: Math.round(document.getElementById("sure").getBoundingClientRect().top), focus: document.activeElement.id })`);
+    assert.equal(at.focus, "sure");
+    assert.ok(at.top > 60 && at.top < 400, `section top at ${at.top}px`);
+    assert.deepEqual(page.errors, []);
+  } finally {
+    await page.close();
+  }
+});
+
+test("how sure is this: a newer official figure far from the UN's says so; matching ones say they match", opts, async () => {
+  const page = await openPage({ path: "/country/EGY" });
+  try {
+    await page.waitFor(`document.querySelectorAll("#sure-checks .sure-check").length > 0`, 6000);
+    const r = await page.eval(`({
+      word: document.querySelector("#sure-rows .sure-row .sure-word").textContent,
+      first: document.querySelector("#sure-checks .sure-check").textContent,
+      verdict: document.querySelector("#sure-checks .sure-check").dataset.verdict,
+    })`);
+    assert.equal(r.word, "Official figure differs");
+    assert.equal(r.verdict, "un-higher");
+    assert.match(r.first, /The country's own estimate for mid-2025 is 108 million people.*the UN's is 9\.7% higher/);
+    assert.match(r.first, /UN Statistics Division \(national statistics offices\), as of 5 Oct 2026/);
+  } finally {
+    await page.close();
+  }
+  const de = await openPage({ path: "/country/DEU" });
+  try {
+    await de.waitFor(`document.querySelectorAll("#sure-checks .sure-check").length > 0`, 6000);
+    const first = await de.eval(`document.querySelector("#sure-checks .sure-check").dataset.verdict`);
+    assert.equal(first, "matches");
+  } finally {
+    await de.close();
+  }
+});

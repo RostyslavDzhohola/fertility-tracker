@@ -128,6 +128,70 @@ The year slider's two paths are the UN's own scenarios, total population on 1 Ju
   lists this under `adjustments`. The world aggregate (`WLD`) was not revised by the UN and still counts Togo's old
   figures: about 1.1 million more people in 2024, under 0.03% of the world.
 
+## How sure is each number
+
+Every country page has a **How sure is this?** section, and every record in the API has a `confidence` block, a
+`forecastRange` and `crossChecks` ([API.md](API.md)). They come only from primary sources, all of them free:
+
+| What | Source | How we read it |
+| --- | --- | --- |
+| What the UN based each place on: censuses, registers, official estimates, registered births and deaths, how net migration was estimated | UN DESA, *World Population Prospects 2024: Data Sources* (UN DESA/POP/2024/DC/NO.11, August 2024), one page per place | A PDF, extracted once into `scripts/data/wpp2024-data-sources.json` by `scripts/extract/wpp_data_sources.py`, with the PDF's SHA-256. The UN's own sentences are published verbatim (`confidence.unSources`) |
+| The latest census, the country's own latest population estimate, and whether its births and deaths registration is complete | UN Statistics Division, *Population and Vital Statistics Report*, tables 2 and 3 (updated 5 October 2026) | Two PDFs, extracted into `scripts/data/unsd-pvsr.json` by `scripts/extract/unsd_pvsr.py`, with each PDF's SHA-256 and the tables' footnotes |
+| How each place's people born abroad were counted | UN DESA, *International Migrant Stock 2024*, Table 1 "Data type" (B = by country of birth, C = by citizenship, I = no data, modelled; R = refugees added) | The UN's workbook, read on every build |
+| Which places UN DESA reassessed for 2024 (the rest carry the 2020 edition forward) | UN DESA, *International Migrant Stock 2024: Key facts and figures*, p. 1, footnote 3 (60 places) | `scripts/data/desa-2024-reassessed.json` |
+| How sure the UN is about the future | UN WPP 2024, `Lower/Upper 80 PI`, `Lower/Upper 95 PI` and `Zero migration` rows of `WPP2024_TotalPopulationBySex.csv.gz` (the file the scenarios already come from) | Read on every build, Togo rescaled like its other scenarios |
+| Newer national figures | Eurostat `demo_gind` (population on 1 January) and `migr_pop3ctb` (people born abroad), about 45 countries in and around Europe; the UN Statistics Division tables above for the rest; hand-checked notes in `scripts/data/crosschecks.json` | Eurostat read on every build. Hand-checked notes follow [CROSS-CHECK-PROCESS.md](CROSS-CHECK-PROCESS.md) |
+
+**Levels.** Each part gets `good`, `fair` or `poor` ("Solid numbers", "Partly estimated", "Mostly estimated" on the
+site). The rules are published in `index.json` as `confidenceRules`:
+
+- **Today's population (last head count).** Good: a census in the last 10 years, a population register, or kept
+  current (every birth and death registered, and the country's own population figure from the last two years within 2%
+  of the UN's: Sweden and the Netherlands count everyone through registers, though their last listed census is 2011).
+  Fair: the last census was 11-15 years ago. Poor: more than 15 years ago, or never. Fifteen years is the UN's own cutoff for an
+  old census (WPP 2024 Summary of Results, annex 1: 23 places). The newest census counts even when the UN couldn't use
+  it yet (reported to the UN Statistics Division after the 2024 revision). One step lower when a newer official
+  population differs from the UN's by more than 5%.
+- **Births and deaths.** Good: both reported to the UN Statistics Division as virtually complete (at least 90%), for 2018
+  or later. Fair: registered, but incomplete or out of date, so the UN corrects them. Poor: no usable registration; the
+  UN estimates births and deaths from surveys. Where a country reported nothing, what the UN says it used decides.
+- **People born abroad.** Good: counted by country of birth and reassessed by UN DESA for 2024. Fair: counted by
+  citizenship (this misses people who became citizens and counts children born there to foreign parents), or by
+  country of birth but only carried forward from 2020. Poor: no data (modelled), or by citizenship and carried forward.
+- **The forecast.** By the half-width of the UN's 95% range for 2050: within 20% of the forecast is good, 20-40% fair,
+  more than 40% poor. By 2100 every range is wide: a typical place's runs from half to twice the forecast. Togo's range
+  is the UN's, rescaled by us to its January 2026 correction (the UN revised only the central forecast), and says so
+  (`forecastRange.adjusted`).
+- **Overall** (`countries.json` `confidence`, the chip under each country's headline): the lower of today's
+  population and births and deaths.
+
+**Comparisons with newer figures** (`crossChecks`). Within 2% the figures "match"; otherwise the site says which side
+the UN is on and by how much. Every national figure is compared with the UN's figure for the same day, between its two
+1 July figures: 1 January for Eurostat, and the day a national estimate refers to (its footnote, such as "Data refer to
+31 December"; otherwise mid-year). Where the national office's footnote says its figure covers a different area or group
+(government-controlled areas only, nationals only, a region left out or added), the comparison is shown with that note
+but not graded higher or lower, and it never changes a level. Only figures newer than what the UN used can lower the
+"today" level. France is compared with the UN's France plus its five overseas regions, which Eurostat counts as part
+of France. Each automatic comparison carries the national office's own footnotes to its figure, such as "Data refer to
+government controlled areas" (Cyprus) or "The national total includes an estimated 19,191,728 persons (37.4%) who were
+not enumerated" (Myanmar's 2024 census). Registered births and deaths are compared only where registration is reported as
+complete, for 2021 or later, and in places of 100,000 people or more.
+
+What the comparisons show, October 2026 build:
+
+- **Where births are fully registered, the UN's forecast is often too high.** Colombia registered 434,000 births in 2025
+  against a UN forecast of 693,000. Thailand's gap is 32%, Poland's 25%, Egypt's 24%, Argentina's 23% and Türkiye's
+  18%. The UN made these forecasts in 2024 from data that ended in 2023; birth rates have kept falling since.
+- **Several countries count far fewer people than the UN.** The UN's figure is 22% higher than Ethiopia's own estimate
+  for 2025, 10% higher than Egypt's and 8% higher than Kenya's. Uganda's 2024 census counted 46 million; the UN's
+  figure for that day is 8.5% higher. Albania's 2023 census: 17% higher.
+- **People born abroad: the UN adds refugees, which national registers often leave out.** For Türkiye the UN's
+  figure (7.1 million) is more than twice Eurostat's (2.9 million), and for Poland 85% higher.
+
+**Our own math.** The trend colors on the globe, the 0-100 risk score and the "100 people" generations view are our own
+calculations on the UN's numbers: see the sections around this one. They inherit every uncertainty above. The risk
+score's weights are our judgement.
+
 ## The "100 people" generations view
 
 `generations.ratio = tfr / 2.1`. If each ~30-year generation is that fraction of the one before, 100 people today
@@ -245,6 +309,8 @@ rank 6.
   2026). 32 places repeat a value for three or more estimate years. We publish the UN's numbers unchanged.
 - The World Bank's latest net migration (2025) and, for many countries, population are UN WPP projections
   republished: Hong Kong's headline net migration +17,863 (World Bank 2025) is the UN's 2025 projection.
-- Wars and crises (Ukraine, Gaza, Sudan, Myanmar) make estimates and projections less certain.
+- Wars and crises (Ukraine, Gaza, Sudan, Myanmar) make estimates and projections less certain. The "How sure is
+  this?" section says, per place, how old the last count is and what newer figures show (see
+  [How sure is each number](#how-sure-is-each-number)).
 - Migrant stocks count people by country of birth, so border changes and refugees are handled as UN DESA defines them.
 - The risk weights are judgement calls, documented above so anyone can recompute or reweight from `risk.json` inputs.
