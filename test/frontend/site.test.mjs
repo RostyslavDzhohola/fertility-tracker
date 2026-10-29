@@ -140,12 +140,18 @@ test("Vercel serves the share pages, short links redirect on the server, and the
   // Country and rankings pages are files (scripts/pages/build-pages.mjs), so unknown codes get a real 404.
   assert.ok(!(vercel.rewrites ?? []).some((r) => /^\/(country|rankings)/.test(r.source)), "no catch-all rewrite for app pages");
   assert.ok(vercel.redirects.some((r) => r.source === "/api" && r.destination === "/api/"));
-  // "/KOR" → "/country/KOR" for every place, and only for places (so "/api", "/geo"… are never caught).
-  const short = vercel.redirects.find((r) => r.destination === "/country/:code");
-  const listed = /^\/:code\(([A-Z|]+)\)$/.exec(short?.source ?? "")?.[1]?.split("|") ?? [];
+  // "/KOR", "/kor" and "/country/kor" → "/country/KOR" for every place, and only for places, generated from the data.
+  const { withPlaceRedirects, placeRedirects } = await import("../../scripts/pages/build-pages.mjs");
   const countries = JSON.parse(await read("api/v1/countries.json")).countries.map((c) => c.iso3).sort();
-  assert.deepEqual(listed, countries, "the short-link list matches the places (regenerate it when places change)");
-  assert.equal(short.permanent, false);
+  assert.equal(await readFile(path.join(repo, "vercel.json"), "utf8"), withPlaceRedirects(vercel, countries), "vercel.json redirects are stale: run node scripts/pages/build-pages.mjs");
+  const short = vercel.redirects.find((r) => r.destination === "/country/:code");
+  assert.deepEqual(/^\/:code\(([A-Z|]+)\)$/.exec(short.source)[1].split("|"), countries);
+  assert.ok(vercel.redirects.length <= 2048, "Vercel's limit");
+  for (const r of vercel.redirects) assert.ok(r.source.length <= 4096 && r.destination.length <= 4096, "Vercel's length limit");
+  // A rule never matches its own destination (Vercel matches case-sensitively), so nothing loops.
+  const rule = (s) => new RegExp("^" + s.replace(/:code\(([^)]*)\)/, "($1)") + "$");
+  for (const r of placeRedirects(countries)) for (const c of countries) assert.ok(!rule(r.source).test(`/country/${c}`), `${r.source} catches /country/${c}`);
+  assert.equal(placeRedirects(["KOR"]).find((r) => r.source === "/country/kor").destination, "/country/KOR");
 
   const script = pages["404.html"].match(/<script>([\s\S]*?)<\/script>/)[1];
   const go = (pathname, search = "") => {

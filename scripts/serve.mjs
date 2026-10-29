@@ -45,10 +45,12 @@ async function fileFor(p) {
 }
 
 createServer(async (req, res) => {
-  const p = decodeURIComponent(new URL(req.url, "http://x").pathname);
+  const url = new URL(req.url, "http://x");
+  const p = decodeURIComponent(url.pathname);
+  // Like Vercel, a redirect keeps the query string ("/kor?year=2070" → "/country/KOR?year=2070").
   for (const [re, dest, code] of redirects) {
     const m = re.exec(p);
-    if (m) return res.writeHead(code, { location: fill(dest, m.groups) }).end();
+    if (m) return res.writeHead(code, { location: fill(dest, m.groups) + url.search }).end();
   }
   let file = await fileFor(p);
   if (!file) for (const [re, dest] of rewrites) if (re.test(p) && (file = await fileFor(dest))) break;

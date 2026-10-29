@@ -4,10 +4,11 @@
 // search engines read these tags without running JavaScript, so a link to /country/TWN previews Taiwan, not the globe.
 // The app itself is the same file: it reads the path and shows the page.
 //
-//   node scripts/pages/build-pages.mjs
+//   node scripts/pages/build-pages.mjs            # pages, and the short-link redirects in vercel.json
 //
-// The deploy workflow runs it on the data it ships; scripts/serve.mjs and the browser tests run it too. Not committed
-// (.gitignore). Unknown codes have no page, so Vercel answers them with 404.html and a real 404.
+// The deploy workflow runs it on the data it ships; scripts/serve.mjs and the browser tests run it too. The pages are
+// not committed (.gitignore); vercel.json is, and the workflow commits it with the data when a place is added.
+// Unknown codes have no page, so Vercel answers them with 404.html and a real 404.
 
 import { readFile, writeFile, mkdir, rm } from "node:fs/promises";
 import path from "node:path";
@@ -82,6 +83,36 @@ export function placeMeta(L, rec, scen, site, { now = new Date() } = {}) {
   };
 }
 
+// Server redirects for every place, so links that crawlers and link previews follow (they don't run JavaScript) land
+// on the page: "/KOR" and "/kor" → "/country/KOR", "/country/kor" → "/country/KOR". Vercel matches vercel.json
+// sources case-sensitively, so the upper-case page never matches a lower-case rule. Exported for tests.
+export function placeRedirects(codes) {
+  const up = [...codes].filter((c) => /^[A-Z]{3}$/.test(c)).sort();
+  return [
+    { source: `/:code(${up.join("|")})`, destination: "/country/:code", permanent: false },
+    { source: `/:code(${up.map((c) => c.toLowerCase()).join("|")})`, destination: "/country/:code", permanent: false },
+    ...up.map((c) => ({ source: `/country/${c.toLowerCase()}`, destination: `/country/${c}`, permanent: false })),
+  ];
+}
+
+// vercel.json with the place redirects replaced (any redirect into /country/ is ours), one redirect per line.
+export function withPlaceRedirects(vercel, codes) {
+  const mine = (r) => typeof r.destination === "string" && r.destination.startsWith("/country/");
+  const redirects = [...(vercel.redirects ?? []).filter((r) => !mine(r)), ...placeRedirects(codes)];
+  const json = JSON.stringify({ ...vercel, redirects: "\u0000" }, null, 2);
+  return json.replace('"\\u0000"', `[\n${redirects.map((r) => `    ${JSON.stringify(r)}`).join(",\n")}\n  ]`) + "\n";
+}
+
+export async function syncVercelRedirects({ repoDir = path.resolve(publicDir, ".."), dir = publicDir, quiet = false } = {}) {
+  const countries = JSON.parse(await readFile(path.join(dir, "api/v1/countries.json"), "utf8"));
+  const file = path.join(repoDir, "vercel.json");
+  const before = await readFile(file, "utf8");
+  const after = withPlaceRedirects(JSON.parse(before), countries.countries.map((c) => c.iso3));
+  if (after !== before) await writeFile(file, after);
+  if (!quiet) console.log(after !== before ? "Updated the place redirects in vercel.json" : "vercel.json redirects are up to date");
+  return after !== before;
+}
+
 export async function buildPages({ dir = publicDir, quiet = false } = {}) {
   const L = await import(pathToFileURL(path.join(dir, "js/logic.js")).href);
   const template = await readFile(path.join(dir, "index.html"), "utf8");
@@ -117,8 +148,10 @@ export async function buildPages({ dir = publicDir, quiet = false } = {}) {
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
-  buildPages().catch((err) => {
-    console.error(err.message);
-    process.exit(1);
-  });
+  buildPages()
+    .then(() => syncVercelRedirects())
+    .catch((err) => {
+      console.error(err.message);
+      process.exit(1);
+    });
 }

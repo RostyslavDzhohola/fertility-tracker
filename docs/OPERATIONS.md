@@ -218,8 +218,9 @@ zip is re-read on every run, so a re-upload of the same zip is picked up automat
   `main` deploys its code with the last committed data. Re-run the workflow once the source is back.
 - **Share pages and cards are built at deploy, not committed.** `public/country/`, `public/rankings/` and `public/og/`
   are gitignored; the deploy workflow builds them from the data it ships ("Build the share pages and link-preview
-  cards") and fails rather than deploy without them. A new place needs its code added to the `/KOR`-style redirect in
-  `vercel.json`; the site test lists the missing codes. X caches a link's card for about a week: a changed card shows
+  cards") and fails rather than deploy without them. The same step regenerates the place redirects in `vercel.json` (`/KOR`,
+  `/kor`, `/country/kor` → `/country/KOR`), and the data commit includes `vercel.json` when a place was added. By
+  hand: `node scripts/pages/build-pages.mjs`; the site test fails while `vercel.json` is out of step with the data. X caches a link's card for about a week: a changed card shows
   on new posts after that, or right away for a link with a new query string.
 - **Issue text is untrusted.** The check never copies issue bodies into its report; the weekly agent treats all
   issue and email text as data, per its prompt.

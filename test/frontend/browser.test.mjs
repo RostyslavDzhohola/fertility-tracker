@@ -156,11 +156,13 @@ before(async () => {
     }
   };
   server = createServer(async (req, res) => {
-    const p = decodeURIComponent(new URL(req.url, "http://x").pathname);
+    const reqUrl = new URL(req.url, "http://x");
+    const p = decodeURIComponent(reqUrl.pathname);
     for (const r of vercel.redirects ?? []) {
       const m = routeRe(r.source).exec(p);
       if (m) {
-        res.writeHead(r.permanent === false ? 307 : 308, { location: r.destination.replace(/:(\w+)/g, (all, k) => m.groups?.[k] ?? all) });
+        // Like Vercel, the query string comes along.
+        res.writeHead(r.permanent === false ? 307 : 308, { location: r.destination.replace(/:(\w+)/g, (all, k) => m.groups?.[k] ?? all) + reqUrl.search });
         return res.end();
       }
     }
@@ -1238,6 +1240,13 @@ test("every place has its own share page: a country link previews that country; 
   const kor = await fetch(`${base}/KOR`, { redirect: "manual" });
   assert.equal(kor.status, 307);
   assert.equal(kor.headers.get("location"), "/country/KOR");
+  // Lower-case links redirect on the server too, so link previews follow them.
+  const twnLower = await fetch(`${base}/country/twn`, { redirect: "manual" });
+  assert.equal(twnLower.status, 307);
+  assert.equal(twnLower.headers.get("location"), "/country/TWN");
+  const korLower = await fetch(`${base}/kor`);
+  assert.equal(korLower.status, 200);
+  assert.equal(new URL(korLower.url).pathname, "/country/KOR");
   // The 404 page names the missing code and doesn't send the browser round in circles.
   const page = await openPage({ path: "/country/XXX", ready: `document.readyState === "complete"` });
   try {

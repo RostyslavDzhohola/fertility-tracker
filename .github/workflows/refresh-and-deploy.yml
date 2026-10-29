@@ -84,8 +84,9 @@ jobs:
         run: node scripts/fetch-data.mjs --verify
 
       # Link previews: X, Slack and search engines don't run JavaScript, so every place gets its own page (title,
-      # description, canonical link) and its own 1200x630 card picture, drawn from the data about to be deployed.
-      # Built here, not committed. Inter stands in for the system font the runner lacks.
+      # description, canonical link), its own 1200x630 card picture and server redirects from /KOR, /kor and
+      # /country/kor, all from the data about to be deployed. Pages and cards are not committed; vercel.json is, with
+      # the data, if a place was added. Inter stands in for the system font the runner lacks.
       - name: Build the share pages and link-preview cards
         run: |
           sudo apt-get install -y -qq fonts-inter > /dev/null 2>&1 || echo "::warning::fonts-inter not installed; cards use the runner's default font"
@@ -113,7 +114,8 @@ jobs:
       - name: Commit data if changed
         if: steps.data.outputs.outcome == 'success' && steps.head.outputs.current == 'true' && github.ref == 'refs/heads/main'
         run: |
-          git add -A public/api
+          # vercel.json changes only when a place is added or removed (its short-link redirects; build-pages.mjs).
+          git add -A public/api vercel.json
           if git diff --cached --quiet; then
             echo "No data changes"
           else
