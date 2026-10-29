@@ -2688,7 +2688,8 @@ body.page-globe {
   line-height: 1.25;
 }
 .mv-val small {
-  margin-left: 6px;
+  display: block;
+  margin-top: 2px;
   color: var(--muted);
   font-size: 13px;
   font-weight: 650;

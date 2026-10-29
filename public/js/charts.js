@@ -209,12 +209,13 @@ export function createPopChart(container, { onScrub } = {}) {
     lastYear = year;
     lastMix = mix;
     const yr = Math.max(Y0, Math.min(Y1, year));
-    // Before today there is one line (the UN's estimates and its path up to today), so one dot.
-    const past = yr < model.today;
-    const vm = past ? valueAt(model.past, yr) : valueAt(model.medium, yr);
-    const vc = past ? vm : valueAt(model.constant, yr);
+    // Up to the UN's last count there is one line, so one dot; from the first forecast year on (2024, before today
+    // too) each future has its own value, like the counters.
+    const counted = yr <= model.lastEstimate;
+    const vm = valueAt(model.fullM, yr);
+    const vc = valueAt(model.fullC, yr);
     const v = vm == null ? vc : vc == null ? vm : vm + (vc - vm) * mix;
-    const vo = past ? null : mix < 0.5 ? vc : vm;
+    const vo = counted || yr < model.today ? null : mix < 0.5 ? vc : vm;
     const xx = geo.x(yr);
     const line = marker.querySelector(".m-line");
     line.setAttribute("x1", xx);
@@ -255,6 +256,11 @@ export function createPopChart(container, { onScrub } = {}) {
   return {
     setData(m) {
       model = m;
+      // Each future joined to the counted past (the UN's estimates up to lastEstimate), for the marker.
+      model.lastEstimate ??= model.today;
+      const counted = model.past.filter((p) => p[0] <= model.lastEstimate);
+      model.fullM = [...counted, ...model.medium.filter((p) => p[0] > model.lastEstimate)];
+      model.fullC = [...counted, ...model.constant.filter((p) => p[0] > model.lastEstimate)];
       lastW = width();
       render();
     },

@@ -892,14 +892,14 @@ export function flowsSentence(f, name, { world = false } = {}) {
   const moves = Math.abs(mig) >= 0.02 * Math.max(f.births, f.deaths, 1);
   if (world) return nat < 0 ? "More people die than are born. Moving doesn't change the world's total." : "More babies are born than people die. Moving doesn't change the world's total.";
   if (nat < 0) {
-    if (!moves) return "More people die than are born. Moving in and out barely changes it.";
+    if (!moves) return "More people die than are born. Immigration barely changes it.";
     if (mig < 0) return "More people die than are born, and more people leave than arrive.";
-    if (nat + mig >= 0) return `${fl(nat)} more people die than are born. People moving in add ${fl(mig)}, so ${name} ${nat + mig > 0 ? "still grows" : "stays the same size"}.`;
-    return `${fl(nat)} more people die than are born. People moving in cut the loss to ${fl(nat + mig)}.`;
+    if (nat + mig >= 0) return `${fl(nat)} more people die than are born. Immigration adds ${fl(mig)}, so ${name} ${nat + mig > 0 ? "still grows" : "stays the same size"}.`;
+    return `${fl(nat)} more people die than are born. Immigration cuts the loss to ${fl(nat + mig)}.`;
   }
-  if (!moves) return "More babies are born than people die. Moving in and out barely changes it.";
+  if (!moves) return "More babies are born than people die. Immigration barely changes it.";
   if (mig < 0) return nat + mig < 0 ? `More babies are born than people die, but so many leave that ${name} shrinks.` : "More babies are born than people die. Some people leave, but fewer than are born.";
-  return "More babies are born than people die, and more people move in than leave.";
+  return "More babies are born than people die, and immigration adds more.";
 }
 
 export function babiesSentence(tfr) {
@@ -986,13 +986,14 @@ export function peopleCaption(r, year, today) {
 }
 
 // The words that go with a shared picture: the place, the slider year and the chosen future, like the picture.
-export function snapshotPostText({ rec, year, today, scenario, ratio }) {
+// lastEstimate: the UN's last counted year; later years are the selected future, even before today.
+export function snapshotPostText({ rec, year, today, scenario, ratio, lastEstimate = null }) {
   const who = displayName(rec);
   const tfr = isNum(rec?.tfr?.value) ? ` ${fmtTfr(rec.tfr.value)} babies per woman today.` : "";
   if (!isNum(ratio) || year === today) return `${who}: where its population is headed by 2100.${tfr}`;
   const n = Math.round(100 * ratio);
-  if (year < today) return `${who} in ${year}: about ${n} people for every 100 today (UN estimate).${tfr}`;
   const future = scenario === "constant" ? "if birth rates stay the same" : "UN forecast";
+  if (year < today) return `${who} in ${year}: about ${n} people for every 100 today (${isNum(lastEstimate) && year > lastEstimate ? future : "UN estimate"}).${tfr}`;
   return `${who} in ${year}: for every 100 people today, about ${n}${n < 100 ? " left" : ""} (${future}).${tfr}`;
 }
 

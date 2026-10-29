@@ -112,16 +112,16 @@ export function globeVisual(canvas, crop, { legendInset = 24, scale = "trend" } 
     const cw = canvas.clientWidth || canvas.width;
     const ch = canvas.clientHeight || canvas.height;
     const px = canvas.width / cw;
-    const scale = Math.min(box.w / crop.w, box.h / crop.h);
-    const ox = box.x + (box.w - crop.w * scale) / 2;
-    const oy = box.y + (box.h - crop.h * scale) / 2;
+    const zoom = Math.min(box.w / crop.w, box.h / crop.h);
+    const ox = box.x + (box.w - crop.w * zoom) / 2;
+    const oy = box.y + (box.h - crop.h * zoom) / 2;
     const x0 = Math.max(0, crop.x);
     const y0 = Math.max(0, crop.y);
     const x1 = Math.min(cw, crop.x + crop.w);
     const y1 = Math.min(ch, crop.y + crop.h);
     if (x1 > x0 && y1 > y0) {
       g.imageSmoothingQuality = "high";
-      g.drawImage(canvas, x0 * px, y0 * px, (x1 - x0) * px, (y1 - y0) * px, ox + (x0 - crop.x) * scale, oy + (y0 - crop.y) * scale, (x1 - x0) * scale, (y1 - y0) * scale);
+      g.drawImage(canvas, x0 * px, y0 * px, (x1 - x0) * px, (y1 - y0) * px, ox + (x0 - crop.x) * zoom, oy + (y0 - crop.y) * zoom, (x1 - x0) * zoom, (y1 - y0) * zoom);
     }
     legend(g, box, t, legendInset, scale);
   };

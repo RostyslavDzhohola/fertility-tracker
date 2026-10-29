@@ -856,7 +856,8 @@ export function createGlobe(canvas, opts = {}) {
     cands.sort((a, b) => b.score - a.score);
     const blocked = occluders().map((o) => ({ l: o.left - 4, t: o.top - 4, r: o.right + 4, b: o.bottom + 4 }));
     const placed = [];
-    const hit = (b) => placed.some((p) => !(b.r < p.l || b.l > p.r || b.b < p.t || b.t > p.b)) || blocked.some((p) => !(b.r < p.l || b.l > p.r || b.b < p.t || b.t > p.b));
+    const overlaps = (b, list) => list.some((p) => !(b.r < p.l || b.l > p.r || b.b < p.t || b.t > p.b));
+    const hit = (b) => overlaps(b, placed) || overlaps(b, blocked);
     ctx.textAlign = "center";
     ctx.textBaseline = "alphabetic";
     ctx.lineJoin = "round";
@@ -877,8 +878,10 @@ export function createGlobe(canvas, opts = {}) {
       const w = Math.max(textW(NAME_FONT, lab.name), numW, textW(LINE_FONT, lab.line)) + 10;
       const h = fs.name + fs.line + 10;
       const box = { l: x - w / 2, t: y - h / 2, r: x + w / 2, b: y + h / 2 };
-      // Name and number; where the name doesn't fit (a small place between big neighbours), the number alone.
-      let full = inside(box) && !hit(box);
+      // Name and number; where the name doesn't fit beside another label (a small place between big neighbours), the
+      // number alone. Under a control or off the edge, nothing: a number without its name there reads as a stray.
+      const full = inside(box) && !hit(box);
+      if (!full && (!inside(box) || overlaps(box, blocked))) continue;
       let only = null;
       if (!full) {
         const wn = Math.max(numW, textW(LINE_FONT, lab.line)) + 10;

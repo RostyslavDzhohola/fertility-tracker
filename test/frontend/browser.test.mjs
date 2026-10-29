@@ -1370,7 +1370,7 @@ test("globe colors show the trend in the slider year: today is not one flat colo
     assert.equal(r.ukr, "Shrinking fast");
     assert.equal(r.nga, "Growing");
     assert.ok(r.words.Growing > 50 && r.words.Shrinking > 10 && r.words["Shrinking fast"] > 2, JSON.stringify(r.words));
-    assert.match(await page.eval(`document.getElementById("legend").textContent`), /Past 5 years/i);
+    assert.match(await page.eval(`document.getElementById("legend").textContent`), /Change 2021–26, forecast/);
   } finally {
     await page.close();
   }
@@ -1405,6 +1405,62 @@ test("every number on the country page can say where it comes from; migration ro
     await page.eval(`document.querySelector("#src-pop a[data-nav]").click(), 0`);
     await page.waitFor(`location.pathname === "/country/RUS" && document.getElementById("src-pop").hidden`, 3000);
     assert.deepEqual(page.errors, []);
+  } finally {
+    await page.close();
+  }
+});
+
+test("source cards follow the slider: the readout number, and a births card that Play redraws, show the new year", opts, async () => {
+  const page = await openPage({ path: "/country/USA?year=2000" });
+  try {
+    await page.waitFor(`!!FT.data.details.get("USA")?.data && !!document.querySelector("#why-born .bd-row.born .src")`, 5000);
+    // The big readout number opens its source, for the slider's year.
+    await page.eval(`document.querySelector(".ro-src").click(), 0`);
+    assert.match(await page.eval(`document.getElementById("src-pop-title").textContent`), /people in the United States on 1 July 2000$/);
+    await page.eval(`(() => { const i = document.querySelector("#cv-controls input.tc-range"); i.value = "2010"; i.dispatchEvent(new Event("input", { bubbles: true })); })()`);
+    await sleep(150);
+    assert.match(await page.eval(`document.getElementById("src-pop-title").textContent`), /on 1 July 2010$/);
+    // A births card stays with its number while Play redraws the tile, and focus stays in the card.
+    await page.eval(`document.querySelector("#why-born .bd-row.born .src").click(), 0`);
+    assert.match(await page.eval(`document.getElementById("src-pop-title").textContent`), /in 2010$/);
+    await page.eval(`document.querySelector("#cv-controls .tc-play").click(), 0`);
+    await sleep(700);
+    await page.eval(`document.querySelector("#cv-controls .tc-play").click(), 0`);
+    await sleep(150);
+    const r = await page.eval(`({ y: Math.round(FT.state.year), title: document.getElementById("src-pop-title").textContent, open: !document.getElementById("src-pop").hidden, expanded: document.querySelector("#why-born .bd-row.born .src").getAttribute("aria-expanded"), focus: document.activeElement.id })`);
+    assert.ok(r.y > 2010, `played to ${r.y}`);
+    assert.ok(r.open && r.title.endsWith(`in ${r.y}`), JSON.stringify(r));
+    assert.equal(r.expanded, "true");
+    assert.equal(r.focus, "src-pop-title");
+    assert.deepEqual(page.errors, []);
+  } finally {
+    await page.close();
+  }
+});
+
+test("between the last count and today the chart marker follows the selected future, like the counter", opts, async () => {
+  const page = await openPage({ path: "/country/ETH?year=2025&scenario=constant" });
+  try {
+    await page.waitFor(`!!document.querySelector("#pop-chart .marker .m-bubble text")?.textContent`, 5000);
+    const r = await page.eval(`({ num: document.getElementById("pp-num").textContent + " " + document.getElementById("pp-unit").textContent, bubble: document.querySelector("#pop-chart .marker .m-bubble text").textContent })`);
+    const n = Number(r.num.split(" ")[0]);
+    assert.equal(r.bubble, `2025: ${n}M`, JSON.stringify(r));
+  } finally {
+    await page.close();
+  }
+});
+
+test("a shared picture's legend follows its scale: trend for the globe, the 2100 outlook for link cards", opts, async () => {
+  const page = await openPage({ path: "/?year=2026" });
+  try {
+    const same = await page.eval(`(async () => {
+      const S = await import("/js/snapshot.js");
+      const blank = document.createElement("canvas"); blank.width = blank.height = 10;
+      const t = { globeBg: "#ffffff", paper: "#ffffff", legendBg: "#ffffff", ink2: "#000000" };
+      const draw = (scale) => { const c = document.createElement("canvas"); c.width = c.height = 900; const g = c.getContext("2d"); S.globeVisual(blank, { x: 0, y: 0, w: 10, h: 10 }, { scale })(g, { x: 0, y: 0, w: 900, h: 900 }, t); return [...g.getImageData(0, 800, 900, 80).data].join(","); };
+      return draw("trend") === draw("outlook");
+    })()`);
+    assert.equal(same, false, "the two legends are drawn in different colors");
   } finally {
     await page.close();
   }

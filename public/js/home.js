@@ -210,6 +210,26 @@ export function createHome({ navigate, onFocusChange, siteUrl = () => L.SITE_URL
     setText(el.wcPct, y === data.today ? "today" : pct == null ? "" : `${L.fmtPct(pct)} vs today`);
     const c = L.trendColor(trendNow("WLD"));
     if (c) el.wcSw.style.setProperty("--sw", c);
+    renderLegendCap(y);
+  }
+
+  // The legend names the years the colors compare: "Change 2021–26", with "forecast" once they run past the UN's last
+  // count (at 1950, the first year's change).
+  const legendCap = el.view.querySelector("#legend .lg-cap");
+  const legend = $("legend");
+  let lastCap = null;
+  function renderLegendCap(y) {
+    if (y === lastCap || !legendCap) return;
+    lastCap = y;
+    const to = Math.max(y, data.first + 1);
+    const from = Math.max(data.first, to - L.TREND_YEARS);
+    const fc = to > data.latestEstimateYear;
+    setText(legendCap, `Change ${from}–${String(to).slice(-2)}${fc ? ", forecast" : ""}`);
+    setAttr(
+      legend,
+      "aria-label",
+      `Colors show how fast each country's population changed each year from ${from} to ${to}${fc ? " (UN forecast)" : ""}: green, growing; sand, about the same; orange, shrinking; red, shrinking fast, darker the faster.`,
+    );
   }
 
   // ---------------------------------------------------------------- legend is static HTML; "Most at risk"

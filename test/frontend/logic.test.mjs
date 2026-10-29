@@ -116,7 +116,9 @@ test("past years in captions and post text", () => {
   assert.equal(L.peopleCaption(1.01, 2015, 2026), "About as many in 2015 as today.");
   assert.equal(L.peopleCaption(0.6, 2070, 2026), "6 of 10 still here in 2070.");
   const rec = { iso3: "UKR", name: "Ukraine", tfr: { value: 0.988 } };
-  assert.equal(L.snapshotPostText({ rec, year: 1990, today: 2026, scenario: "medium", ratio: 1.33 }), "Ukraine in 1990: about 133 people for every 100 today (UN estimate). 0.99 babies per woman today.");
+  assert.equal(L.snapshotPostText({ rec, year: 1990, today: 2026, scenario: "medium", ratio: 1.33, lastEstimate: 2023 }), "Ukraine in 1990: about 133 people for every 100 today (UN estimate). 0.99 babies per woman today.");
+  // 2025 was not counted: it is the selected future, like the picture's footer.
+  assert.equal(L.snapshotPostText({ rec, year: 2025, today: 2026, scenario: "constant", ratio: 0.99, lastEstimate: 2023 }), "Ukraine in 2025: about 99 people for every 100 today (if birth rates stay the same). 0.99 babies per woman today.");
 });
 
 test("rounding ties: the printed %, its color and its word always agree, on both sides of every band edge", () => {
@@ -329,11 +331,11 @@ test("born, died, moved add up over the years and say whether moving in holds a 
   ];
   const f = L.flowsBetween(series, 2026, 2027);
   assert.deepEqual(f, { from: 2026, to: 2027, years: 2, births: 1400, deaths: 2000, netMigration: 400, natural: -600, change: -200 });
-  assert.equal(L.flowsSentence(f, "Germany"), "600 more people die than are born. People moving in cut the loss to 200.");
-  assert.equal(L.flowsSentence({ ...f, netMigration: 700, change: 100 }, "the United States"), "600 more people die than are born. People moving in add 700, so the United States still grows.");
+  assert.equal(L.flowsSentence(f, "Germany"), "600 more people die than are born. Immigration cuts the loss to 200.");
+  assert.equal(L.flowsSentence({ ...f, netMigration: 700, change: 100 }, "the United States"), "600 more people die than are born. Immigration adds 700, so the United States still grows.");
   assert.equal(L.yearlyNetSentence(-57900, 2023), "In 2023, 57,900 more people left than arrived.");
   assert.equal(L.flowsSentence({ ...f, netMigration: -100 }, "Germany"), "More people die than are born, and more people leave than arrive.");
-  assert.equal(L.flowsSentence({ ...f, netMigration: 5 }, "Germany"), "More people die than are born. Moving in and out barely changes it.");
+  assert.equal(L.flowsSentence({ ...f, netMigration: 5 }, "Germany"), "More people die than are born. Immigration barely changes it.");
   assert.equal(L.flowsSentence({ births: 3, deaths: 1, netMigration: 0, natural: 2 }, "the world", { world: true }), "More babies are born than people die. Moving doesn't change the world's total.");
   // From 1 July 2026 to 1 July 2028: half of 2026, all of 2027, half of 2028.
   assert.deepEqual(L.flowsBetween(series, 2026, 2028, { midyear: true }), { from: 2026, to: 2028, years: 3, births: 1400, deaths: 2000, netMigration: 400, natural: -600, change: -200 });

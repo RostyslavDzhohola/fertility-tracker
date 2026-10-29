@@ -9,7 +9,7 @@ import { createPopChart } from "./charts.js";
 import { peopleRow } from "./people.js";
 import { emailLink } from "./ui.js";
 import { openShare, renderSnapshot, chartVisual } from "./snapshot.js";
-import { sourced, setSourceNavigate, closeSource, checkNote, SRC, WB_INDICATORS, wbIndicatorUrl } from "./sources.js";
+import { sourced, setSourceNavigate, closeSource, refreshSource, checkNote, SRC, WB_INDICATORS, wbIndicatorUrl } from "./sources.js";
 import { crossCheck } from "./crosscheck.js";
 
 const GEN_LABELS = ["Today", "Children", "Grandchildren", "Great-grandchildren"];
@@ -66,6 +66,9 @@ export function createCountryPage({ navigate, siteUrl }) {
   // What other sources say about the chart's "today" (crosscheck.js), under the chart's sentence.
   el.chCheck = h("div", { class: "xcheck-wrap", hidden: true });
   el.chSentence.after(el.chCheck);
+  // …and about immigration, under the "Why it's happening" tiles, so the tiles keep similar heights.
+  el.whyCheck = h("div", { class: "xcheck-wrap", hidden: true });
+  el.move.parentElement.after(el.whyCheck);
 
   const controls = createTimeControls({
     prefix: "cv",
@@ -74,6 +77,14 @@ export function createCountryPage({ navigate, siteUrl }) {
   el.controls.replaceChildren(controls.root);
 
   const grid = peopleRow(el.ppGrid, { per: 100, maxExtra: 100, extraLabel: (n) => `+${n} more for every 100 today` });
+
+  // The readout's number opens its source too, for whatever year the slider shows.
+  {
+    const at = el.ppNum.nextSibling;
+    const parent = el.ppNum.parentNode;
+    const btn = sourced(el.ppNum, () => (current ? popInfo(current, yearInt(), popNow(current.iso3, yearInt())) : null), { key: "pp-num", cls: "ro-src" });
+    parent.insertBefore(btn, at);
+  }
 
   const chart = createPopChart(el.chart, {
     onScrub: (yr) => setYear(yr, { animate: false }),
@@ -131,6 +142,8 @@ export function createCountryPage({ navigate, siteUrl }) {
         ["Kind", future && scenario === "constant" ? "UN what-if: every country keeps its 2023 babies per woman (constant-fertility scenario)" : kindOf(year)],
       ],
       note: forecastNote(year),
+      // Ukraine's "today" rests on an assumed return of refugees: say what newer counts show.
+      check: year > data.latestEstimateYear && year <= data.today ? crossCheck(rec.iso3, "today") : null,
       src: SRC.wppScenarios,
       api: { href: "/api/v1/scenarios.json", field: year < data.start ? `places.${rec.iso3}.estimate[${year - data.first}]` : `places.${rec.iso3}.${scenario}[${year - data.start}]` },
     };
@@ -148,6 +161,16 @@ export function createCountryPage({ navigate, siteUrl }) {
         "People who moved in minus people who moved out (the UN publishes only this net figure for every country)",
         "NetMigrations",
       ],
+      naturalChange: [
+        `Born minus died in ${L.theName(rec)}: ${L.fmtFlow(value)}`,
+        "Births minus deaths, from the UN's own figures for each",
+        "Births and Deaths",
+      ],
+      populationChange: [
+        `${L.possessiveOf(rec, { start: true })} population changed by ${L.fmtFlow(value)}`,
+        "Births minus deaths plus net immigration",
+        "Births, Deaths and NetMigrations",
+      ],
     }[what];
     return {
       title: `${words[0]}, ${one ? `in ${f.from}` : `${f.from}–${f.to}`}`,
@@ -156,7 +179,7 @@ export function createCountryPage({ navigate, siteUrl }) {
         [one ? "Year" : "Years", span],
         ["Kind", one ? kindOf(f.from) : f.to <= data.latestEstimateYear ? kindOf(f.to) : f.from > data.latestEstimateYear ? kindOf(f.to) : `UN estimates to ${data.latestEstimateYear}, then the UN forecast`],
       ],
-      note: one ? forecastNote(f.from) : `Added up from the UN's yearly figures (column ${words[2]}), half of the first and last year, so it runs 1 July to 1 July like the population.${f.to > data.latestEstimateYear ? " Years after " + data.latestEstimateYear + " are the UN's 2024 forecast." : ""}`,
+      note: one ? forecastNote(f.from) : `Added up from the UN's yearly figures (${words[2]}), counting half of the first and last year, so it runs 1 July to 1 July like the population.${f.to > data.latestEstimateYear ? " Years after " + data.latestEstimateYear + " are the UN's 2024 forecast." : ""}`,
       src: SRC.wpp,
       api: { href: apiOf(rec), field: `series[year].${what}` },
     };
@@ -274,6 +297,7 @@ export function createCountryPage({ navigate, siteUrl }) {
     if (y !== lastFlowsYear) {
       lastFlowsYear = y;
       renderFlows();
+      refreshSource();
     }
   }
   let lastFlowsYear = null;
@@ -336,7 +360,7 @@ export function createCountryPage({ navigate, siteUrl }) {
     el.chCheck.replaceChildren(...(chk ? [checkNote(chk, { cls: "xcheck" })] : []));
     el.chCheck.hidden = !chk;
     chartModel = { iso3: rec.iso3, past: pastAll, medium, constant, today };
-    chart.setData({ past: pastAll, medium, constant, today, peak, name: placeName(), year: state.year, mix: state.mix });
+    chart.setData({ past: pastAll, medium, constant, today, lastEstimate: data.latestEstimateYear, peak, name: placeName(), year: state.year, mix: state.mix });
   }
 
   // ---------------------------------------------------------------- why it's happening
@@ -402,6 +426,9 @@ export function createCountryPage({ navigate, siteUrl }) {
       );
     }
     const yearly = world ? null : netChart(rec);
+    const chk = world ? null : crossCheck(rec.iso3, "net");
+    el.whyCheck.replaceChildren(...(chk ? [checkNote(chk, { cls: "xcheck" })] : []));
+    el.whyCheck.hidden = !chk;
     el.move.replaceChildren(
       h("h3", { class: "tile-title" }, "Immigration"),
       pic,
@@ -450,7 +477,7 @@ export function createCountryPage({ navigate, siteUrl }) {
     return h(
       "div",
       { class: "net-yearly" },
-      h("p", { class: "net-title" }, "Moving in minus moving out, each year"),
+      h("p", { class: "net-title" }, "Net immigration each year (in minus out)"),
       svg,
       h(
         "p",
@@ -458,8 +485,7 @@ export function createCountryPage({ navigate, siteUrl }) {
         Number.isFinite(last) ? h("span", null, `${est}: `, val(est, last)) : "",
         Number.isFinite(now) ? h("span", { class: "fc" }, `UN forecast for ${data.today}: `, val(data.today, now)) : "",
       ),
-      h("p", { class: "tile-note" }, "Dark bars were counted; light bars are the UN's 2024 forecast, which assumes this keeps going. Policies can change it."),
-      crossCheck(rec.iso3, "net") ? checkNote(crossCheck(rec.iso3, "net"), { cls: "xcheck" }) : "",
+      h("p", { class: "tile-note" }, "Dark bars were counted. Light bars are the UN's forecast, made in 2024: policies and events can change it."),
     );
   }
 
@@ -490,7 +516,7 @@ export function createCountryPage({ navigate, siteUrl }) {
     }
     const net = world ? 0 : f?.netMigration ?? 0;
     const max = Math.max(f?.births ?? 0, f?.deaths ?? 0, Math.abs(net)) || 1;
-    const val = (what, v, sign) => (v == null || !f ? "–" : sourced(sign + L.fmtFlow(Math.abs(v), { plus: false }), flowInfo(rec, what, v, f)));
+    const val = (what, v, sign) => (v == null || !f ? "–" : sourced(sign + L.fmtFlow(Math.abs(v), { plus: false }), flowInfo(rec, what, v, f), { key: `flow-${what}` }));
     const bar = (cls, label, what, v, sign = "") =>
       h(
         "div",
@@ -499,26 +525,26 @@ export function createCountryPage({ navigate, siteUrl }) {
         h("span", { class: "bd-track", "aria-hidden": "true" }, h("span", { class: "bd-fill", style: { width: `${Math.max(2, (100 * Math.abs(v ?? 0)) / max)}%` } })),
         h("span", { class: "bd-val" }, val(what, v, sign)),
       );
-    const sub = (label, v) => h("p", { class: "bd-sub" }, h("span", null, label), h("b", null, v == null ? "–" : L.fmtFlow(v, { plus: true })));
+    const sub = (label, v) => h("p", { class: "bd-sub" }, h("span", null, label), h("b", null, v == null || !f ? "–" : sourced(L.fmtFlow(v, { plus: true }), flowInfo(rec, "naturalChange", v, f), { key: "flow-naturalChange" })));
     const rows = [h("p", { class: "bd-group" }, "Births and deaths"), bar("born", "Born", "births", f?.births, "+"), bar("died", "Died", "deaths", f?.deaths, L.MINUS), sub("Born minus died", f?.natural)];
     if (!world)
       rows.push(
         h("p", { class: "bd-group" }, "Immigration"),
-        net < 0 ? bar("left", "Moved away", "netMigration", net, L.MINUS) : bar("moved", "Moved in", "netMigration", net, "+"),
+        bar(net < 0 ? "left" : "moved", "Net", "netMigration", net, net < 0 ? L.MINUS : "+"),
       );
     const change = f?.change;
     const total = h(
       "p",
       { class: "bd-total" },
       h("span", null, "Change"),
-      h("b", { "data-band": change == null ? "" : change < 0 ? "down" : "up" }, change == null ? "–" : L.fmtFlow(change, { plus: true })),
+      h("b", { "data-band": change == null ? "" : change < 0 ? "down" : "up" }, change == null ? "–" : sourced(L.fmtFlow(change, { plus: true }), flowInfo(rec, "populationChange", change, f), { key: "flow-populationChange" })),
     );
     el.born.replaceChildren(
       h("h3", { class: "tile-title" }, world ? "Born and died" : "Births, deaths, immigration"),
       h("p", { class: "tile-span" }, span, ` (${kind})`),
       h("div", { class: "tile-pic bd-pic flows" }, ...rows, total),
       h("p", { class: "tile-text" }, L.flowsSentence(f, placeName(), { world }), world ? "" : immigrationShare(f)),
-      world ? "" : h("p", { class: "tile-note" }, "Moved in: people who moved in, minus people who moved away."),
+      world ? "" : h("p", { class: "tile-note" }, "Immigration, net: people who moved in minus people who moved out."),
     );
   }
 
@@ -608,19 +634,48 @@ export function createCountryPage({ navigate, siteUrl }) {
     const stats = h(
       "dl",
       { class: "stats" },
-      stat("People", head("population", L.fmtWords(rec.population?.value), `${L.fmtWords(rec.population?.value)} people in ${where}`), rec.population?.year ? `(${rec.population.year})` : ""),
-      stat(`People today (${today}, UN)`, base == null ? "–" : sourced(L.fmtWords(base), popInfo(rec, today, base, "medium"))),
+      stat("People, latest reported", head("population", L.fmtWords(rec.population?.value), `${L.fmtWords(rec.population?.value)} people in ${where}`), rec.population?.year ? `(${rec.population.year}, ${rec.population.source === "WB" ? "World Bank" : "UN"})` : ""),
+      stat(`People today (${today})`, base == null ? "–" : sourced(L.fmtWords(base), popInfo(rec, today, base, "medium")), "(UN forecast)"),
       stat("Babies per woman", head("tfr", L.fmtTfr(rec.tfr?.value), `${L.fmtTfr(rec.tfr?.value)} babies per woman in ${where}`), rec.tfr?.year ? `(${rec.tfr.year})` : ""),
       stat("Median age", rec.medianAge?.value != null ? head("medianAge", `${rec.medianAge.value.toFixed(1)} years`, `Half the people in ${where} are older than ${rec.medianAge.value.toFixed(1)}`) : "–", rec.medianAge?.year ? `(${rec.medianAge.year})` : ""),
       stat("65 and older", rec.share65?.value != null ? head("share65", `${Math.round(rec.share65.value)}%`, `${Math.round(rec.share65.value)}% of people in ${where} are 65 or older`) : "–", rec.share65?.year ? `of people (${rec.share65.year})` : ""),
       stat("Born per year", flow("births", c.births), c.year ? `(${c.year})` : ""),
       stat("Died per year", flow("deaths", c.deaths), c.year ? `(${c.year})` : ""),
-      stat("Net migration", flow("netMigration", c.netMigration), c.year ? `(${c.year})` : ""),
+      stat("Net immigration", flow("netMigration", c.netMigration), c.year ? `(${c.year})` : ""),
       stat("UN forecast, 2050", ...vsToday(2050, "medium")),
       stat("UN forecast, 2100", ...vsToday(data.end, "medium")),
       stat("If birth rates stay the same, 2100", ...vsToday(data.end, "constant")),
-      stat("Peak", p.peakYear != null ? String(p.peakYear) : "–", p.peakYear != null && p.peakYear >= L.END_YEAR ? "(still growing)" : ""),
-      stat("Half of today's people by", halfYear != null ? String(halfYear) : "Not before 2100", "(UN forecast)"),
+      stat(
+        "Peak",
+        p.peakYear != null
+          ? sourced(String(p.peakYear), {
+              title: p.peakYear >= L.END_YEAR ? `${L.theName(rec, { start: true })} is still growing in 2100 (UN forecast)` : `${L.possessiveOf(rec, { start: true })} population peaks at ${L.fmtWords(p.peakPopulation)} in ${p.peakYear}`,
+              rows: [
+                ["Counts", "The year with the most people on 1 July, 1950–2100"],
+                ["Kind", kindOf(p.peakYear)],
+              ],
+              src: SRC.wpp,
+              api: { href: apiOf(rec), field: "projection.peakYear" },
+            })
+          : "–",
+        p.peakYear != null && p.peakYear >= L.END_YEAR ? "(still growing)" : "",
+      ),
+      stat(
+        "Down to half of today's people",
+        halfYear != null
+          ? sourced(`In ${halfYear}`, {
+              title: `${L.theName(rec, { start: true })} has half of today's ${L.fmtWords(base)} people in ${halfYear} (UN forecast)`,
+              rows: [
+                ["Counts", "The first year the UN forecast is at or below half of today's population"],
+                ["Kind", kindOf(halfYear)],
+              ],
+              note: forecastNote(halfYear),
+              src: SRC.wppScenarios,
+              api: { href: "/api/v1/scenarios.json", field: `places.${rec.iso3}.medium` },
+            })
+          : "Not before 2100",
+        "(UN forecast)",
+      ),
     );
 
     // The composite risk score (API) and its inputs, kept apart and labelled: it measures change from 2023.
@@ -666,8 +721,8 @@ export function createCountryPage({ navigate, siteUrl }) {
             h(
               "dl",
               { class: "stats two" },
-              stat(`Born abroad, living in ${rec.name}`, m.immigrants == null ? "–" : sourced(L.fmtWords(m.immigrants), stockInfo(rec, m, "immigrants")), m.immigrantsPct != null ? `(${m.immigrantsPct}% of residents)` : ""),
-              stat(`Born in ${rec.name}, living abroad`, m.emigrants == null ? "–" : sourced(L.fmtWords(m.emigrants), stockInfo(rec, m, "emigrants"))),
+              stat(`Born abroad, living in ${L.theName(rec)}`, m.immigrants == null ? "–" : sourced(L.fmtWords(m.immigrants), stockInfo(rec, m, "immigrants")), m.immigrantsPct != null ? `(${m.immigrantsPct}% of residents)` : ""),
+              stat(`Born in ${L.theName(rec)}, living abroad`, m.emigrants == null ? "–" : sourced(L.fmtWords(m.emigrants), stockInfo(rec, m, "emigrants"))),
             ),
             h("p", { class: "muted small" }, `Everyone alive in mid-${m.year}, whenever they moved.${b ? ` Until ${b.until}, ${rec.name} was part of ${b.name}: people who moved between its republics then count as migrants now.` : ""} Press a row to see where its number comes from.`),
             h("div", { class: "corridors" }, h("div", null, h("h4", null, "Born in"), partnerList(corr?.topOrigins, "in")), h("div", null, h("h4", null, "Living in"), partnerList(corr?.topDestinations, "out"))),

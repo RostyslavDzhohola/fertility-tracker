@@ -16,6 +16,18 @@ export const CROSS_CHECKS = {
         { label: "UN assumption (table II.3.B, p. 49)", href: WPP_METHOD },
         { label: "Eurostat: temporary protection", href: "https://ec.europa.eu/eurostat/databrowser/view/migr_asytpsm/default/table?lang=en" },
         { label: "UNHCR: refugees from Ukraine", href: "https://data.unhcr.org/en/documents/details/121051" },
+        { label: "UNHCR: returns", href: "https://api.unhcr.org/population/v1/population/?year=2025&coo=UKR" },
+      ],
+    },
+    net: {
+      text:
+        "The light bars for 2024 and 2025 are the UN's assumed return of two thirds of refugees (+2.85 million). Newer " +
+        "counts don't show it: Ukrainians under temporary protection in the EU rose to 4.36 million by August 2026, and " +
+        "the UN refugee agency recorded about 350,000 refugee returns in 2024–2025.",
+      links: [
+        { label: "UN assumption (table II.3.B, p. 49)", href: WPP_METHOD },
+        { label: "Eurostat: temporary protection", href: "https://ec.europa.eu/eurostat/databrowser/view/migr_asytpsm/default/table?lang=en" },
+        { label: "UNHCR: returns", href: "https://api.unhcr.org/population/v1/population/?year=2025&coo=UKR" },
       ],
     },
     immigrants: {

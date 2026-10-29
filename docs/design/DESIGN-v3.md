@@ -301,7 +301,7 @@ What changed, and why (the user's words in quotes):
   Each place is colored by its average yearly change over the 5 years up to the slider year (`logic.js` `trendAt`,
   `TREND_RAMP`). Looking back, not ahead: Ukraine in 2026 shows the war years, not the UN's assumed 2025 return. Bands,
   as displayed (one decimal): Growing above +0.1% a year, About the same −0.1 to +0.1, Shrinking −0.1 to above −0.8,
-  Shrinking fast −0.8 or less. Legend caption: "Past 5 years". The tooltip says "Shrinking 0.4% a year" and keeps
+  Shrinking fast −0.8 or less. Legend caption: the years compared, "Change 2021–26, forecast". The tooltip says "Shrinking 0.4% a year" and keeps
   "% vs today" on a second line.
 - **No gray "Half gone".** "Remove the half gone. Red will just mean it's super red." Both scales (the globe's trend and
   the 2100 outlook in chips, meter, verdicts, rankings and link cards) have four words; red only deepens, to `#5E120E`.
