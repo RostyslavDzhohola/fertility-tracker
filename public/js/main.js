@@ -2,7 +2,7 @@
 // Pages: Globe `/`, Country `/country/{ISO3}`, Rankings `/rankings`. Page changes use pushState (Back works);
 // year, scenario and focus tweaks use replaceState only.
 
-import { $, setAttr, focusNoScroll, idle, debounce } from "./dom.js";
+import { $, setAttr, focusNoScroll, idle } from "./dom.js";
 import * as L from "./logic.js";
 import { data, state, subscribe, fetchJson, applyCountries, applyScenarios, setYear, setScenario, outlookPct, pct2100, yearInt, loadDetail, API } from "./store.js";
 import { createHome } from "./home.js";
@@ -41,6 +41,10 @@ function navigate(path) {
   const target = L.parseRoute(p, "", "");
   const url = (target.redirect ?? p) + shareQuery(target.page === "globe" && target.focus ? { focus: target.focus } : {});
   if (url === location.pathname + location.search) return;
+  // The page being left keeps the year and scenario it showed, even if the slider moved in the last 250 ms: Back
+  // returns to exactly that.
+  clearTimeout(urlTimer);
+  writeUrl();
   history.pushState(null, "", url);
   render({ nav: true });
 }
@@ -73,13 +77,19 @@ document.addEventListener("click", (e) => {
   navigate(url.pathname + url.search);
 });
 
-// The URL follows the year, scenario and globe focus (replaceState only, so history isn't spammed).
-const syncUrl = debounce(() => {
+// The URL follows the year, scenario and globe focus (replaceState only, so history isn't spammed), 250 ms after the
+// last change; navigate() writes it at once before leaving.
+function writeUrl() {
   if (!data.ready || state.playing) return;
   const q = shareQuery(page === "globe" && focusIso ? { focus: focusIso } : {});
   const url = location.pathname + q;
   if (url !== location.pathname + location.search) history.replaceState(history.state, "", url);
-}, 250);
+}
+let urlTimer = 0;
+const syncUrl = () => {
+  clearTimeout(urlTimer);
+  urlTimer = setTimeout(writeUrl, 250);
+};
 
 subscribe((what) => {
   if (what === "year" || what === "scenario" || what === "play") syncUrl();
@@ -151,6 +161,11 @@ const topbar = createTopbar({
   },
   getFeedback: () => data.feedback,
   siteUrl,
+  getContext: () => {
+    const iso3 = page === "country" ? route?.iso3 : page === "globe" ? focusIso : null;
+    const rec = iso3 ? data.records.get(iso3) : null;
+    return rec ? { iso3: rec.iso3, name: rec.name } : {};
+  },
 });
 
 // ------------------------------------------------------------------ boot

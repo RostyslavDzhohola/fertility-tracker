@@ -377,7 +377,8 @@ export function createHome({ navigate, onFocusChange, siteUrl = () => L.SITE_URL
     }
     onFocusChange(iso3);
     if (source !== "init") announce(`${rec.name}. ${L.fmtWords(popNow(iso3))} people in ${yearInt()}, ${L.fmtPct(pctNow(iso3))} compared with today.`);
-    if (source === "keyboard" || source === "list") focusNoScroll(el.cardName);
+    // Keyboard, list and search picks move focus to the card: Escape then closes it and focus returns to the globe.
+    if (source === "keyboard" || source === "list" || source === "search") focusNoScroll(el.cardName);
   }
 
   // ---------------------------------------------------------------- share a picture
@@ -411,6 +412,16 @@ export function createHome({ navigate, onFocusChange, siteUrl = () => L.SITE_URL
     return { x: cx - size / 2, y: Math.max(0, Math.min(f.H - size, cy - size / 2)), w: size, h: size };
   }
 
+  // The picture copies the canvas, so it waits for the globe's first full frame (right after load, the map may still
+  // be loading; on a slow phone that takes a while) and then for one more frame of whatever moved.
+  async function globeDrawn(timeout = 30000) {
+    const t0 = performance.now();
+    while (!globe.ready && performance.now() - t0 < timeout) await new Promise((r) => setTimeout(r, 50));
+    globe.redraw();
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    if (!globe.ready) throw new Error("the globe has not drawn yet");
+  }
+
   function shareView() {
     const iso3 = selected ?? "WLD";
     const rec = data.records.get(iso3);
@@ -419,13 +430,16 @@ export function createHome({ navigate, onFocusChange, siteUrl = () => L.SITE_URL
     closeRiskPanel();
     el.tip.hidden = true;
     const y = yearInt();
-    const visual = globeVisual(el.canvas, snapshotCrop());
+    const visual = (g, box, t) => globeVisual(el.canvas, snapshotCrop())(g, box, t);
     const q = L.buildQuery({ year: y, scenario: state.scenario, ...(iso3 !== "WLD" ? { focus: iso3 } : {}) }, { defaultYear: data.end });
     const base = siteUrl();
     const url = (base.endsWith("/") ? base : base + "/") + q;
     const m = { rec, year: y, today: data.today, scenario: state.scenario, pop: popNow(iso3), pct: pctNow(iso3), ratio: ratioNow(iso3), outlookPct: outlookPct(iso3), url, visual };
     openShare({
-      make: () => renderSnapshot(m),
+      make: async () => {
+        await globeDrawn();
+        return renderSnapshot(m);
+      },
       text: L.snapshotPostText(m),
       url,
       fileName: `fertility-tracker-${L.slugOf(rec)}-${y}.png`,

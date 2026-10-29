@@ -329,7 +329,7 @@ export async function drawSnapshot(m) {
     g.fillStyle = t.muted;
     g.font = font(750, 20);
     if ("letterSpacing" in g) g.letterSpacing = "2px";
-    g.fillText(region.toUpperCase(), x, y);
+    g.fillText(region.toUpperCase(), x, y, maxW);
     if ("letterSpacing" in g) g.letterSpacing = "0px";
     y += 64;
   }
@@ -345,7 +345,7 @@ export async function drawSnapshot(m) {
   }
   lines.forEach((ln, i) => {
     if (i) y += size * 1.08;
-    g.fillText(ln, x, y);
+    g.fillText(ln, x, y, maxW);
   });
   y += 30;
   // Outlook word, on its own color.
@@ -393,9 +393,11 @@ export async function drawSnapshot(m) {
       person(g, x + i * (s + gap), y, s, f, i < 10 ? t.alive : t.grow, t.gone);
     }
     y += s * 1.6 + 40;
+    // At today there is no slider to move in a picture: say what a figure is.
+    const caption = m.year === m.today ? "Each figure is a tenth of today's people." : L.peopleCaption(m.ratio, m.year, m.today);
     g.fillStyle = t.ink2;
-    g.font = font(700, 30);
-    g.fillText(L.peopleCaption(m.ratio, m.year, m.today), x, y);
+    g.font = font(700, fitSize(g, caption, 700, 30, maxW, 22));
+    g.fillText(caption, x, y, maxW);
     y += 56;
   }
   // Babies per woman, short, if there is room above the footer.
@@ -412,10 +414,11 @@ export async function drawSnapshot(m) {
   g.fillStyle = t.muted;
   g.font = font(600, 22);
   g.fillText("Source: UN World Population Prospects 2024", x, SNAP_H - 96, maxW);
+  // The place's own page, short enough to read and type; the post itself carries the exact view (year, scenario).
   g.fillStyle = t.accentText;
-  const link = String(m.url).replace(/^https?:\/\//, "");
+  const link = String(m.linkUrl ?? L.pageUrl(m.rec.iso3 === "WLD" ? null : m.rec.iso3)).replace(/^https?:\/\//, "").replace(/\/$/, "");
   g.font = font(800, fitSize(g, link, 800, 32, maxW, 18));
-  g.fillText(link, x, SNAP_H - 50);
+  g.fillText(link, x, SNAP_H - 50, maxW);
 
   return c;
 }
