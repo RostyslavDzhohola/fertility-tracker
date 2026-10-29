@@ -182,9 +182,9 @@ What the comparisons show, October 2026 build:
 - **Where births are fully registered, the UN's forecast is often too high.** Colombia registered 434,000 births in 2025
   against a UN forecast of 693,000. Thailand's gap is 32%, Poland's 25%, Egypt's 24%, Argentina's 23% and Türkiye's
   18%. The UN made these forecasts in 2024 from data that ended in 2023; birth rates have kept falling since.
-- **Several countries count far fewer people than the UN.** Ethiopia's own estimate for 2025 is 22% below the UN's.
-  Uganda's 2024 census counted 46 million, 8.5% below the UN. Kenya's figure is 8% below, Egypt's 10% below, and
-  Albania's 2023 census 17% below.
+- **Several countries count far fewer people than the UN.** The UN's figure is 22% higher than Ethiopia's own estimate
+  for 2025, 10% higher than Egypt's and 8% higher than Kenya's. Uganda's 2024 census counted 46 million; the UN's
+  figure for that day is 8.5% higher. Albania's 2023 census: 17% higher.
 - **People born abroad: the UN adds refugees, which national registers often leave out.** For Türkiye the UN's
   figure (7.1 million) is more than twice Eurostat's (2.9 million), and for Poland 85% higher.
 
