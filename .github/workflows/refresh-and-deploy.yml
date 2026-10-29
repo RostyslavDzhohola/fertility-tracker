@@ -89,7 +89,7 @@ jobs:
       # the data, if a place was added. Inter stands in for the system font the runner lacks.
       - name: Build the share pages and link-preview cards
         run: |
-          sudo apt-get install -y -qq fonts-inter > /dev/null 2>&1 || echo "::warning::fonts-inter not installed; cards use the runner's default font"
+          { sudo apt-get update -qq && sudo apt-get install -y -qq fonts-inter > /dev/null; } || echo "::warning::fonts-inter not installed; cards use the runner's default font"
           node scripts/pages/build-pages.mjs
           node scripts/og/render-cards.mjs
           pages=$(ls public/country | wc -l); cards=$(ls public/og | wc -l)
