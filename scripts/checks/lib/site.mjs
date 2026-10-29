@@ -18,7 +18,8 @@ export const BUILTIN_TARGETS = [
   { path: "api/v1/openapi.json", kind: "openapi", planned: true },
   { path: "api/v1/status.json", kind: "status", name: "Deploy status", planned: true },
   { path: "api/", kind: "html", name: "API docs", planned: true },
-  // Clean app URLs served by vercel.json rewrites (DESIGN-v3 §6): a deep link must survive a reload.
+  // Clean app URLs (DESIGN-v3 §6): share pages built at deploy by scripts/pages/build-pages.mjs (or, in older
+  // revisions, vercel.json rewrites). A deep link must survive a reload, and a country link must preview that country.
   { path: "country/KOR", kind: "html", name: "Country page (clean URL)", planned: true, route: true },
   { path: "rankings", kind: "html", name: "Rankings page", planned: true, route: true },
   { path: "llms.txt", kind: "text", planned: true },
@@ -500,7 +501,7 @@ export function requirement({ always, advertised, loadedBy, inRepo, expectDeploy
   if (loadedBy) return { required: true, reason: loadedBy };
   if (served) return { required: true, reason: "deployed (HTTP 200) but invalid" };
   if (wasLive) return { required: true, reason: "was live in the previous weekly check" };
-  if (inRepo && expectDeployed) return { required: true, reason: route ? "rewritten by vercel.json on the deployed branch" : "in repo public/ on the deployed branch" };
+  if (inRepo && expectDeployed) return { required: true, reason: route ? "an app page on the deployed branch" : "in repo public/ on the deployed branch" };
   return { required: false, reason: inRepo ? "in repo, not on the deployed branch" : "planned, not in repo yet" };
 }
 
@@ -692,6 +693,9 @@ export async function runSiteChecks({ siteUrl, repoRoot, expectDeployed = false,
   if (localBuild === undefined) localBuild = isLocalSite(siteUrl);
   const publicDir = path.join(repoRoot, "public");
   const rewrites = ((await readJson(path.join(repoRoot, "vercel.json")))?.rewrites ?? []).map((r) => routePattern(r.source));
+  // App pages the deploy builds from index.html (one per place, plus rankings), when the repo has the builder.
+  const sharePages = await exists(path.join(repoRoot, "scripts/pages/build-pages.mjs"));
+  const isSharePage = (p) => sharePages && /^(country\/[A-Z]{3}|rankings)$/.test(p);
   const urlFor = (p) => new URL(p, siteUrl).toString();
   const fetchOpts = { fetchImpl, timeoutMs, retries };
   const cache = new Map();
@@ -799,7 +803,7 @@ export async function runSiteChecks({ siteUrl, repoRoot, expectDeployed = false,
   const payloads = new Map(); // api/v1 JSON kept for cross-file checks
   const checked = await mapLimit(jobs, concurrency, async (job) => {
     const repoFile = path.join(publicDir, job.path === "" || job.path.endsWith("/") ? path.join(job.path, "index.html") : job.path);
-    const inRepo = job.target.route ? rewrites.some((re) => re.test(`/${job.path}`)) : await exists(repoFile);
+    const inRepo = job.target.route ? rewrites.some((re) => re.test(`/${job.path}`)) || isSharePage(job.path) : await exists(repoFile);
     const t = job.target;
     if (t.legacy && !inRepo) return null; // legacy file removed from the repo: stop checking it
     const res = await get(job.path);
@@ -815,6 +819,12 @@ export async function runSiteChecks({ siteUrl, repoRoot, expectDeployed = false,
       }
       val.ok = val.problems.length === 0;
       payloads.set(job.path, val.data);
+    }
+    // A country link previews that country: X and others read the tags without running JavaScript.
+    const iso = /^country\/([A-Z]{3})$/.exec(job.path)?.[1];
+    if (iso && sharePages && val.ok && typeof res.text === "string" && !new RegExp(`<meta property="og:image" content="[^"]*/og/${iso}\\.jpg">`).test(res.text)) {
+      val.problems.push(`its link preview is not ${iso}'s own card (og:image)`);
+      val.ok = false;
     }
     const req = requirement({
       always: t.always,

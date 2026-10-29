@@ -10,6 +10,8 @@ export const SNAP_W = 1600;
 export const SNAP_H = 900;
 const LEFT = 900; // the picture; the numbers take the rest
 const FONT = 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
+// The link-preview cards are drawn on a build server without the system fonts; their page names one (--card-font).
+let fontStack = FONT;
 // The same figure as the page's people rows (style.css --person), in a 20×32 box.
 const PERSON = typeof Path2D === "function" ? new Path2D("M4.7 5.8a5.3 5.3 0 1 0 10.6 0a5.3 5.3 0 1 0 -10.6 0z M2.4 32V19.6a7.6 7.6 0 0 1 15.2 0V32z") : null;
 
@@ -34,10 +36,11 @@ function theme() {
     medium: v("--chart-medium", "#4f6b84"),
     constant: v("--chart-constant", "#c8693a"),
     legendBg: v("--legend-bg", "rgba(255,255,255,0.86)"),
+    font: v("--card-font", FONT),
   };
 }
 
-const font = (weight, size) => `${weight} ${size}px ${FONT}`;
+const font = (weight, size) => `${weight} ${size}px ${fontStack}`;
 
 function roundRect(g, x, y, w, hgt, r) {
   g.beginPath();
@@ -97,8 +100,8 @@ function person(g, x, y, s, f, alive, gone) {
 // ---------------------------------------------------------------- the picture's left half
 
 // The globe as drawn on screen. `crop` is a rectangle of the canvas in CSS pixels; parts outside the canvas stay
-// background. The legend goes along the bottom.
-export function globeVisual(canvas, crop) {
+// background. The legend goes along the bottom, `legendInset` px up from it.
+export function globeVisual(canvas, crop, { legendInset = 24 } = {}) {
   return (g, box, t) => {
     const bg = g.createRadialGradient(box.x + box.w / 2, box.y + box.h * 0.45, 0, box.x + box.w / 2, box.y + box.h * 0.45, box.w * 0.75);
     bg.addColorStop(0, t.globeBg);
@@ -119,11 +122,11 @@ export function globeVisual(canvas, crop) {
       g.imageSmoothingQuality = "high";
       g.drawImage(canvas, x0 * px, y0 * px, (x1 - x0) * px, (y1 - y0) * px, ox + (x0 - crop.x) * scale, oy + (y0 - crop.y) * scale, (x1 - x0) * scale, (y1 - y0) * scale);
     }
-    legend(g, box, t);
+    legend(g, box, t, legendInset);
   };
 }
 
-function legend(g, box, t) {
+function legend(g, box, t, inset) {
   const items = L.OUTLOOK.map((o, i) => ({ label: o.label, color: L.outlookColor(i) }));
   // As big as fits: it has to read in a phone's X feed, where the picture is about a quarter of this size.
   let size = 26;
@@ -138,7 +141,7 @@ function legend(g, box, t) {
   }
   const hgt = Math.round(size * 2.1);
   const x = box.x + (box.w - total) / 2;
-  const y = box.y + box.h - hgt - 24;
+  const y = box.y + box.h - hgt - inset;
   g.fillStyle = t.legendBg;
   roundRect(g, x, y, total, hgt, hgt / 2);
   g.fill();
@@ -290,12 +293,14 @@ export function chartVisual(model, { year, scenario, name }) {
 // ---------------------------------------------------------------- the whole picture
 
 // m: { rec, year, today, scenario, pop, pct, ratio, outlookPct (2100 vs today), url, visual(g, box, theme) }
-export async function renderSnapshot(m) {
+// The picture on a canvas (Share makes a PNG of it; the link-preview cards crop it to 1200×630).
+export async function drawSnapshot(m) {
   const c = document.createElement("canvas");
   c.width = SNAP_W;
   c.height = SNAP_H;
   const g = c.getContext("2d");
   const t = theme();
+  fontStack = t.font;
   g.fillStyle = t.paper;
   g.fillRect(0, 0, SNAP_W, SNAP_H);
   await m.visual(g, { x: 0, y: 0, w: LEFT, h: SNAP_H }, t);
@@ -412,6 +417,11 @@ export async function renderSnapshot(m) {
   g.font = font(800, fitSize(g, link, 800, 32, maxW, 18));
   g.fillText(link, x, SNAP_H - 50);
 
+  return c;
+}
+
+export async function renderSnapshot(m) {
+  const c = await drawSnapshot(m);
   return await new Promise((resolve, reject) => c.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob failed"))), "image/png"));
 }
 
