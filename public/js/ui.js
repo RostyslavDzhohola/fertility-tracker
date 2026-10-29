@@ -43,7 +43,7 @@ export function emailChooser(feedback, ctx, { prefix = "email" } = {}) {
   const panel = h(
     "div",
     { class: "email-choices", id: `${prefix}-choices`, hidden: true },
-    h("p", { class: "email-label" }, "Write to us in"),
+    h("p", { class: "email-label" }, "Send with"),
     h("div", { class: "email-apps" }, app("Gmail", m.gmail, true), app("Outlook", m.outlook, true), app("Mail app", m.mailto, false)),
     h("p", { class: "fb-address" }, h("span", { class: "email-text" }, m.address), copyBtn),
   );

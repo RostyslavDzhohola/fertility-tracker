@@ -73,7 +73,7 @@
     --line: #2c3238;
     --line-2: #3a4149;
     --accent: #3a66ff; /* white text on it: 4.6:1 */
-    --accent-hover: #4b74ff;
+    --accent-hover: #2c55e6; /* white text on it: 5.9:1 */
     --accent-soft: rgba(110, 145, 255, 0.16);
     --accent-ring: rgba(130, 160, 255, 0.6);
     --accent-text: #8fb0ff;
@@ -107,6 +107,10 @@
     --chart-constant: #ee9460;
     --chart-constant-ink: #f3a274;
     --died: #8b847d;
+  }
+  /* Dimmed swatches on a dark card lose their color; dim them less. */
+  .meter-seg i {
+    opacity: 0.72;
   }
 }
 
@@ -639,7 +643,14 @@ body.page-globe .topbar-inner > * {
   gap: 8px;
   margin-top: 8px;
   font-size: 13px;
+}
+.fb-address .email-text {
+  min-width: 0;
   overflow-wrap: anywhere;
+}
+.fb-address .btn {
+  flex: none;
+  white-space: nowrap;
 }
 /* "Email us" opens these: web mail works on any computer, the mail app only where one is set up. */
 .email-choices {
@@ -1958,9 +1969,7 @@ body.page-globe {
   color: var(--muted);
   font-size: 12px;
   font-weight: 650;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
 }
 .babies {
   display: flex;
@@ -3482,6 +3491,13 @@ body.page-globe {
   margin-top: 10px;
   color: var(--muted);
   font-size: 14px;
+}
+.snap-hint {
+  margin-bottom: 0;
+  padding-left: 20px;
+}
+.snap-hint li + li {
+  margin-top: 2px;
 }
 .snap-status {
   color: var(--ink-2);

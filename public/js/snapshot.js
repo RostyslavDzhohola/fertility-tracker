@@ -125,25 +125,32 @@ export function globeVisual(canvas, crop) {
 
 function legend(g, box, t) {
   const items = L.OUTLOOK.map((o, i) => ({ label: o.label, color: L.outlookColor(i) }));
-  g.font = font(650, 19);
-  const sw = 26;
-  const widths = items.map((it) => sw + 8 + g.measureText(it.label).width);
-  const gap = 18;
-  const total = widths.reduce((a, b) => a + b, 0) + gap * (items.length - 1) + 36;
+  // As big as fits: it has to read in a phone's X feed, where the picture is about a quarter of this size.
+  let size = 26;
+  let sw, gap, widths, total;
+  for (; size >= 18; size -= 1) {
+    g.font = font(700, size);
+    sw = Math.round(size * 1.1);
+    gap = Math.round(size * 0.7);
+    widths = items.map((it) => sw + 8 + g.measureText(it.label).width);
+    total = widths.reduce((a, b) => a + b, 0) + gap * (items.length - 1) + 36;
+    if (total <= box.w - 32) break;
+  }
+  const hgt = Math.round(size * 2.1);
   const x = box.x + (box.w - total) / 2;
-  const y = box.y + box.h - 72;
+  const y = box.y + box.h - hgt - 24;
   g.fillStyle = t.legendBg;
-  roundRect(g, x, y, total, 46, 23);
+  roundRect(g, x, y, total, hgt, hgt / 2);
   g.fill();
   let cx = x + 18;
   g.textBaseline = "middle";
   items.forEach((it, i) => {
     g.fillStyle = it.color;
-    roundRect(g, cx, y + 17, sw, 12, 4);
+    roundRect(g, cx, y + hgt / 2 - size * 0.3, sw, size * 0.6, 4);
     g.fill();
     g.fillStyle = t.ink2;
     g.textAlign = "left";
-    g.fillText(it.label, cx + sw + 8, y + 23);
+    g.fillText(it.label, cx + sw + 8, y + hgt / 2 + 1);
     cx += widths[i] + gap;
   });
   g.textBaseline = "alphabetic";
@@ -155,14 +162,14 @@ export function chartVisual(model, { year, scenario, name }) {
   return (g, box, t) => {
     g.fillStyle = t.paper;
     g.fillRect(box.x, box.y, box.w, box.h);
-    const padL = 92;
-    const padR = 230;
-    const top = 170;
+    const padL = 100;
+    const padR = 270;
+    const top = 190;
     const bottom = box.h - 120;
     g.fillStyle = t.ink;
     g.textAlign = "left";
     const title = `People in ${name}, 1950–2100`;
-    g.font = font(750, fitSize(g, title, 750, 38, box.w - 120, 24));
+    g.font = font(800, fitSize(g, title, 800, 44, box.w - 120, 28));
     g.fillText(title, box.x + 60, box.y + 96);
     const all = [...model.past, ...model.medium, ...model.constant].map((p) => p[1]).filter((v) => Number.isFinite(v));
     if (!all.length) return;
@@ -173,7 +180,7 @@ export function chartVisual(model, { year, scenario, name }) {
     const X = (yr) => box.x + padL + ((yr - 1950) / 150) * (box.w - padL - padR);
     const Y = (v) => bottom - (v / top1) * (bottom - top);
     // Grid and axis labels.
-    g.font = font(600, 18);
+    g.font = font(650, 24);
     g.strokeStyle = t.line;
     g.lineWidth = 1.5;
     g.fillStyle = t.muted;
@@ -189,9 +196,9 @@ export function chartVisual(model, { year, scenario, name }) {
     }
     g.textAlign = "left";
     g.textBaseline = "alphabetic";
-    g.fillText(unit, box.x + 20, top - 26);
+    g.fillText(unit, box.x + 20, top - 34);
     g.textAlign = "center";
-    for (const yr of [1950, 2000, 2050, 2100]) g.fillText(String(yr), X(yr), bottom + 36);
+    for (const yr of [1950, 2000, 2050, 2100]) g.fillText(String(yr), X(yr), bottom + 42);
     // Today.
     g.setLineDash([6, 6]);
     g.strokeStyle = t.muted;
@@ -230,23 +237,23 @@ export function chartVisual(model, { year, scenario, name }) {
     line(model.past, t.ink, 5);
     line(fut(model[chosen]), colors[chosen], 6);
     // End labels: the chosen future on top if they would collide.
-    g.font = font(700, 18);
+    g.font = font(750, 22);
     g.textAlign = "left";
     g.textBaseline = "middle";
     const ends = ["medium", "constant"].map((sc) => ({ sc, v: model[sc][model[sc].length - 1]?.[1] })).filter((e) => Number.isFinite(e.v));
     const ys = ends.map((e) => Y(e.v));
-    if (ys.length === 2 && Math.abs(ys[0] - ys[1]) < 44) {
+    if (ys.length === 2 && Math.abs(ys[0] - ys[1]) < 56) {
       const mid = (ys[0] + ys[1]) / 2;
       const up = ys[0] <= ys[1] ? 0 : 1;
-      ys[up] = mid - 22;
-      ys[1 - up] = mid + 22;
+      ys[up] = mid - 28;
+      ys[1 - up] = mid + 28;
     }
     ends.forEach((e, i) => {
       g.globalAlpha = e.sc === chosen ? 1 : 0.7;
       g.fillStyle = colors[e.sc];
-      g.fillText(L.SCENARIO_SHORT[e.sc], X(2100) + 16, ys[i] - 10);
+      g.fillText(L.SCENARIO_SHORT[e.sc], X(2100) + 16, ys[i] - 13);
       g.fillStyle = t.ink2;
-      g.fillText(L.fmtCompact(e.v), X(2100) + 16, ys[i] + 12);
+      g.fillText(L.fmtCompact(e.v), X(2100) + 16, ys[i] + 14);
       g.globalAlpha = 1;
     });
     // The slider year.
@@ -268,6 +275,12 @@ export function chartVisual(model, { year, scenario, name }) {
       g.strokeStyle = t.card;
       g.lineWidth = 4;
       g.stroke();
+      // The year, on the line, so the blue marker says what it is.
+      g.font = font(800, 26);
+      g.textAlign = "center";
+      g.textBaseline = "alphabetic";
+      g.fillStyle = t.accentText;
+      g.fillText(String(year), Math.min(x, box.x + box.w - padR + 10), top - 12);
     }
     g.textBaseline = "alphabetic";
     g.textAlign = "left";
@@ -334,17 +347,17 @@ export async function renderSnapshot(m) {
   const step = L.outlookStep(m.outlookPct);
   if (step >= 0 && !(rec.iso3 !== "WLD" && L.isSmallPlace(rec))) {
     const word = `By 2100${m.scenario === "constant" ? ", if rates stay" : ""}: ${L.OUTLOOK[step].label}`;
-    g.font = font(750, 24);
-    const w = g.measureText(word).width + 40;
+    g.font = font(800, fitSize(g, word, 800, 30, maxW - 44, 22));
+    const w = g.measureText(word).width + 44;
     const color = L.outlookColor(step);
     g.fillStyle = color;
-    roundRect(g, x, y, w, 50, 25);
+    roundRect(g, x, y, w, 58, 29);
     g.fill();
     g.fillStyle = lum(color) > 0.55 ? "#1f2328" : "#ffffff";
-    g.fillText(word, x + 20, y + 34);
-    y += 50;
+    g.fillText(word, x + 22, y + 40);
+    y += 58;
   }
-  y += 140;
+  y += 136;
   // The big number for the slider year.
   const sp = L.splitWords(m.pop);
   g.fillStyle = t.ink;
@@ -375,29 +388,29 @@ export async function renderSnapshot(m) {
       person(g, x + i * (s + gap), y, s, f, i < 10 ? t.alive : t.grow, t.gone);
     }
     y += s * 1.6 + 40;
-    g.fillStyle = t.muted;
-    g.font = font(600, 24);
-    g.fillText(L.peopleCaption(m.ratio, m.year, m.today), x, y);
-    y += 50;
-  }
-  // Babies per woman.
-  const why = L.tfrReason(rec);
-  if (why && y < SNAP_H - 170) {
     g.fillStyle = t.ink2;
-    g.font = font(550, 24);
-    for (const ln of wrapLines(g, why, maxW).slice(0, 2)) {
-      g.fillText(ln, x, y);
-      y += 32;
-    }
+    g.font = font(700, 30);
+    g.fillText(L.peopleCaption(m.ratio, m.year, m.today), x, y);
+    y += 56;
   }
-  // Footer: which future, the link, the source.
+  // Babies per woman, short, if there is room above the footer.
+  const tfr = rec?.tfr?.value;
+  if (Number.isFinite(tfr) && y < SNAP_H - 180) {
+    g.fillStyle = t.ink2;
+    g.font = font(700, 30);
+    g.fillText(`${L.fmtTfr(tfr)} babies per woman (2.1 keeps it level)`, x, y, maxW);
+  }
+  // Footer: which future, the source, then the link.
+  g.fillStyle = t.ink2;
+  g.font = font(750, 26);
+  g.fillText(L.SCENARIO_LABELS[m.scenario] ?? L.SCENARIO_LABELS.medium, x, SNAP_H - 130, maxW);
   g.fillStyle = t.muted;
-  g.font = font(650, 20);
-  g.fillText(`${L.SCENARIO_LABELS[m.scenario] ?? L.SCENARIO_LABELS.medium} · UN World Population Prospects 2024`, x, SNAP_H - 92);
+  g.font = font(600, 22);
+  g.fillText("Source: UN World Population Prospects 2024", x, SNAP_H - 96, maxW);
   g.fillStyle = t.accentText;
   const link = String(m.url).replace(/^https?:\/\//, "");
-  g.font = font(750, fitSize(g, link, 750, 26, maxW, 16));
-  g.fillText(link, x, SNAP_H - 52);
+  g.font = font(800, fitSize(g, link, 800, 32, maxW, 18));
+  g.fillText(link, x, SNAP_H - 50);
 
   return await new Promise((resolve, reject) => c.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob failed"))), "image/png"));
 }
@@ -405,9 +418,25 @@ export async function renderSnapshot(m) {
 // ---------------------------------------------------------------- the share dialog
 
 let dlg = null;
-let state = null; // { blob, file, url, text, fileName, objectUrl }
+// The current opening of the dialog: { url, text, fileName, returnFocus, blob, file, objectUrl }. A new object each
+// time it opens; anything async checks it is still `state` before touching the dialog.
+let state = null;
+
+// Let an opening go: free its picture. Synchronous, so a new opening can't be undone by an old close event.
+function retire(inv) {
+  if (!inv) return;
+  if (inv.objectUrl) URL.revokeObjectURL(inv.objectUrl);
+  inv.objectUrl = null;
+  if (state === inv) state = null;
+}
+
+// Focus goes back only to something still on screen (a route change may have hidden the page it came from).
+function focusBack(node) {
+  if (node instanceof HTMLElement && node.isConnected && node.getClientRects().length) focusNoScroll(node);
+}
 
 const isMac = () => /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent || "");
+const paste = () => (isMac() ? "⌘V" : "Ctrl+V");
 
 function canShareFiles(file) {
   try {
@@ -423,10 +452,10 @@ function ensureDialog() {
   el.img = h("img", { class: "snap-img", id: "snap-img", alt: "" });
   el.loading = h("p", { class: "snap-loading" }, "Making the picture…");
   el.x = h("button", { type: "button", class: "btn btn-primary", id: "snap-x" }, "Post on X");
-  el.share = h("button", { type: "button", class: "btn btn-secondary", id: "snap-share", hidden: true }, "Share…");
+  el.share = h("button", { type: "button", class: "btn btn-primary", id: "snap-share", hidden: true }, "Share");
   el.copy = h("button", { type: "button", class: "btn btn-secondary", id: "snap-copy" }, "Copy picture");
   el.download = h("a", { class: "btn btn-secondary", id: "snap-download", href: "#" }, "Download");
-  el.hint = h("p", { class: "snap-hint", id: "snap-hint" });
+  el.hint = h("ol", { class: "snap-hint", id: "snap-hint" });
   el.status = h("p", { class: "snap-status", id: "snap-status", role: "status", "aria-live": "polite" });
   el.close = h(
     "button",
@@ -453,60 +482,74 @@ function ensureDialog() {
       if (!inside) el.root.close();
     }
   });
+  // Closing (button, Escape, backdrop, or a page change) ends the opening that is showing.
   el.root.addEventListener("close", () => {
-    if (state?.objectUrl) URL.revokeObjectURL(state.objectUrl);
-    const back = state?.returnFocus;
-    state = null;
+    const inv = state;
+    if (!inv) return;
+    retire(inv);
     el.img.removeAttribute("src");
-    if (back) focusNoScroll(back);
+    if (!inv.quiet) focusBack(inv.returnFocus);
   });
 
-  const say = (msg) => {
+  const say = (inv, msg) => {
+    if (state !== inv) return;
     el.status.textContent = msg;
     announce(msg);
   };
-  const copyPicture = async () => {
-    if (!state?.blob || !navigator.clipboard?.write || typeof ClipboardItem !== "function") return false;
+  const copyPicture = async (inv) => {
+    if (!inv.blob || !navigator.clipboard?.write || typeof ClipboardItem !== "function") return false;
     try {
-      await Promise.race([navigator.clipboard.write([new ClipboardItem({ "image/png": state.blob })]), new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), 2500))]);
+      await Promise.race([navigator.clipboard.write([new ClipboardItem({ "image/png": inv.blob })]), new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), 2500))]);
       return true;
     } catch {
       return false;
     }
   };
-  const download = () => {
-    if (!state) return;
-    const a = h("a", { href: state.objectUrl, download: state.fileName });
+  const download = (inv) => {
+    if (!inv.objectUrl) return;
+    const a = h("a", { href: inv.objectUrl, download: inv.fileName });
     document.body.append(a);
     a.click();
     a.remove();
   };
-  const paste = () => (isMac() ? "⌘V" : "Ctrl+V");
 
   el.x.addEventListener("click", async () => {
-    if (!state) return;
-    const intent = `https://x.com/intent/post?text=${encodeURIComponent(state.text)}&url=${encodeURIComponent(state.url)}`;
-    // Copy before X opens: the clipboard only takes a picture while this tab has focus.
-    const copied = await copyPicture();
-    if (!copied) download();
-    window.open(intent, "_blank", "noopener");
-    say(copied ? `Picture copied. In the X post, press ${paste()} to add it.` : "Picture downloaded. In the X post, add it with the picture button.");
+    const inv = state;
+    if (!inv?.blob) return;
+    const intent = `https://x.com/intent/post?text=${encodeURIComponent(inv.text)}&url=${encodeURIComponent(inv.url)}`;
+    // Copy before X opens: the clipboard only takes a picture while this tab has focus. The copy starts inside the
+    // click, so the window still opens within the click's grace period.
+    const copied = await copyPicture(inv);
+    if (state !== inv) return; // closed or replaced while copying
+    if (!copied) download(inv);
+    const w = window.open(intent, "_blank");
+    if (w) w.opener = null;
+    const done = copied ? `Picture copied. In the X post, press ${paste()} to add it.` : "Picture downloaded. In the X post, add it with the picture button.";
+    if (w) say(inv, done);
+    else {
+      // The browser blocked the new window: give a link to click instead.
+      el.status.replaceChildren(done, " ", h("a", { href: intent, target: "_blank", rel: "noopener" }, "Open the X post"));
+      announce(done);
+    }
   });
   el.share.addEventListener("click", async () => {
-    if (!state) return;
+    const inv = state;
+    if (!inv?.file) return;
     try {
-      await navigator.share({ files: [state.file], text: `${state.text} ${state.url}` });
+      await navigator.share({ files: [inv.file], text: `${inv.text} ${inv.url}` });
     } catch (err) {
-      if (err?.name !== "AbortError") say("Couldn't open sharing. Use Download instead.");
+      if (err?.name !== "AbortError") say(inv, "Couldn't open sharing. Use Download instead.");
     }
   });
   el.copy.addEventListener("click", async () => {
-    const ok = await copyPicture();
-    say(ok ? `Picture copied. Paste it anywhere with ${paste()}.` : "Couldn't copy the picture here. Use Download instead.");
+    const inv = state;
+    if (!inv?.blob) return;
+    const ok = await copyPicture(inv);
+    say(inv, ok ? `Picture copied. Paste it anywhere with ${paste()}.` : "Couldn't copy the picture here. Use Download instead.");
   });
   el.download.addEventListener("click", (e) => {
-    if (!state) return e.preventDefault();
-    say("Picture saved to your downloads.");
+    if (!state?.objectUrl) return e.preventDefault();
+    say(state, "Picture saved to your downloads.");
   });
 
   dlg = el;
@@ -516,47 +559,60 @@ function ensureDialog() {
 // opts: { make: () => Promise<Blob>, text, url, fileName, alt }
 export async function openShare(opts) {
   const el = ensureDialog();
-  if (el.root.open) el.root.close();
-  const token = {};
-  state = { token, url: opts.url, text: opts.text, fileName: opts.fileName, returnFocus: document.activeElement };
+  // Already open (a second click): keep the dialog and swap the picture; the old opening is let go here and now.
+  const wasOpen = el.root.open;
+  const prev = state;
+  retire(prev);
+  const inv = { url: opts.url, text: opts.text, fileName: opts.fileName, returnFocus: wasOpen ? prev?.returnFocus : document.activeElement };
+  state = inv;
+  el.img.removeAttribute("src");
+  el.loading.textContent = "Making the picture…";
   el.status.textContent = "";
   el.loading.hidden = false;
   el.img.hidden = true;
   for (const b of [el.x, el.share, el.copy]) b.disabled = true;
   el.download.setAttribute("aria-disabled", "true");
-  el.root.showModal();
+  el.download.setAttribute("href", "#");
+  if (!wasOpen) el.root.showModal();
   focusNoScroll(el.close);
   let blob;
   try {
     blob = await opts.make();
   } catch {
-    if (state?.token === token) el.loading.textContent = "Couldn't make the picture. Try again.";
+    if (state === inv) el.loading.textContent = "Couldn't make the picture. Try again.";
     return;
   }
-  if (state?.token !== token) return; // closed or reopened meanwhile
+  if (state !== inv) return; // closed or replaced meanwhile
   const file = new File([blob], opts.fileName, { type: "image/png" });
-  state.blob = blob;
-  state.file = file;
-  state.objectUrl = URL.createObjectURL(blob);
-  el.img.src = state.objectUrl;
+  inv.blob = blob;
+  inv.file = file;
+  inv.objectUrl = URL.createObjectURL(blob);
+  el.img.src = inv.objectUrl;
   el.img.alt = opts.alt ?? "";
   el.img.hidden = false;
   el.loading.hidden = true;
-  el.download.href = state.objectUrl;
+  el.download.href = inv.objectUrl;
   el.download.setAttribute("download", opts.fileName);
   el.download.removeAttribute("aria-disabled");
+  // One way to X per device: phones share the picture itself (the list includes the X app); computers copy it and
+  // open the post.
   const phoneShare = canShareFiles(file) && media.coarse();
-  el.share.hidden = !canShareFiles(file);
-  el.share.textContent = phoneShare ? "Share to X or any app" : "Share…";
-  el.share.classList.toggle("btn-primary", phoneShare);
-  el.share.classList.toggle("btn-secondary", !phoneShare);
-  el.x.classList.toggle("btn-primary", !phoneShare);
-  el.x.classList.toggle("btn-secondary", phoneShare);
+  el.share.hidden = !phoneShare;
+  el.x.hidden = phoneShare;
   for (const b of [el.x, el.share, el.copy]) b.disabled = false;
-  el.hint.textContent = phoneShare
-    ? "Share sends the picture with the link. Pick X in the list."
-    : `Post on X copies the picture and opens the post: press ${isMac() ? "⌘V" : "Ctrl+V"} there to add it.`;
+  el.hint.replaceChildren(
+    ...(phoneShare
+      ? [h("li", null, "Press Share, then pick X."), h("li", null, "The picture and the link go into your post.")]
+      : [h("li", null, "Press Post on X. The picture is copied for you."), h("li", null, `In the X post, press ${paste()} to add the picture.`)]),
+  );
   focusNoScroll(phoneShare ? el.share : el.x);
 }
 
 export const shareOpen = () => !!dlg?.root.open;
+
+// A page change closes it without moving focus: the new page places focus itself.
+export function closeShare() {
+  if (!dlg?.root.open) return;
+  if (state) state.quiet = true;
+  dlg.root.close();
+}

@@ -740,11 +740,13 @@ export function migrationSentence(net) {
 }
 
 // "Each year, 32,800 more people leave than arrive."
-export function yearlyNetSentence(net) {
+// The latest year's net moving, with its year, so it can't be mistaken for the forecast beside it.
+export function yearlyNetSentence(net, year = null) {
   if (!isNum(net)) return "No recent figure for people moving in and out.";
-  if (Math.abs(net) < 50) return "Each year, about as many people arrive as leave.";
+  const when = year ? `In ${year}` : "Last year";
+  if (Math.abs(net) < 50) return `${when}, about as many people arrived as left.`;
   const n = fmtFlow(Math.abs(net), { plus: false });
-  return net < 0 ? `Each year, ${n} more people leave than arrive.` : `Each year, ${n} more people arrive than leave.`;
+  return net < 0 ? `${when}, ${n} more people left than arrived.` : `${when}, ${n} more people arrived than left.`;
 }
 
 export function bornDiedSentence(c) {
@@ -758,7 +760,9 @@ export function bornDiedSentence(c) {
 // Where the change in people comes from, over a span of years: births, deaths and people moving in minus people moving
 // out, added up from the UN's yearly figures (medium variant). The UN publishes moving only as a yearly net figure;
 // arrivals and departures counted separately exist only as "people alive who moved" (migrant stock).
-export function flowsBetween(series, from, to) {
+// The yearly figures cover calendar years, while the slider compares 1 July populations. midyear: true counts half of
+// the first and last year, so the span runs from 1 July `from` to 1 July `to` like the population it explains.
+export function flowsBetween(series, from, to, { midyear = false } = {}) {
   let births = 0;
   let deaths = 0;
   let net = 0;
@@ -766,9 +770,10 @@ export function flowsBetween(series, from, to) {
   for (const r of series ?? []) {
     if (r.year < from || r.year > to) continue;
     if (!isNum(r.births) || !isNum(r.deaths)) return null;
-    births += r.births;
-    deaths += r.deaths;
-    if (isNum(r.netMigration)) net += r.netMigration;
+    const w = midyear && from < to && (r.year === from || r.year === to) ? 0.5 : 1;
+    births += w * r.births;
+    deaths += w * r.deaths;
+    if (isNum(r.netMigration)) net += w * r.netMigration;
     years++;
   }
   if (!years) return null;
@@ -787,7 +792,7 @@ export function flowsSentence(f, name, { world = false } = {}) {
   if (nat < 0) {
     if (!moves) return "More people die than are born. Moving in and out barely changes it.";
     if (mig < 0) return "More people die than are born, and more people leave than arrive.";
-    if (nat + mig >= 0) return "More people die than are born. People moving in make up the difference.";
+    if (nat + mig >= 0) return `${fl(nat)} more people die than are born. People moving in add ${fl(mig)}, so ${name} ${nat + mig > 0 ? "still grows" : "stays the same size"}.`;
     return `${fl(nat)} more people die than are born. People moving in cut the loss to ${fl(nat + mig)}.`;
   }
   if (!moves) return "More babies are born than people die. Moving in and out barely changes it.";

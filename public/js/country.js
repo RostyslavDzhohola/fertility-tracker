@@ -229,7 +229,7 @@ export function createCountryPage({ navigate, siteUrl }) {
     el.move.replaceChildren(
       h("h3", { class: "tile-title" }, "Moving in vs out"),
       pic,
-      h("p", { class: "tile-text" }, world ? "Moving doesn't change the world's total." : L.yearlyNetSentence(net)),
+      h("p", { class: "tile-text" }, world ? "Moving doesn't change the world's total." : L.yearlyNetSentence(net, c?.year)),
     );
   }
 
@@ -241,7 +241,7 @@ export function createCountryPage({ navigate, siteUrl }) {
     const world = rec.iso3 === "WLD";
     const y = yearInt();
     const today = data.today;
-    let f = series ? (y > today ? L.flowsBetween(series, today, y - 1) : L.flowsBetween(series, y, y)) : null;
+    let f = series ? (y > today ? L.flowsBetween(series, today, y, { midyear: true }) : L.flowsBetween(series, y, y)) : null;
     let span = y > today ? `From now to ${y}` : `In ${y}, one year`;
     if (!f && rec.components) {
       // Until the place's file loads: its latest year from countries.json.
@@ -256,7 +256,7 @@ export function createCountryPage({ navigate, siteUrl }) {
         "div",
         { class: `bd-row ${cls}` },
         h("span", { class: "bd-label" }, label),
-        h("span", { class: "bd-track" }, h("span", { class: "bd-fill", style: { width: `${Math.max(2, (100 * Math.abs(v ?? 0)) / max)}%` } })),
+        h("span", { class: "bd-track", "aria-hidden": "true" }, h("span", { class: "bd-fill", style: { width: `${Math.max(2, (100 * Math.abs(v ?? 0)) / max)}%` } })),
         h("span", { class: "bd-val" }, v == null ? "–" : sign + L.fmtFlow(Math.abs(v), { plus: false })),
       );
     const rows = [bar("born", "Born", f?.births, "+"), bar("died", "Died", f?.deaths, L.MINUS)];
@@ -270,8 +270,8 @@ export function createCountryPage({ navigate, siteUrl }) {
     );
     el.born.replaceChildren(
       h("h3", { class: "tile-title" }, "Born, died, moved"),
-      h("p", { class: "tile-span" }, span, state.scenario === "constant" && y > today ? " (UN forecast)" : ""),
-      h("div", { class: "tile-pic bd-pic flows", "aria-hidden": "true" }, ...rows, total),
+      h("p", { class: "tile-span" }, span, f?.years && y > today ? " (UN forecast)" : ""),
+      h("div", { class: "tile-pic bd-pic flows" }, ...rows, total),
       h("p", { class: "tile-text" }, L.flowsSentence(f, placeName(), { world })),
       world ? "" : h("p", { class: "tile-note" }, "Moved in: people who moved in, minus people who moved away."),
     );
@@ -450,7 +450,7 @@ export function createCountryPage({ navigate, siteUrl }) {
         "p",
         { class: "actions" },
         shareBtn,
-        h("a", { class: "btn btn-secondary", href: xUrl, target: "_blank", rel: "noopener" }, "Post on X"),
+        h("a", { class: "btn btn-secondary", href: xUrl, target: "_blank", rel: "noopener" }, "Post link on X"),
         issue ? h("a", { class: "btn btn-secondary", href: issue, target: "_blank", rel: "noopener", id: "report-link" }, "Report a problem with these numbers") : "",
         email.toggle,
       ),

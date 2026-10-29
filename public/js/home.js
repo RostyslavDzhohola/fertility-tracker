@@ -245,6 +245,8 @@ export function createHome({ navigate, onFocusChange, siteUrl = () => L.SITE_URL
   }
 
   function openRiskPanel() {
+    // The card and the list share the left side: the list replaces the card, and picking a row opens that card.
+    closeCard({ returnFocus: false });
     renderRiskList();
     el.riskPanel.hidden = false;
     setAttr(el.riskBtn, "aria-expanded", "true");
@@ -317,7 +319,8 @@ export function createHome({ navigate, onFocusChange, siteUrl = () => L.SITE_URL
     const reasons = [L.tfrReason(rec), L.birthsDeathsReason(rec, data.latestEstimateYear)].filter(Boolean);
     el.cardReasons.replaceChildren(...reasons.map((t) => h("li", null, t)));
     setAttr(el.cardCta, "href", L.countryPath(rec.iso3) + currentQuery());
-    el.cardCta.replaceChildren(`See ${L.possessiveOf(rec)} story`, h("span", { class: "arrow", "aria-hidden": "true" }, " →"));
+    const label = rec.name.length <= 12 ? `See ${L.possessiveOf(rec)} story` : "See the story";
+    el.cardCta.replaceChildren(label, h("span", { class: "arrow", "aria-hidden": "true" }, " →"));
   }
 
   function currentQuery() {
@@ -379,18 +382,26 @@ export function createHome({ navigate, onFocusChange, siteUrl = () => L.SITE_URL
 
   // ---------------------------------------------------------------- share a picture
 
-  // The part of the canvas the picture shows, in CSS pixels. The whole globe when it fits on screen; zoomed in (or on
-  // the flat map), the area you can see between the card and the controls, made square from the canvas around it.
+  // The part of the canvas the picture shows, in CSS pixels. The whole globe when it fits on screen; on phones, a square
+  // around the place; zoomed in (or on the flat map), the area you can see between the card and the controls, made
+  // square from the canvas around it.
   function snapshotCrop() {
     const f = globe.frame;
     const phone = f.W < 700;
     const r = f.r * globe.k;
-    if (globe.mode === "globe" && 2.1 * r <= Math.max(f.W, f.H)) {
+    if (globe.mode === "globe" && 2.1 * r <= Math.min(f.W, f.H) * 1.05) {
       const size = 2.12 * r;
       return { x: f.cx - size / 2, y: f.cy - size / 2, w: size, h: size };
     }
     const top = el.topbar?.getBoundingClientRect().bottom ?? 0;
     const bottom = el.dockWrap?.getBoundingClientRect().top ?? f.H;
+    if (phone && globe.mode === "globe") {
+      // The globe is wider than a phone: a square as wide as the screen, around the place (or the middle).
+      const at = selected && selected !== "WLD" ? globe.screenOf(selected) : null;
+      const size = f.W;
+      const cy = at ? at.y : (top + bottom) / 2;
+      return { x: 0, y: Math.max(0, Math.min(f.H - size, cy - size / 2)), w: size, h: size };
+    }
     const left = !phone && !el.card.hidden ? el.card.getBoundingClientRect().right : 0;
     const right = !phone && el.zoomCtrl ? el.zoomCtrl.getBoundingClientRect().left : f.W;
     if (globe.mode === "flat" && globe.k < 1.5) return { x: 0, y: top, w: f.W, h: Math.max(1, bottom - top) };

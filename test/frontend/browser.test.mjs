@@ -761,7 +761,10 @@ test("B1 every word on screen matches the number beside it: card, search, Shrink
     for (let i = 1; i < list.length; i++) assert.ok(list[i] >= list[i - 1], `sorted by shown %: ${list}`);
     // No "risk" wording outside "More numbers" on the globe page.
     assert.ok(!/Risk of shrinking|Most at risk/i.test(await page.eval(`document.getElementById("view-globe").textContent`)));
-    // Switching the scenario re-words the chip.
+    // The list took the card's place; pick Brazil again. Switching the scenario re-words the chip.
+    assert.equal(await page.eval(`document.getElementById("card").hidden`), true, "the list replaces the card");
+    await page.eval(`document.getElementById("risk-btn").click(), FT.home.selectFromSearch("BRA"), 0`);
+    await page.waitFor(`!document.getElementById("card").hidden`, 2000);
     await page.eval(`document.querySelector('#dock .seg[data-s="constant"]').click(), 0`);
     await sleep(300);
     assert.match(await page.eval(`document.getElementById("card-risk").getAttribute("title") ?? document.querySelector("#card-risk .risk-chip").title`), /if birth rates stay the same/);
@@ -1158,11 +1161,39 @@ test("Share makes a 1600×900 picture of the view; Post on X copies it and opens
 test("born, died, moved follows the slider and adds up to the change", opts, async () => {
   const page = await openPage({ path: "/country/DEU?year=2070" });
   try {
-    await page.waitFor(`document.querySelector("#why-born .tile-span")?.textContent === "From now to 2070"`, 6000);
+    await page.waitFor(`document.querySelector("#why-born .tile-span")?.textContent === "From now to 2070 (UN forecast)"`, 6000);
+    // The numbers are readable by screen readers; only the bars are hidden.
+    assert.match(await page.eval(`document.querySelector("#why-born .bd-pic").getAttribute("aria-hidden") ?? "visible"`), /visible/);
     const vals = await page.eval(`[...document.querySelectorAll("#why-born .bd-row")].map((r) => r.className.replace("bd-row ", ""))`);
     assert.deepEqual(vals, ["born", "died", "moved"]);
     await page.eval(`(() => { const i = document.querySelector("#cv-controls input.tc-range"); i.value = "2100"; i.dispatchEvent(new Event("input", { bubbles: true })); })()`);
-    await page.waitFor(`document.querySelector("#why-born .tile-span")?.textContent === "From now to 2100"`, 3000);
+    await page.waitFor(`document.querySelector("#why-born .tile-span")?.textContent === "From now to 2100 (UN forecast)"`, 3000);
+    assert.deepEqual(page.errors, []);
+  } finally {
+    await page.close();
+  }
+});
+
+test("the share dialog survives a second click, and a page change or Back closes it", opts, async () => {
+  const page = await openPage({ path: "/?year=2070&focus=JPN" });
+  try {
+    await page.waitFor(`FT.home.selected === "JPN"`, 3000);
+    await settle(page, 8000);
+    // Two clicks in a row: one dialog, showing the second picture, whose file still loads.
+    await page.eval(`document.getElementById("share-view").click(), document.getElementById("share-view").click(), 0`);
+    await page.waitFor(`document.getElementById("snap").open && document.getElementById("snap-img").naturalWidth === 1600`, 8000);
+    await sleep(300);
+    assert.equal(await page.eval(`(async () => (await fetch(document.getElementById("snap-img").src)).ok)()`), true);
+    assert.equal(await page.eval(`document.querySelectorAll("dialog.snap").length`), 1);
+    // A page change closes it.
+    await page.eval(`FT.navigate("/country/JPN?year=2070"), 0`);
+    await page.waitFor(`!document.getElementById("view-country").hidden`, 4000);
+    assert.equal(await page.eval(`document.getElementById("snap").open`), false);
+    // So does Back, from the country page's picture.
+    await page.eval(`document.getElementById("cv-share").click(), 0`);
+    await page.waitFor(`document.getElementById("snap").open`, 4000);
+    await page.eval(`history.back(), 0`);
+    await page.waitFor(`!document.getElementById("view-globe").hidden && !document.getElementById("snap").open`, 4000);
     assert.deepEqual(page.errors, []);
   } finally {
     await page.close();

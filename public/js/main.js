@@ -8,6 +8,7 @@ import { data, state, subscribe, fetchJson, applyCountries, applyScenarios, setY
 import { createHome } from "./home.js";
 import { createCountryPage } from "./country.js";
 import { createRankings } from "./rankings.js";
+import { closeShare } from "./snapshot.js";
 import { createTopbar } from "./topbar.js";
 
 const el = {
@@ -85,6 +86,7 @@ subscribe((what) => {
 });
 
 function render({ first = false, nav = false, pop = false } = {}) {
+  closeShare(); // a picture of the page you are leaving
   route = L.parseRoute(location.pathname, location.search, location.hash);
   if (route.redirect) {
     history.replaceState(history.state, "", route.redirect + location.search);
