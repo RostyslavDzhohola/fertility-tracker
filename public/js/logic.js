@@ -60,18 +60,55 @@ export function todayYear(scen, now = new Date()) {
   return clamp(now.getFullYear(), start, end);
 }
 
+// The first year on the slider: the UN's estimates start in 1950 (scenarios.json `estimate`, the past both futures
+// share). Older files without it start at the first forecast year.
+export function firstYear(scen) {
+  return scen?.estimateStartYear ?? scen?.startYear ?? 2024;
+}
+
+// Play from the end of the slider starts again here: the recent past, then the future.
+export const REPLAY_FROM = 2000;
+
+// People in one whole year: the UN estimate before startYear, the scenario from it on. null when missing.
+function popYear(scen, iso3, year, scenario) {
+  const p = scen?.places?.[iso3];
+  if (!p) return null;
+  if (year < scen.startYear) {
+    const v = p.estimate?.[year - firstYear(scen)];
+    return isNum(v) ? v : null;
+  }
+  const v = p[normScenario(scenario)]?.[year - scen.startYear];
+  return isNum(v) ? v : null;
+}
+
 // People in `year` (fractional years interpolate, so Play is smooth). null when missing.
 export function popAt(scen, iso3, year, scenario = "medium") {
   const arr = scen?.places?.[iso3]?.[normScenario(scenario)];
   if (!Array.isArray(arr) || !arr.length || !isNum(year)) return null;
-  const t = clamp(year - scen.startYear, 0, arr.length - 1);
+  const lo = scen.startYear > firstYear(scen) && scen.places[iso3].estimate?.length ? firstYear(scen) : scen.startYear;
+  const t = clamp(year, lo, scen.startYear + arr.length - 1);
   const i = Math.floor(t);
   const f = t - i;
-  const a = arr[i];
-  const b = arr[Math.min(i + 1, arr.length - 1)];
+  const a = popYear(scen, iso3, i, scenario);
+  const b = f > 0 ? popYear(scen, iso3, i + 1, scenario) : a;
   if (!isNum(a)) return isNum(b) && f > 0.5 ? b : null;
   if (!isNum(b) || f === 0) return a;
   return a + (b - a) * f;
+}
+
+// How fast a place is growing or shrinking at `year`: the average yearly % change over the TREND_YEARS years up to it
+// (in the first years of the data, over the years there are). Looking back, not ahead, so a year shows what had been
+// happening: Ukraine in 2026 is still the war years, not the UN's assumed return of refugees in 2025-2026.
+export const TREND_YEARS = 5;
+export function trendAt(scen, iso3, year, scenario = "medium") {
+  if (!isNum(year)) return null;
+  const first = firstYear(scen);
+  const to = Math.max(year, first + 1);
+  const from = Math.max(first, to - TREND_YEARS);
+  const a = popAt(scen, iso3, from, scenario);
+  const b = popAt(scen, iso3, to, scenario);
+  if (!isNum(a) || !isNum(b) || a <= 0 || b <= 0) return null;
+  return (Math.pow(b / a, 1 / (to - from)) - 1) * 100;
 }
 
 // Population in `year` as a share of today's (UN forecast for today, so both scenarios share one baseline).
@@ -87,19 +124,20 @@ export function pctVsToday(scen, iso3, year, scenario, today) {
   return r == null ? null : (r - 1) * 100;
 }
 
-// ---------------------------------------------------------------- the people ramp (DESIGN-v3 §1)
+// ---------------------------------------------------------------- the color scales (DESIGN-v3 §1)
 
-// % change vs today → color. Greens grow (blue-leaning, so they part from the oranges under red-green color blindness),
-// sand stays about the same, orange → red shrinks, and from half gone on a gray that darkens. Checked under protan,
-// deutan and tritan simulation (docs/design/DESIGN-v3.md §1).
+// Two scales on one set of colors and words. Greens grow (blue-leaning, so they part from the oranges under red-green
+// color blindness), sand stays about the same, orange → red shrinks, and red only deepens: the worse, the darker red.
+// No gray "half gone" step: gray read as "no data" (user feedback, round 4).
+//
+// RAMP: % change vs today (the 2100 outlook: chips, meter, verdicts, rankings, link cards).
 export const RAMP = [
-  [-100, "#3B3A39"],
-  [-80, "#5E5B58"],
-  [-50, "#9A958F"],
-  [-49.999, "#BE3A30"],
-  [-35, "#DA573A"],
-  [-20, "#EC8447"],
-  [-10, "#F4B26E"],
+  [-100, "#5E120E"],
+  [-60, "#8E1F1A"],
+  [-40, "#BE3A30"],
+  [-25, "#DA573A"],
+  [-15, "#EC8447"],
+  [-8, "#F4B26E"],
   [-4, "#F2D9A9"],
   [0, "#EEE5CD"],
   [4, "#DDE8D0"],
@@ -108,6 +146,23 @@ export const RAMP = [
   [60, "#2C9690"],
   [120, "#13737A"],
   [250, "#0B4F63"],
+];
+// TREND_RAMP: % change per year over the last TREND_YEARS years (the globe: fill, legend, tooltip, labels).
+export const TREND_RAMP = [
+  [-3, "#5E120E"],
+  [-2, "#8E1F1A"],
+  [-1.3, "#BE3A30"],
+  [-0.8, "#DA573A"],
+  [-0.45, "#EC8447"],
+  [-0.25, "#F4B26E"],
+  [-0.1, "#F2D9A9"],
+  [0, "#EEE5CD"],
+  [0.1, "#DDE8D0"],
+  [0.4, "#ABD8C4"],
+  [1, "#62B7A6"],
+  [2, "#2C9690"],
+  [3, "#13737A"],
+  [4.5, "#0B4F63"],
 ];
 export const NODATA_COLOR = "#E7E3DC";
 
@@ -120,10 +175,24 @@ function rgbToHex([r, g, b]) {
 }
 
 const RAMP_RGB = RAMP.map(([p, c]) => [p, hexToRgb(c)]);
+const TREND_RGB = TREND_RAMP.map(([p, c]) => [p, hexToRgb(c)]);
+
+function rampColor(stops, x) {
+  const v = clamp(x, stops[0][0], stops[stops.length - 1][0]);
+  for (let i = 1; i < stops.length; i++) {
+    const [p1, c1] = stops[i];
+    if (v <= p1) {
+      const [p0, c0] = stops[i - 1];
+      const t = p1 === p0 ? 1 : (v - p0) / (p1 - p0);
+      return rgbToHex([0, 1, 2].map((k) => c0[k] + (c1[k] - c0[k]) * t));
+    }
+  }
+  return rgbToHex(stops[stops.length - 1][1]);
+}
 
 // The % as people read it: whole numbers, one decimal under 1%, halves rounded away from zero on both sides
-// (−49.5 → −50, like +49.5 → +50). fmtPct prints this value and colors and words use it, so a place shown as "−50%"
-// is always "Half gone", never "Shrinking fast".
+// (−24.5 → −25, like +24.5 → +25). fmtPct prints this value and colors and words use it, so a place shown as "−25%"
+// is always "Shrinking fast", never "Shrinking".
 export function roundPct(x) {
   if (!isNum(x)) return null;
   const a = Math.abs(x);
@@ -134,35 +203,44 @@ export const shownPct = roundPct;
 
 export function changeColor(pct) {
   if (!isNum(pct)) return null;
-  const p = clamp(shownPct(pct), RAMP[0][0], RAMP[RAMP.length - 1][0]);
-  for (let i = 1; i < RAMP_RGB.length; i++) {
-    const [p1, c1] = RAMP_RGB[i];
-    if (p <= p1) {
-      const [p0, c0] = RAMP_RGB[i - 1];
-      const t = p1 === p0 ? 1 : (p - p0) / (p1 - p0);
-      return rgbToHex([0, 1, 2].map((k) => c0[k] + (c1[k] - c0[k]) * t));
-    }
-  }
-  return RAMP[RAMP.length - 1][1];
+  return rampColor(RAMP_RGB, shownPct(pct));
 }
 
-// The legend, worst first (left to right on screen).
-// One five-word scale for every word and meter on screen: the globe legend, the card chip, the country meter and
-// verdict, search rows and rankings. Each word covers a band of the ramp above; its color is the ramp's color in the
-// middle of that band. Chips and meters describe 2100 under the selected scenario, compared with today.
+// The yearly rate as people read it: one decimal ("−0.4% a year"), halves away from zero like roundPct; colors and
+// words use that value.
+export function shownRate(x) {
+  if (!isNum(x)) return null;
+  const r = Math.round(Math.abs(x) * 10) / 10;
+  return r === 0 ? 0 : Math.sign(x) * r;
+}
+
+export function trendColor(rate) {
+  if (!isNum(rate)) return null;
+  return rampColor(TREND_RGB, shownRate(rate));
+}
+
+// The four words, growing first (left to right on screen). One scale for every word on screen; each word covers a
+// band of a ramp, and its color is the ramp's color in the middle of that band.
+// OUTLOOK: 2100 under the selected scenario vs today. Boundaries: > +5, −5…+5, −25…−5, ≤ −25.
 export const OUTLOOK = [
   { key: "growing", label: "Growing", from: 5, to: Infinity, pct: 40 },
   { key: "same", label: "About the same", from: -5, to: 5, pct: 0 },
-  { key: "shrinking", label: "Shrinking", from: -25, to: -5, pct: -15 },
-  { key: "fast", label: "Shrinking fast", from: -50, to: -25, pct: -37 },
-  { key: "half", label: "Half gone", from: -100, to: -50, pct: -70 },
+  { key: "shrinking", label: "Shrinking", from: -25, to: -5, pct: -12 },
+  { key: "fast", label: "Shrinking fast", from: -100, to: -25, pct: -45 },
 ];
 
-// 0 growing … 4 half gone; -1 without a figure. Boundaries: > +5, −5…+5, −25…−5, −50…−25, ≤ −50.
+// TREND: the globe, per year. Boundaries: > +0.1% a year, −0.1…+0.1, −0.8…−0.1, ≤ −0.8.
+export const TREND = [
+  { key: "growing", label: "Growing", from: 0.1, to: Infinity, rate: 1 },
+  { key: "same", label: "About the same", from: -0.1, to: 0.1, rate: 0 },
+  { key: "shrinking", label: "Shrinking", from: -0.8, to: -0.1, rate: -0.4 },
+  { key: "fast", label: "Shrinking fast", from: -Infinity, to: -0.8, rate: -1.5 },
+];
+
+// 0 growing … 3 shrinking fast; -1 without a figure.
 export function outlookStep(pct) {
   if (!isNum(pct)) return -1;
   pct = shownPct(pct);
-  if (pct <= -50) return 4;
   if (pct <= -25) return 3;
   if (pct < -5) return 2;
   if (pct <= 5) return 1;
@@ -181,6 +259,29 @@ export function changeBand(pct) {
 export function outlookColor(step) {
   const o = OUTLOOK[step];
   return o ? changeColor(o.pct) : NODATA_COLOR;
+}
+
+export function trendStep(rate) {
+  if (!isNum(rate)) return -1;
+  rate = shownRate(rate);
+  if (rate <= -0.8) return 3;
+  if (rate < -0.1) return 2;
+  if (rate <= 0.1) return 1;
+  return 0;
+}
+
+export function trendColorOf(step) {
+  const t = TREND[step];
+  return t ? trendColor(t.rate) : NODATA_COLOR;
+}
+
+// "Shrinking 0.4% a year", "Growing 2.1% a year", "About the same size".
+export function trendWords(rate) {
+  const step = trendStep(rate);
+  if (step < 0) return "No trend in our sources";
+  const r = Math.abs(shownRate(rate)).toFixed(1);
+  if (step === 1) return "About the same size";
+  return `${step === 0 ? "Growing" : "Shrinking"} ${r}% a year`;
 }
 
 // ---------------------------------------------------------------- number formatting
@@ -681,7 +782,7 @@ function cap(s) {
   return s ? s[0].toUpperCase() + s.slice(1) : s;
 }
 
-// Plain verdict for 2100 under a scenario. It always agrees with outlookStep(pct): the same five bands.
+// Plain verdict for 2100 under a scenario. It always agrees with outlookStep(pct): the same four bands.
 // peakYear (of the scenario's path) adds "grows for a while, then …" when the peak is still ahead.
 export function verdict(rec, pct2100, today, { scenario = "medium", peakYear = rec?.projection?.peakYear, small = isSmallPlace(rec) } = {}) {
   const name = theName(rec, { start: true });
@@ -690,7 +791,8 @@ export function verdict(rec, pct2100, today, { scenario = "medium", peakYear = r
   const rising = isNum(peakYear) && peakYear > today + 3 && peakYear < END_YEAR;
   const step = outlookStep(pct2100);
   let v;
-  if (step === 4) v = rising ? `${name} grows a little longer, then loses half its people or more.` : `${name} loses half its people or more by 2100.`;
+  // Shrinking fast covers everything from −25%; from half on, the sentence says so.
+  if (step === 3 && shownPct(pct2100) <= -50) v = rising ? `${name} grows a little longer, then loses half its people or more.` : `${name} loses half its people or more by 2100.`;
   else if (step === 3) v = rising ? `${name} grows a little longer, then shrinks fast.` : `${name} is shrinking fast.`;
   else if (step === 2) v = rising ? `${name} grows for a while, then shrinks.` : `${name} is shrinking.`;
   else if (step === 1) v = rising ? `${name} grows, then falls back to about today's size.` : `${name} stays about the same size.`;
@@ -877,6 +979,7 @@ export function peopleCaption(r, year, today) {
   if (!isNum(r)) return "No forecast for this place.";
   if (year === today) return "Each figure is one tenth of today's people. Move the slider.";
   const n = Math.round(r * 10);
+  if (year < today) return n === 10 ? `About as many in ${year} as today.` : `In ${year}: ${n} for every 10 today.`;
   if (r < 0.995) return `${n === 10 ? "Almost all" : `${Math.max(0, n)} of 10`} still here in ${year}.`;
   if (r > 1.005) return `${n} for every 10 today.`;
   return "About the same as today.";
@@ -888,6 +991,7 @@ export function snapshotPostText({ rec, year, today, scenario, ratio }) {
   const tfr = isNum(rec?.tfr?.value) ? ` ${fmtTfr(rec.tfr.value)} babies per woman today.` : "";
   if (!isNum(ratio) || year === today) return `${who}: where its population is headed by 2100.${tfr}`;
   const n = Math.round(100 * ratio);
+  if (year < today) return `${who} in ${year}: about ${n} people for every 100 today (UN estimate).${tfr}`;
   const future = scenario === "constant" ? "if birth rates stay the same" : "UN forecast";
   return `${who} in ${year}: for every 100 people today, about ${n}${n < 100 ? " left" : ""} (${future}).${tfr}`;
 }

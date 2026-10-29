@@ -287,3 +287,40 @@ Machado 2009 simulation, ΔE in OKLab ×100, smallest difference between the leg
 and the lightest "half gone" gray share a lightness, so under protan and deutan they differ only slightly (ΔE 1–2). The
 printed % carries that case: on zoomed labels, the tooltip, the card, search rows and rankings. The accent `#2457FF` is
 never a data color (enforced in `logic.test.mjs`), and a CSS test checks that every rule painting with it is interactive.
+
+## Round 4 (user review, 29 October 2026)
+
+What changed, and why (the user's words in quotes):
+
+- **The past.** "Can we do before 2026 … all the way back … we have data from the 1950s." The slider runs 1950–2100,
+  with "Today" marked between the UN's estimates and its forecast. `scenarios.json` carries the UN's estimates as
+  `estimate` (1950–2023), shared by both futures. Play from the end starts again at 2000 ("let's play this out from the
+  2000s"), and the first-visit intro plays 2000 → 2100.
+- **Globe colors are the trend in the slider year, not the change since today.** "The beginning stage shouldn't be just
+  gray … the color should show the risk and the current state on the current date, like increasing or decreasing."
+  Each place is colored by its average yearly change over the 5 years up to the slider year (`logic.js` `trendAt`,
+  `TREND_RAMP`). Looking back, not ahead: Ukraine in 2026 shows the war years, not the UN's assumed 2025 return. Bands,
+  as displayed (one decimal): Growing above +0.1% a year, About the same −0.1 to +0.1, Shrinking −0.1 to above −0.8,
+  Shrinking fast −0.8 or less. Legend caption: "Past 5 years". The tooltip says "Shrinking 0.4% a year" and keeps
+  "% vs today" on a second line.
+- **No gray "Half gone".** "Remove the half gone. Red will just mean it's super red." Both scales (the globe's trend and
+  the 2100 outlook in chips, meter, verdicts, rankings and link cards) have four words; red only deepens, to `#5E120E`.
+  The outlook's Shrinking fast is −25% or less; from −50% the verdict still says "loses half its people or more".
+- **Labels: the number only.** "Remove percentages … just focus on the number." Room is measured for the widest number
+  ("88.8M"), not the digits on screen, so labels don't blink while Play changes them; where the name doesn't fit
+  between neighbours (Belarus at 2085), the number alone is drawn.
+- **The chart moves the year only on press and drag.** Hovering while Play runs did change the year. Now a pointer
+  passing over does nothing; press and drag (or tap) scrubs, past years included.
+- **"Immigration".** "Instead of moving in versus out, just change everything to immigration." The tile shows people
+  born abroad living here and born here living abroad (mid-2024, everyone alive who ever moved: "not one year's
+  arrivals", which "Arrived 52.4 million" wrongly suggested), then net migration each year 1990–2100: dark bars counted,
+  light bars the UN's forecast, so its assumption is visible. "Born, died, moved" became "Births, deaths, immigration",
+  with births and deaths (and their difference) apart from immigration.
+- **Where each number comes from.** "When I click on it, there is no pop-up, nothing for me to validate." Every number
+  on the country page is a button (dotted underline, an "i") that opens a card: what it counts, the year, counted or
+  forecast, the publisher's file, and the same number in our API (field named). Migration rows open their source, with
+  a link to the other country's page, instead of navigating away. Where newer or independent counts differ a lot, an
+  "Other sources" note says so with links (`crosscheck.js`; evidence in [DATA-CROSS-CHECK.md](../DATA-CROSS-CHECK.md)).
+- **Post on X shares the picture.** "It shares the link instead of … the screenshot." The country page's bottom button
+  opens the same picture dialog as "Share a picture" (copy the picture, open the post; phones share the file).
+- **Email is a plain mail link.** "Just pop up the mail tool, and that's it." The Gmail / Outlook / copy chooser is gone.

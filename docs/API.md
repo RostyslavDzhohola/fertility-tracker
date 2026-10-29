@@ -24,7 +24,7 @@ population-decline risk score. No key, no sign-up, refreshed weekly.
 | `countries.json` | One summary record per country + `WLD` (238), sorted by iso3. About 310 KB raw, 42 KB gzipped. |
 | `countries/{ISO3}.json` | Everything for one country: all headline fields, yearly series 1950-2100, migrant stock history, migration corridors, full risk breakdown. About 35 KB. |
 | `risk.json` | Ranked countries (highest risk first) with component points and inputs, unranked records with reasons, and the full methodology. |
-| `scenarios.json` | Population of every country + `WLD`, each year 2024-2100, under two UN scenarios: "UN forecast" (medium) and "If birth rates stay the same" (constant fertility). About 305 KB raw, 145 KB gzipped. |
+| `scenarios.json` | Population of every country + `WLD`, each year: UN estimates 1950-2023, then 2024-2100 under two UN scenarios: "UN forecast" (medium) and "If birth rates stay the same" (constant fertility). About 445 KB raw, 210 KB gzipped. |
 | `countries.csv` | One row per country, nested fields flattened with `_` (`components_births`, `projection_change2100Pct`, …). |
 | `timeseries.csv` | Long format `iso3,year,variant,metric,value`. Every country, year and metric; rows with no data are omitted. |
 | `status.json` | Deploy-time: `checkedAt`, refresh outcome, run URL, source statuses. |
@@ -105,12 +105,13 @@ Everything in the summary, plus:
 
 ## `scenarios.json`
 
-The data behind the year slider: total population on 1 July for every record (all 238, including `WLD`), each year
-`startYear`..`endYear` (2024-2100), under two UN World Population Prospects 2024 scenarios.
+The data behind the year slider: total population on 1 July for every record (all 238, including `WLD`): the UN's
+estimates for `estimateStartYear`..`startYear - 1` (1950-2023), then each year `startYear`..`endYear` (2024-2100) under
+two UN World Population Prospects 2024 scenarios.
 
 ```json
 {
-  "apiVersion": "v1", "generatedAt": "...", "unit": "people", "startYear": 2024, "endYear": 2100,
+  "apiVersion": "v1", "generatedAt": "...", "unit": "people", "estimateStartYear": 1950, "startYear": 2024, "endYear": 2100,
   "source": { "id": "UN-WPP", "url": ".../WPP2024_TotalPopulationBySex.csv.gz", "vintage": "2024-12-13",
               "interimUpdate": { "released": "2026-01-19", ... }, "nextUpdate": "2027-07-11", "license": "CC BY 3.0 IGO", ... },
   "scenarios": {
@@ -119,20 +120,20 @@ The data behind the year slider: total population on 1 July for every record (al
   },
   "notes": [ "..." ],
   "adjustments": [ { "iso3": "TGO", "scenarios": ["constant"], "method": "...", "ratioRange": [0.883, 0.901], "reason": "..." } ],
-  "places": { "KOR": { "medium": [51717590, ...77 integers], "constant": [51715325, ...] }, "WLD": { ... }, ... }
+  "places": { "KOR": { "estimate": [19757321, ...74 integers], "medium": [51717590, ...77 integers], "constant": [51715325, ...] }, "WLD": { ... }, ... }
 }
 ```
 
 | Field | Meaning |
 | --- | --- |
+| `places[ISO3].estimate` | The past both scenarios share: the UN's estimates, 1950-2023, the same numbers as `series` (variant `estimate`) in `countries/{ISO3}.json`. Index `year - estimateStartYear`. |
 | `places[ISO3].medium` | UN forecast (medium scenario): the same projection as `series` in `countries/{ISO3}.json` (to within 1 person). |
 | `places[ISO3].constant` | If birth rates stay the same: each country's fertility rate stays at its 2023 level to 2100, while mortality and migration follow the medium scenario (UN constant-fertility scenario). A what-if, not a forecast. |
-| index | `array[year - startYear]`; integers are people; `null` = missing (none at present). |
+| index | `medium` and `constant`: `array[year - startYear]`; `estimate`: `array[year - estimateStartYear]`. Integers are people; `null` = missing (none at present). |
 | `scenarios.*.unDefinition` | The UN's own definition, quoted from the WPP 2024 Methodology Report. |
 | `adjustments` | Places whose numbers are not straight from the UN file, and why. Togo: the UN's interim update of 19 January 2026 revised only its medium scenario, so its constant-fertility path is rescaled to the revised population level. |
 
-"Today" is not in the file: take the current calendar year's value from `medium` (UN estimates end in 2023). Past
-years (1950-2023) are in `countries/{ISO3}.json` `series`.
+"Today" is not in the file: take the current calendar year's value from `medium` (UN estimates end in 2023).
 
 ## `risk.json`
 

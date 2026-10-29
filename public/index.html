@@ -124,9 +124,9 @@
 
   <!-- ============================================================ Globe -->
   <section class="view view-globe" id="view-globe" aria-labelledby="globe-title" hidden>
-    <h1 class="visually-hidden" id="globe-title">Every country's population, from today to 2100</h1>
+    <h1 class="visually-hidden" id="globe-title">Every country's population, from 1950 to 2100</h1>
     <canvas class="globe-canvas" id="globe" tabindex="0" role="application" aria-roledescription="globe"
-            aria-label="Globe colored by how many people each country has compared with today. Drag to turn, scroll or pinch to zoom. Arrow keys turn it, plus and minus zoom, Enter opens the country in the middle."></canvas>
+            aria-label="Globe colored by how fast each country's population is growing or shrinking in the slider year. Drag to turn, scroll or pinch to zoom. Arrow keys turn it, plus and minus zoom, Enter opens the country in the middle."></canvas>
     <div class="globe-tip" id="globe-tip" aria-hidden="true" hidden></div>
     <p class="globe-note" id="globe-note" role="status"></p>
     <div class="geo-error" id="geo-error" role="alert" hidden>
@@ -178,13 +178,12 @@
             <a class="risk-all" href="/rankings">All rankings →</a>
           </div>
         </div>
-        <div class="legend" id="legend" role="img" aria-label="Colors compare each country with today: green, growing; sand, about the same; orange, shrinking; red, shrinking fast; gray, half or more gone.">
-          <span class="lg-cap" aria-hidden="true">vs today</span>
+        <div class="legend" id="legend" role="img" aria-label="Colors show how fast each country's population was changing in the slider year, over the 5 years before it: green, growing; sand, about the same; orange, shrinking; red, shrinking fast, darker the faster.">
+          <span class="lg-cap" aria-hidden="true">Past 5 years</span>
           <span class="lg-item" aria-hidden="true"><i class="lg-sw lg-growing"></i>Growing</span>
           <span class="lg-item" aria-hidden="true"><i class="lg-sw lg-same"></i>About the same</span>
           <span class="lg-item" aria-hidden="true"><i class="lg-sw lg-shrinking"></i>Shrinking</span>
           <span class="lg-item" aria-hidden="true"><i class="lg-sw lg-fast"></i>Shrinking fast</span>
-          <span class="lg-item" aria-hidden="true"><i class="lg-sw lg-half"></i>Half gone</span>
         </div>
       </div>
       <div class="dock" id="dock">

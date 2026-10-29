@@ -1,5 +1,6 @@
 // The country page's population chart, 1950–2100 (DESIGN-v3 §3 block 3): past as a solid line, the two futures labelled
-// at their ends, the peak annotated, and a marker that follows the shared year. Hover or tap scrubs the year.
+// at their ends, the peak annotated, and a marker that follows the shared year. Press and drag
+// (or tap) moves the year; a pointer just passing over it does nothing, so a resting mouse can't stop Play.
 // Plain SVG; viewBox in CSS pixels, re-rendered on resize.
 
 import { s } from "./dom.js";
@@ -36,13 +37,13 @@ function valueAt(points, year) {
   return points[points.length - 1][1];
 }
 
-// opts: { onScrub(year) } for the future; the past only shows a readout.
+// opts: { onScrub(year) }: any year 1950–2100.
 export function createPopChart(container, { onScrub } = {}) {
   let model = null; // { past, medium, constant, today, peak, name }
   let geo = null;
   let svg = null;
   let marker = null;
-  let hoverG = null;
+  let dragging = null; // the pointer pressed on the chart
   let lastYear = null;
   let lastMix = 0;
 
@@ -155,38 +156,35 @@ export function createPopChart(container, { onScrub } = {}) {
       svg.append(g);
     }
 
-    hoverG = s("g", { class: "hover", visibility: "hidden" }, s("line", { y1: m.top - 8, y2: m.top + ih }), s("circle", { r: 4 }), s("g", { class: "m-bubble" }, s("rect", { rx: 8, height: 26 }), s("text", { y: 17 })));
-    svg.append(hoverG);
-
     const hit = s("rect", { class: "hit", x: m.left, y: 0, width: iw, height: H });
     svg.append(hit);
-    hit.addEventListener("pointermove", onMove);
-    hit.addEventListener("pointerdown", onMove);
-    hit.addEventListener("pointerleave", () => hoverG.setAttribute("visibility", "hidden"));
+    hit.addEventListener("pointerdown", (e) => {
+      if (e.button !== 0) return;
+      dragging = e.pointerId;
+      try {
+        hit.setPointerCapture(e.pointerId);
+      } catch {}
+      scrub(e);
+    });
+    hit.addEventListener("pointermove", (e) => {
+      if (dragging === e.pointerId) scrub(e);
+    });
+    for (const type of ["pointerup", "pointercancel", "lostpointercapture"])
+      hit.addEventListener(type, (e) => {
+        if (dragging === e.pointerId) dragging = null;
+      });
 
     container.replaceChildren(svg);
     lastYear = null;
     update(model.year ?? model.today, model.mix ?? 0, true);
   }
 
-  function onMove(e) {
+  function scrub(e) {
     if (!geo) return;
     const r = svg.getBoundingClientRect();
     const px = ((e.clientX - r.left) * geo.W) / r.width;
     const yr = Math.round(Y0 + ((px - geo.m.left) / geo.iw) * (Y1 - Y0));
-    if (yr >= model.today) {
-      hoverG.setAttribute("visibility", "hidden");
-      if (e.type === "pointerdown" || e.pointerType === "mouse" || e.buttons) onScrub?.(Math.min(Y1, yr));
-    } else {
-      const v = valueAt(model.past, yr);
-      if (v == null) return;
-      placeBubble(hoverG, geo.x(yr), geo.y(v), `${yr}: ${fmtCompact(v)}`);
-      hoverG.querySelector("line").setAttribute("x1", geo.x(yr));
-      hoverG.querySelector("line").setAttribute("x2", geo.x(yr));
-      hoverG.querySelector("circle").setAttribute("cx", geo.x(yr));
-      hoverG.querySelector("circle").setAttribute("cy", geo.y(v));
-      hoverG.setAttribute("visibility", "visible");
-    }
+    onScrub?.(Math.max(Y0, Math.min(Y1, yr)));
   }
 
   function placeBubble(g, cx, cy, text) {
@@ -210,11 +208,13 @@ export function createPopChart(container, { onScrub } = {}) {
     if (!force && year === lastYear && mix === lastMix) return;
     lastYear = year;
     lastMix = mix;
-    const yr = Math.max(model.today, Math.min(Y1, year));
-    const vm = valueAt(model.medium, yr);
-    const vc = valueAt(model.constant, yr);
+    const yr = Math.max(Y0, Math.min(Y1, year));
+    // Before today there is one line (the UN's estimates and its path up to today), so one dot.
+    const past = yr < model.today;
+    const vm = past ? valueAt(model.past, yr) : valueAt(model.medium, yr);
+    const vc = past ? vm : valueAt(model.constant, yr);
     const v = vm == null ? vc : vc == null ? vm : vm + (vc - vm) * mix;
-    const vo = mix < 0.5 ? vc : vm;
+    const vo = past ? null : mix < 0.5 ? vc : vm;
     const xx = geo.x(yr);
     const line = marker.querySelector(".m-line");
     line.setAttribute("x1", xx);
@@ -225,6 +225,7 @@ export function createPopChart(container, { onScrub } = {}) {
       main.setAttribute("cx", xx);
       main.setAttribute("cy", geo.y(v));
     }
+    other.setAttribute("visibility", vo == null ? "hidden" : "visible");
     if (vo != null) {
       other.setAttribute("cx", xx);
       other.setAttribute("cy", geo.y(vo));

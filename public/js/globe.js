@@ -863,29 +863,43 @@ export function createGlobe(canvas, opts = {}) {
     const fs = labelSizes();
     const NAME_FONT = fs.nameFont;
     const LINE_FONT = fs.lineFont;
+    // Room is measured for the widest number ("88.8M"), not the digits on screen, so a label doesn't blink in and out
+    // while Play changes the number.
+    const numW = Math.max(textW(LINE_FONT, "88.8M"), textW(LINE_FONT, "8.88B"));
+    const inside = (b) => b.l >= 2 && b.r <= W - 2 && b.t >= 2 && b.b <= H - 2;
+    ctx.strokeStyle = pal.labelHalo;
+    ctx.lineWidth = 4 + (fs.name - 14) / 3;
     for (const c of cands) {
       if (placed.length >= 60) break;
       const lab = labelOf(c.pl.iso3);
       if (!lab) continue;
-      const w = Math.max(textW(NAME_FONT, lab.name), textW(LINE_FONT, lab.line)) + 10;
+      const [x, y] = c.xy;
+      const w = Math.max(textW(NAME_FONT, lab.name), numW, textW(LINE_FONT, lab.line)) + 10;
       const h = fs.name + fs.line + 10;
-      const box = { l: c.xy[0] - w / 2, t: c.xy[1] - h / 2, r: c.xy[0] + w / 2, b: c.xy[1] + h / 2 };
-      if (box.l < 2 || box.r > W - 2 || box.t < 2 || box.b > H - 2) continue;
-      if (hit(box)) continue;
-      placed.push(box);
-      lastLabels.push({ iso3: c.pl.iso3, name: lab.name, line: lab.line, x: c.xy[0], y: c.xy[1], size: fs.name });
-      const y1 = c.xy[1] - 2;
-      const y2 = c.xy[1] + fs.line + 1;
-      ctx.strokeStyle = pal.labelHalo;
-      ctx.lineWidth = 4 + (fs.name - 14) / 3;
-      ctx.font = NAME_FONT;
-      ctx.strokeText(lab.name, c.xy[0], y1);
-      ctx.fillStyle = pal.labelInk;
-      ctx.fillText(lab.name, c.xy[0], y1);
+      const box = { l: x - w / 2, t: y - h / 2, r: x + w / 2, b: y + h / 2 };
+      // Name and number; where the name doesn't fit (a small place between big neighbours), the number alone.
+      let full = inside(box) && !hit(box);
+      let only = null;
+      if (!full) {
+        const wn = Math.max(numW, textW(LINE_FONT, lab.line)) + 10;
+        const hn = fs.line + 8;
+        only = { l: x - wn / 2, t: y - hn / 2, r: x + wn / 2, b: y + hn / 2 };
+        if (!inside(only) || hit(only)) continue;
+      }
+      placed.push(full ? box : only);
+      lastLabels.push({ iso3: c.pl.iso3, name: full ? lab.name : "", line: lab.line, x, y, size: full ? fs.name : fs.line });
+      if (full) {
+        const y1 = y - 2;
+        ctx.font = NAME_FONT;
+        ctx.strokeText(lab.name, x, y1);
+        ctx.fillStyle = pal.labelInk;
+        ctx.fillText(lab.name, x, y1);
+      }
+      const y2 = full ? y + fs.line + 1 : y + fs.line * 0.36;
       ctx.font = LINE_FONT;
-      ctx.strokeText(lab.line, c.xy[0], y2);
+      ctx.strokeText(lab.line, x, y2);
       ctx.fillStyle = pal.labelInk;
-      ctx.fillText(lab.line, c.xy[0], y2);
+      ctx.fillText(lab.line, x, y2);
     }
   }
 

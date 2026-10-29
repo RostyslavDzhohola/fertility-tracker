@@ -3,9 +3,10 @@
 
 import { h, s, setText, setAttr } from "./dom.js";
 import { state, data, subscribe, setYear, setScenario, togglePlay, yearInt } from "./store.js";
-import { SCENARIO_LABELS, SCENARIO_SHORT, SCENARIO_HINTS } from "./logic.js";
+import { SCENARIO_LABELS, SCENARIO_SHORT, SCENARIO_HINTS, REPLAY_FROM } from "./logic.js";
 
-const TICKS = [2030, 2050, 2075, 2100];
+// Labelled years under the slider; "Today" sits between the past and the forecast.
+const TICKS = [1950, 2000, 2050, 2100];
 
 export const ICONS = {
   play: () => s("svg", { viewBox: "0 0 24 24", width: 22, height: 22, "aria-hidden": "true", focusable: "false" }, s("path", { d: "M8 5.5v13a1 1 0 0 0 1.5.86l10.4-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5Z", fill: "currentColor" })),
@@ -36,7 +37,7 @@ export function createTimeControls({ prefix, valueText = (y) => String(y), compa
     type: "range",
     id: `${prefix}-year`,
     class: "tc-range hint",
-    min: String(data.today),
+    min: String(data.first),
     max: String(data.end),
     step: "1",
     value: String(yearInt()),
@@ -52,27 +53,31 @@ export function createTimeControls({ prefix, valueText = (y) => String(y), compa
   const root = h("div", { class: `tc${compact ? " tc-compact" : ""}` }, time, scen);
 
   function buildTicks() {
-    const span = data.end - data.today || 1;
+    const span = data.end - data.first || 1;
+    // Years too close to today give way to it (2020 or 2030 would collide with "Today").
+    const years = TICKS.filter((y) => y >= data.first && y <= data.end && (y === data.first || y === data.end || Math.abs(y - data.today) >= 15));
+    const marks = [...years, data.today].sort((a, b) => a - b);
     ticks.replaceChildren(
-      ...TICKS.filter((y) => y > data.today).map((y) => {
-        const t = h("span", { class: "tc-tick" }, String(y));
-        t.style.left = `${((y - data.today) / span) * 100}%`;
-        if (y === data.end) t.classList.add("end");
+      ...marks.map((y) => {
+        const isToday = y === data.today;
+        const t = h("span", { class: `tc-tick${isToday ? " today" : y === data.first ? " start" : y === data.end ? " end" : " minor"}` }, isToday ? "Today" : String(y));
+        t.style.left = `${((y - data.first) / span) * 100}%`;
         return t;
       }),
     );
+    slider.style.setProperty("--today", String((data.today - data.first) / span));
   }
 
   let lastShown = null;
   function sync() {
     const y = yearInt();
-    if (input.min !== String(data.today)) {
-      input.min = String(data.today);
+    if (input.min !== String(data.first)) {
+      input.min = String(data.first);
       input.max = String(data.end);
       buildTicks();
     }
-    const span = data.end - data.today || 1;
-    const p = ((state.year - data.today) / span) * 100;
+    const span = data.end - data.first || 1;
+    const p = ((state.year - data.first) / span) * 100;
     input.style.setProperty("--pf", String(Math.max(0, Math.min(100, p)) / 100));
     slider.style.setProperty("--pf", String(Math.max(0, Math.min(100, p)) / 100));
     if (document.activeElement !== input || state.playing) {
@@ -91,7 +96,7 @@ export function createTimeControls({ prefix, valueText = (y) => String(y), compa
     if (playBtn.dataset.icon !== icon) {
       playBtn.dataset.icon = icon;
       playBtn.replaceChildren(ICONS[icon]());
-      setAttr(playBtn, "aria-label", playing ? "Pause" : atEnd ? "Play again from today" : "Play the years to 2100");
+      setAttr(playBtn, "aria-label", playing ? "Pause" : atEnd ? `Play again from ${Math.max(data.first, REPLAY_FROM)}` : "Play the years to 2100");
     }
     for (const b of segs) setAttr(b, "aria-pressed", String(b.dataset.s === state.scenario));
     // The thumb pulses, and the bubble says "Drag me", until the user takes over (never while the intro plays).

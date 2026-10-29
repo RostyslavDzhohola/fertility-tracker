@@ -442,7 +442,7 @@ test("§9.4 slider, Play and the scenario switch change the globe, the world cou
 
 // ------------------------------------------------------------------ §9.5 labels
 
-test("§9.5 zoomed-in labels show each country's population and % for the slider year", opts, async () => {
+test("§9.5 zoomed-in labels show each country's population for the slider year (no %: short labels fit more places)", opts, async () => {
   const page = await openPage({ path: "/?year=2070" });
   try {
     await page.eval(`${G}.stopSpin(), ${G}.flyTo("DEU", { zoom: 4 }), 0`);
@@ -453,11 +453,11 @@ test("§9.5 zoomed-in labels show each country's population and % for the slider
     const de = labels.find((l) => l.iso3 === "DEU");
     assert.ok(de, "Germany is labelled");
     const want = await page.eval(`(() => { const L = ${"{"} pop: FT.data.scen.places.DEU.medium[2070 - FT.data.scen.startYear] ${"}"}; return L.pop; })()`);
-    const m = /^([\d.]+)([KMB]) · ([+−]\d+%|0%)$/.exec(de.line);
+    const m = /^([\d.]+)([KMB])$/.exec(de.line);
     assert.ok(m, `label line "${de.line}"`);
     const scale = { K: 1e3, M: 1e6, B: 1e9 }[m[2]];
     assert.ok(Math.abs(Number(m[1]) * scale - want) / want < 0.01, `${de.line} vs ${want}`);
-    for (const l of labels) assert.match(l.line, /^[\d.]+[KMB]? · ([+−][\d.]+%|0%)$/, l.name);
+    for (const l of labels) assert.match(l.line, /^[\d.]+[KMB]?$/, l.name);
     // The label follows the slider.
     await page.eval(`(() => { const r = document.getElementById("globe-year"); r.value = "2100"; r.dispatchEvent(new Event("input", { bubbles: true })); })()`);
     await sleep(700);
@@ -590,9 +590,11 @@ test("country page: the 100 people and the chart marker follow the shared slider
   try {
     await page.waitFor(`document.querySelector("#pop-chart svg .marker")`);
     const meter = await page.eval(`(() => ({ words: [...document.querySelectorAll("#cv-meter .meter-word")].map((w) => w.textContent), on: document.querySelector("#cv-meter .meter-seg.on .meter-word")?.textContent, text: document.querySelector(".hero").textContent }))()`);
-    assert.deepEqual(meter.words, ["Growing", "About the same", "Shrinking", "Shrinking fast", "Half gone"]);
-    assert.equal(meter.on, "Half gone");
-    assert.match(meter.text, /By 2100: Half gone −5\d% vs today/);
+    assert.deepEqual(meter.words, ["Growing", "About the same", "Shrinking", "Shrinking fast"]);
+    assert.equal(meter.on, "Shrinking fast");
+    assert.match(meter.text, /By 2100: Shrinking fast −5\d% vs today/);
+    // From half gone on, the verdict says so (no gray "Half gone" step; red only deepens).
+    assert.match(meter.text, /Taiwan loses half its people or more by 2100\./);
     assert.ok(!/\b\d{1,3} ?\/ ?100\b/.test(meter.text), "no 0–100 score in the hero");
     assert.match(await page.eval(`document.getElementById("cv-lede").textContent`), /^For every 100 people in Taiwan today, about \d+ will be left in 2100 \(UN forecast\)\.$/);
     const gone = `[...document.querySelectorAll("#pp-grid .pp-base .person")].filter((i) => Number(getComputedStyle(i).getPropertyValue("--f")) < 0.5).length`;
@@ -745,7 +747,7 @@ test("retry after a failed countries.json brings the whole app up", opts, async 
 
 // ------------------------------------------------------------------ fix round 1 (review findings)
 
-const BUCKET = `((p) => p == null ? null : p <= -50 ? "Half gone" : p <= -25 ? "Shrinking fast" : p < -5 ? "Shrinking" : p <= 5 ? "About the same" : "Growing")`;
+const BUCKET = `((p) => p == null ? null : p <= -25 ? "Shrinking fast" : p < -5 ? "Shrinking" : p <= 5 ? "About the same" : "Growing")`;
 const PCT = `((t) => { const m = /([+−-])?(\\d+(?:\\.\\d)?)%/.exec(t); return m ? (m[1] === "−" || m[1] === "-" ? -1 : 1) * Number(m[2]) : null; })`;
 
 test("B1 every word on screen matches the number beside it: card, search, Shrinking most, rankings, country meter", opts, async () => {
@@ -1081,30 +1083,22 @@ test("night mode follows the system: the page and the globe switch palettes live
   }
 });
 
-test("Email us always does something: Gmail and Outlook open a ready message, the mail app and Copy are there too", opts, async () => {
+test("Email us is a plain mail link: the mail app opens with the address, subject and page filled in", opts, async () => {
   const page = await openPage({});
   try {
     await page.eval(`document.getElementById("fb-btn").click(), 0`);
     await page.waitFor(`!document.getElementById("fb-panel").hidden`, 2000);
-    assert.equal(await page.eval(`document.getElementById("fb-email-choices").hidden`), true);
-    await page.eval(`document.getElementById("fb-email-btn").click(), 0`);
-    const links = await page.eval(`[...document.querySelectorAll("#fb-email-choices a")].map((a) => ({ mail: a.dataset.mail, href: a.href, target: a.target }))`);
-    assert.deepEqual(links.map((l) => l.mail), ["gmail", "outlook", "mail-app"]);
-    const gmail = new URL(links[0].href);
-    assert.equal(gmail.origin, "https://mail.google.com");
-    assert.equal(gmail.searchParams.get("to"), "andromedus+fertility@mail.grokbot.com");
-    assert.match(gmail.searchParams.get("body"), /^Page: https:\/\/fertility-tracker-live\.vercel\.app\//);
-    assert.equal(links[0].target, "_blank");
-    assert.equal(new URL(links[1].href).origin, "https://outlook.live.com");
-    assert.match(links[2].href, /^mailto:andromedus\+fertility@mail\.grokbot\.com\?subject=/);
-    assert.equal(await page.eval(`document.getElementById("fb-email-btn").getAttribute("aria-expanded")`), "true");
-    assert.equal(await page.eval(`!!document.getElementById("fb-email-copy")`), true);
-    // The country page's "Email us" opens the same choice, with the place in the subject.
+    const fb = await page.eval(`(() => { const a = document.getElementById("fb-email-btn"); return { tag: a.tagName, href: a.href, target: a.target, popup: !!document.querySelector(".email-choices") }; })()`);
+    assert.equal(fb.tag, "A");
+    assert.equal(fb.target, "");
+    assert.equal(fb.popup, false, "no chooser panel");
+    assert.match(fb.href, /^mailto:andromedus\+fertility@mail\.grokbot\.com\?subject=/);
+    assert.match(decodeURIComponent(fb.href), /body=Page: https:\/\/fertility-tracker-live\.vercel\.app\//);
+    // The country page's "Email us" names the place in the subject.
     await page.eval(`FT.navigate("/country/JPN"), 0`);
     await page.waitFor(`!!document.getElementById("cv-email-btn")`, 4000);
-    await page.eval(`document.getElementById("more").open = true; document.getElementById("cv-email-btn").click(), 0`);
-    const su = await page.eval(`new URL(document.querySelector("#cv-email-choices a[data-mail=gmail]").href).searchParams.get("su")`);
-    assert.equal(su, "Fertility Tracker feedback: Japan");
+    const href = await page.eval(`document.getElementById("cv-email-btn").href`);
+    assert.equal(new URLSearchParams(href.split("?")[1]).get("subject"), "Fertility Tracker feedback: Japan");
     assert.deepEqual(page.errors, []);
   } finally {
     await page.close();
@@ -1309,10 +1303,10 @@ test("top-bar Feedback started on a country page names that country", opts, asyn
   const page = await openPage({ path: "/country/USA", ready: `!!window.FT && !!FT.data.feedback && !document.getElementById("view-country").hidden` });
   try {
     await page.eval(`document.getElementById("fb-btn").click(), 0`);
-    await page.waitFor(`!!document.querySelector("#fb-email-choices a[data-mail=gmail]")`, 3000);
-    const gm = new URL(await page.eval(`document.querySelector("#fb-email-choices a[data-mail=gmail]").href`));
-    assert.equal(gm.searchParams.get("su"), "Fertility Tracker feedback: United States");
-    assert.match(gm.searchParams.get("body"), /^Page: https:\/\/fertility-tracker-live\.vercel\.app\/country\/USA\n/);
+    await page.waitFor(`!!document.getElementById("fb-email-btn")`, 3000);
+    const mail = new URLSearchParams((await page.eval(`document.getElementById("fb-email-btn").href`)).split("?")[1]);
+    assert.equal(mail.get("subject"), "Fertility Tracker feedback: United States");
+    assert.match(mail.get("body"), /^Page: https:\/\/fertility-tracker-live\.vercel\.app\/country\/USA\n/);
     const gh = new URL(await page.eval(`document.getElementById("fb-github").href`));
     assert.equal(gh.searchParams.get("country"), "USA");
   } finally {
@@ -1331,6 +1325,127 @@ test("Back returns to the year you left, even when you move the slider and switc
     await sleep(200);
     assert.equal(await page.eval("location.pathname + location.search"), "/country/USA?year=2030");
     assert.equal(await page.eval("Math.round(FT.state.year)"), 2030);
+  } finally {
+    await page.close();
+  }
+});
+
+// ------------------------------------------------------------------ round 4: the past, trend colors, sources, X, chart
+
+test("the slider runs 1950–2100 with Today marked; Play from the end starts again at 2000; the past works on both pages", opts, async () => {
+  const page = await openPage({ path: "/?year=1990" });
+  try {
+    const r = await page.eval(`(() => { const i = document.getElementById("globe-year"); return { min: i.min, max: i.max, value: i.value, ticks: [...document.querySelectorAll("#dock-time .tc-tick")].map((t) => t.textContent) }; })()`);
+    assert.deepEqual([r.min, r.max, r.value], ["1950", "2100", "1990"]);
+    assert.ok(r.ticks.includes("Today") && r.ticks[0] === "1950" && r.ticks.at(-1) === "2100", JSON.stringify(r.ticks));
+    // The world in 1990, from the UN's estimates (5.3 billion), vs today.
+    assert.match(await page.eval(`document.getElementById("world-counter").textContent`), /World in 1990[\s\S]*5\.3\d? billion/);
+    // At the end, Play starts again at 2000.
+    await page.eval(`(() => { const i = document.getElementById("globe-year"); i.value = "2100"; i.dispatchEvent(new Event("input", { bubbles: true })); })()`);
+    await page.eval(`document.querySelector("#dock-time .tc-play").click(), 0`);
+    await sleep(120);
+    const y = await page.eval(`FT.state.year`);
+    assert.ok(y >= 2000 && y < 2010, `Play restarted at ${y}`);
+    await page.eval(`document.querySelector("#dock-time .tc-play").click(), 0`);
+    // The country page follows the past too: the chart marker sits left of today and the flows are the UN estimate.
+    await page.eval(`FT.navigate("/country/UKR"), 0`);
+    await page.waitFor(`!document.getElementById("view-country").hidden && !!document.querySelector("#pop-chart svg .marker")`, 4000);
+    await page.eval(`(() => { const i = document.querySelector("#cv-controls input.tc-range"); i.value = "1995"; i.dispatchEvent(new Event("input", { bubbles: true })); })()`);
+    await sleep(200);
+    const c = await page.eval(`({ span: document.querySelector("#why-born .tile-span").textContent, pp: document.getElementById("pp-sentence").textContent, x: Number(document.querySelector("#pop-chart .m-line").getAttribute("x1")), today: [...document.querySelectorAll("#pop-chart .tick.x")].find((t) => t.textContent === "Today")?.getAttribute("x") })`);
+    assert.equal(c.span, "In 1995, one year (UN estimate)");
+    assert.match(c.pp, /^In 1995, there were \d+ people for every 100 today\.$/);
+    assert.ok(c.x < Number(c.today), `marker ${c.x} left of today ${c.today}`);
+    assert.deepEqual(page.errors, []);
+  } finally {
+    await page.close();
+  }
+});
+
+test("globe colors show the trend in the slider year: today is not one flat color, and there is no gray step", opts, async () => {
+  const page = await openPage({ path: "/?year=2026" });
+  try {
+    const r = await page.eval(`(async () => { const L = await import("/js/logic.js"); const S = await import("/js/store.js"); const words = {}; for (const c of FT.data.list) { const st = L.trendStep(S.trendNow(c.iso3)); if (st >= 0) words[L.TREND[st].label] = (words[L.TREND[st].label] ?? 0) + 1; } return { words, ukr: L.TREND[L.trendStep(S.trendNow("UKR"))].label, nga: L.TREND[L.trendStep(S.trendNow("NGA"))].label, legend: [...document.querySelectorAll("#legend .lg-item")].map((i) => i.textContent) }; })()`);
+    assert.deepEqual(r.legend, ["Growing", "About the same", "Shrinking", "Shrinking fast"]);
+    assert.equal(r.ukr, "Shrinking fast");
+    assert.equal(r.nga, "Growing");
+    assert.ok(r.words.Growing > 50 && r.words.Shrinking > 10 && r.words["Shrinking fast"] > 2, JSON.stringify(r.words));
+    assert.match(await page.eval(`document.getElementById("legend").textContent`), /Past 5 years/i);
+  } finally {
+    await page.close();
+  }
+});
+
+test("every number on the country page can say where it comes from; migration rows open their source, not another page", opts, async () => {
+  const page = await openPage({ path: "/country/UKR?year=2026" });
+  try {
+    await page.waitFor(`!!document.querySelector("#why-move .net-chart")`, 5000);
+    await page.eval(`document.getElementById("more").open = true, 0`);
+    await page.waitFor(`document.querySelectorAll("#more-body .partners .src").length >= 10`, 5000);
+    // The born-abroad number: what it counts, its year, the UN table, our field, the Soviet-era note, and other sources.
+    await page.eval(`document.querySelector("#why-move .mv-row.in .src").click(), 0`);
+    const pop = await page.eval(`(() => { const p = document.getElementById("src-pop"); return { hidden: p.hidden, text: p.textContent, links: [...p.querySelectorAll("a")].map((a) => a.href), focus: document.activeElement?.id }; })()`);
+    assert.equal(pop.hidden, false);
+    assert.match(pop.text, /5\.06 million people living in Ukraine were born in another country/);
+    assert.match(pop.text, /Mid-2024/);
+    assert.match(pop.text, /Soviet Union until 1991/);
+    assert.match(pop.text, /Other sources: .*2001/);
+    assert.match(pop.text, /migrantStock\.immigrants/);
+    assert.ok(pop.links.some((h) => /undesa_pd_2024_ims_stock_by_sex_and_destination\.xlsx$/.test(h)), pop.links.join(" "));
+    assert.ok(pop.links.some((h) => h.endsWith("/api/v1/countries/UKR.json")));
+    assert.equal(pop.focus, "src-pop-title");
+    await page.key("Escape", { vk: 27 });
+    assert.equal(await page.eval(`document.getElementById("src-pop").hidden`), true);
+    // A migration row opens its source (with a link to that country's page); the page stays on Ukraine.
+    await page.eval(`document.querySelector("#more-body .partners .src").click(), 0`);
+    const row = await page.eval(`({ path: location.pathname, text: document.getElementById("src-pop").textContent, nav: document.querySelector("#src-pop a[data-nav]")?.getAttribute("href") })`);
+    assert.equal(row.path, "/country/UKR");
+    assert.match(row.text, /people born in Russia live in Ukraine/);
+    assert.equal(row.nav, "/country/RUS");
+    await page.eval(`document.querySelector("#src-pop a[data-nav]").click(), 0`);
+    await page.waitFor(`location.pathname === "/country/RUS" && document.getElementById("src-pop").hidden`, 3000);
+    assert.deepEqual(page.errors, []);
+  } finally {
+    await page.close();
+  }
+});
+
+test("Post on X at the bottom of a country page shares the picture, and Ukraine's chart says what newer counts show", opts, async () => {
+  const page = await openPage({ path: "/country/UKR?year=2026" });
+  try {
+    await page.waitFor(`!!document.getElementById("x-btn") && !!FT.data.details.get("UKR")?.data`, 5000);
+    assert.match(await page.eval(`document.querySelector(".xcheck-wrap").textContent`), /two thirds of Ukraine's refugees/);
+    assert.match(await page.eval(`document.getElementById("pp-sentence").textContent`), /assumes 2\.84 million more people moved in than left in 2024–2026/);
+    await page.eval(`document.getElementById("more").open = true; document.getElementById("x-btn").click(), 0`);
+    await page.waitFor(`document.getElementById("snap").open && document.getElementById("snap-img").naturalWidth === 1600`, 15000);
+    assert.equal(await page.eval(`document.getElementById("snap-x").hidden`), false);
+    assert.equal(await page.eval(`[...document.querySelectorAll("#more-body a")].some((a) => /x\\.com\\/intent/.test(a.href))`), false, "no link-only X button");
+    assert.deepEqual(page.errors, []);
+  } finally {
+    await page.close();
+  }
+});
+
+test("the population chart moves the year only on press and drag, never on hover", opts, async () => {
+  const page = await openPage({ path: "/country/USA?year=2100" });
+  try {
+    await page.waitFor(`!!document.querySelector("#pop-chart svg .hit")`, 5000);
+    const b = await page.eval(`(() => { document.getElementById("pop-chart").scrollIntoView({ block: "center" }); const r = document.querySelector("#pop-chart .hit").getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; })()`);
+    await sleep(200);
+    const y = b.y + b.h / 2;
+    // Hover across the chart while Play runs: nothing changes.
+    await page.eval(`document.querySelector("#cv-controls .tc-play").click(), 0`);
+    for (let i = 0; i <= 10; i++) await page.mouse("mouseMoved", b.x + (b.w * i) / 10, y);
+    assert.equal(await page.eval(`FT.state.playing`), true, "hovering doesn't stop Play");
+    await page.eval(`document.querySelector("#cv-controls .tc-play").click(), 0`);
+    // Press and drag from 1950-ish to the middle: the year follows.
+    await page.drag(b.x + 4, y, b.x + b.w / 2, y);
+    const yr = await page.eval(`Math.round(FT.state.year)`);
+    assert.ok(yr > 2010 && yr < 2040, `dragged to ${yr}`);
+    // After release, hovering again does nothing.
+    await page.mouse("mouseMoved", b.x + b.w - 4, y);
+    assert.equal(await page.eval(`Math.round(FT.state.year)`), yr);
+    assert.deepEqual(page.errors, []);
   } finally {
     await page.close();
   }

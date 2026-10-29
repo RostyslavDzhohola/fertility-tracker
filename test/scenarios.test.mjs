@@ -32,14 +32,18 @@ test("scenarios.json keeps the frontend contract: keys, labels, one integer per 
   const codes = json(files, "countries.json").countries.map((c) => c.iso3);
   assert.deepEqual(Object.keys(sc.places), codes, "every record, WLD included, sorted like countries.json");
   for (const [code, p] of Object.entries(sc.places)) {
-    assert.deepEqual(Object.keys(p), ["medium", "constant"], code);
+    assert.deepEqual(Object.keys(p), ["estimate", "medium", "constant"], code);
     for (const k of ["medium", "constant"]) {
       assert.equal(p[k].length, 77, `${code} ${k}`);
       assert.ok(p[k].every(Number.isInteger), `${code} ${k} integers`);
     }
+    assert.equal(p.estimate.length, 74, `${code} estimate: 1950-2023`);
+    assert.ok(p.estimate.every(Number.isInteger), `${code} estimate integers`);
   }
+  assert.equal(sc.estimateStartYear, 1950);
   const shr = json(files, "countries/SHR.json");
   assert.equal(sc.places.SHR.medium[2050 - 2024], shr.series.find((r) => r.year === 2050).population, "medium = the series projection");
+  assert.equal(sc.places.SHR.estimate[1990 - 1950], shr.series.find((r) => r.year === 1990).population, "estimate = the series' UN estimate");
   assert.equal(sc.source.id, "UN-WPP");
   assert.ok(sc.source.url.endsWith("WPP2024_TotalPopulationBySex.csv.gz"));
   assert.equal(sc.source.interimUpdate.released, "2026-01-19");
@@ -106,6 +110,13 @@ test("scenario guards: a clean build passes; coverage loss, shrinking years and 
   const e2 = scenarioChecks(stale, previous);
   assert.ok(e2.some((e) => /^scenarios\.json: SHR medium differs from the series population in 77 years/.test(e)), e2.join("\n"));
   assert.ok(e2.some((e) => /^scenarios\.json: SHR constant starts .* \(scenarios must share the same base population\)/.test(e)), e2.join("\n"));
+  // The shared past must be the series' own estimates, every year.
+  const pastHole = withScenarios(() => {});
+  pastHole.scenarios.places.get("SHR").estimate[5] = null;
+  assert.ok(scenarioChecks(pastHole, previous).includes("scenarios.json: SHR estimate has missing or invalid values"));
+  const pastOff = buildDataset(fixtureRaw());
+  pastOff.scenarios.places.get("SHR").estimate[40] += 1000;
+  assert.ok(scenarioChecks(pastOff, previous).some((e) => /^scenarios\.json: SHR estimate differs from the series population in 1 years \(e\.g\. 1990:/.test(e)));
   // sanityCheck (the write gate) includes them, and a build that lost scenarios entirely is refused too.
   assert.ok(sanityCheck(stale, { scenarios: previous }).some((e) => /SHR medium differs/.test(e)));
   const none = buildDataset({ ...fixtureRaw(), scenarios: null });

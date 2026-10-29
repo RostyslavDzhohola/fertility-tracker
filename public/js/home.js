@@ -3,7 +3,7 @@
 
 import { $, h, setText, setAttr, media, focusNoScroll, announce, idle } from "./dom.js";
 import * as L from "./logic.js";
-import { data, state, subscribe, popNow, ratioNow, pctNow, pct2100, outlookPct, fetchJson, setYear, play, yearInt } from "./store.js";
+import { data, state, subscribe, popNow, ratioNow, pctNow, trendNow, pct2100, outlookPct, fetchJson, setYear, play, yearInt } from "./store.js";
 import { createGlobe, buildLayerIdle } from "./globe.js";
 import { createTimeControls } from "./controls.js";
 import { peopleRow } from "./people.js";
@@ -73,17 +73,19 @@ export function createHome({ navigate, onFocusChange, siteUrl = () => L.SITE_URL
     }
     let c = colorMemo.get(iso3);
     if (c === undefined) {
-      c = L.changeColor(pctNow(iso3)) ?? null;
+      // How fast the place is growing or shrinking in the slider year (the last 5 years), so today has colors too.
+      c = L.trendColor(trendNow(iso3)) ?? null;
       colorMemo.set(iso3, c);
     }
     return c;
   }
 
+  // Zoomed-in labels: the name and how many people. No %: the number is what matters, and short labels fit more places.
   function labelOf(iso3) {
     const rec = data.records.get(iso3);
     const v = popNow(iso3);
     if (!rec || v == null) return null;
-    return { name: rec.name, line: `${L.fmtCompact(v)} · ${L.fmtPct(pctNow(iso3))}` };
+    return { name: rec.name, line: L.fmtCompact(v) };
   }
 
   let occ = [];
@@ -151,15 +153,18 @@ export function createHome({ navigate, onFocusChange, siteUrl = () => L.SITE_URL
     if (!rec) {
       el.tip.append(h("p", { class: "tip-name" }, hit.name ?? "No data"), h("p", { class: "tip-line" }, "No data in our sources"));
     } else {
+      const y = yearInt();
       const v = popNow(rec.iso3);
       const pct = pctNow(rec.iso3);
+      const rate = trendNow(rec.iso3);
       const sw = h("span", { class: "swatch" });
-      const c = L.changeColor(pct);
+      const c = L.trendColor(rate);
       if (c) sw.style.setProperty("--sw", c);
       el.tip.append(
         h("p", { class: "tip-name" }, rec.name),
-        h("p", { class: "tip-big" }, `${L.fmtWords(v)} in ${yearInt()}`),
-        h("p", { class: "tip-line" }, sw, pct == null ? "No forecast" : `${L.fmtPct(pct)} vs today`),
+        h("p", { class: "tip-big" }, `${L.fmtWords(v)} in ${y}`),
+        h("p", { class: "tip-line" }, sw, L.trendWords(rate)),
+        y === data.today || pct == null ? "" : h("p", { class: "tip-sub" }, `${L.fmtPct(pct)} vs today`),
         h("p", { class: "tip-hint" }, "Click to see more"),
       );
     }
@@ -203,7 +208,7 @@ export function createHome({ navigate, onFocusChange, siteUrl = () => L.SITE_URL
     setText(el.wcNum, sp.num);
     setText(el.wcUnit, sp.unit || "people");
     setText(el.wcPct, y === data.today ? "today" : pct == null ? "" : `${L.fmtPct(pct)} vs today`);
-    const c = L.changeColor(pct);
+    const c = L.trendColor(trendNow("WLD"));
     if (c) el.wcSw.style.setProperty("--sw", c);
   }
 
@@ -434,7 +439,7 @@ export function createHome({ navigate, onFocusChange, siteUrl = () => L.SITE_URL
     const q = L.buildQuery({ year: y, scenario: state.scenario, ...(iso3 !== "WLD" ? { focus: iso3 } : {}) }, { defaultYear: data.end });
     const base = siteUrl();
     const url = (base.endsWith("/") ? base : base + "/") + q;
-    const m = { rec, year: y, today: data.today, scenario: state.scenario, pop: popNow(iso3), pct: pctNow(iso3), ratio: ratioNow(iso3), outlookPct: outlookPct(iso3), url, visual };
+    const m = { rec, year: y, today: data.today, lastEstimate: data.latestEstimateYear, scenario: state.scenario, pop: popNow(iso3), pct: pctNow(iso3), ratio: ratioNow(iso3), outlookPct: outlookPct(iso3), url, visual };
     openShare({
       make: async () => {
         await globeDrawn();
@@ -561,20 +566,21 @@ export function createHome({ navigate, onFocusChange, siteUrl = () => L.SITE_URL
   async function start(route, first) {
     if (introDecided == null) introDecided = first && introWanted(route);
     const intro = introDecided && !state.touched;
-    if (intro && !started) setYear(data.today, { source: "auto" });
+    const introFrom = Math.max(data.first, L.REPLAY_FROM);
+    if (intro && !started) setYear(introFrom, { source: "auto" });
     const ok = await loadGeo();
     if (!ok || started) return ok;
     started = true;
     renderCounter();
     if (!lastRoute.focus && !media.reduced()) globe.startSpin();
-    if (intro && !state.touched) requestAnimationFrame(() => visible && !state.touched && play({ from: data.today, duration: 5200, source: "auto" }));
+    if (intro && !state.touched) requestAnimationFrame(() => visible && !state.touched && play({ from: introFrom, duration: 7000, source: "auto" }));
     if (lastRoute.focus && data.records.has(lastRoute.focus) && lastRoute.focus !== selected) select(lastRoute.focus, { source: "init" });
     return true;
   }
 
   el.geoRetry.addEventListener("click", () => start(lastRoute, false));
 
-  // First visit: play today → 2100 once, starting with the first painted frame. Skipped with reduced motion, a ?year=
+  // First visit: play 2000 → 2100 once (the recent past, then the forecast), starting with the first painted frame. Skipped with reduced motion, a ?year=
   // link, or later in the session. Any slider, Play or scenario touch stops it at once (store.touch).
   function introWanted(route) {
     let seen = false;

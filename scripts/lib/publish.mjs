@@ -267,15 +267,17 @@ function scenariosPayload(sc) {
       citation: WPP_CITATION,
     },
     unit: "people",
+    estimateStartYear: sc.estimateStartYear,
     startYear: sc.startYear,
     endYear: sc.endYear,
     scenarios: SCENARIO_META,
     notes: [
       "places[ISO3].medium and .constant are arrays of people on 1 July; index = year - startYear; null = missing.",
+      "places[ISO3].estimate is the past both scenarios share: the UN's estimates of people on 1 July (TPopulation1July, as in " +
+        "countries/{ISO3}.json series) for estimateStartYear..startYear - 1; index = year - estimateStartYear; null = missing.",
       "UN PopTotal (thousands, 3 decimals) x 1000, rounded to whole people.",
       "WLD is the UN's world aggregate. The UN did not revise aggregates for the Togo interim update, so WLD still counts Togo's superseded figures " +
         "(1.1 million more people in 2024, 2.7 million in 2100: under 0.03% of the world).",
-      "Past years (1950-2023) are in countries/{ISO3}.json series.",
     ],
     adjustments,
     places: Object.fromEntries(sc.places),
@@ -357,7 +359,7 @@ export function renderFiles(ds, manifest) {
               endpoint(
                 "scenarios.json",
                 "json",
-                `Population of every country + WLD each year ${ds.scenarios.startYear}-${ds.scenarios.endYear} under two UN WPP 2024 scenarios: medium ("UN forecast") and constant fertility ("If birth rates stay the same").`,
+                `Population of every country + WLD each year: UN estimates ${ds.scenarios.estimateStartYear}-${ds.scenarios.startYear - 1}, then ${ds.scenarios.startYear}-${ds.scenarios.endYear} under two UN WPP 2024 scenarios: medium ("UN forecast") and constant fertility ("If birth rates stay the same").`,
                 "scenarios.schema.json",
               ),
             ]

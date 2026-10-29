@@ -8,14 +8,22 @@ the last (1.14 ÷ 2.1 replacement), so 100 → 54 → 29 → 16 → 9.
 
 ## What's in it
 
-- Full-screen globe (drag, wheel/pinch zoom) colored by how many people each country will have compared with today,
-  with a year slider to 2100 and two futures: the UN forecast, and "if birth rates stay the same" (UN constant fertility)
+- Full-screen globe (drag, wheel/pinch zoom) colored by how fast each country is growing or shrinking in the slider
+  year (its average yearly change over the 5 years before), with a year slider from 1950 (UN estimates) to 2100 and two
+  futures: the UN forecast, and "if birth rates stay the same" (UN constant fertility). Play from the end starts at 2000
 - Country pages (`/country/KOR`): a plain-words risk meter, 100 people who gray out as the year moves, population
-  1950–2100 under both futures, "Born, died, moved" (births, deaths and net migration added up from now to the slider
-  year, so you can see whether moving in holds a place up), moving in vs out, and generations with a what-if slider
+  1950–2100 under both futures, "Births, deaths, immigration" (births and deaths, then net migration, for the slider
+  year or added up from now to it, so you can see whether moving in holds a place up), immigration (people born abroad
+  and born here living abroad, plus net migration each year 1990–2100, counted and forecast), and generations with a
+  what-if slider. The population chart moves the year only on press and drag
+- Where each number comes from: press any underlined number (or a migration row) for what it counts, its year,
+  whether it was counted or forecast, the publisher's file and the same number in the API. Where newer or independent
+  counts differ a lot (Ukraine's assumed refugee return, US net migration, UK born abroad), the page says so with links:
+  [docs/DATA-CROSS-CHECK.md](docs/DATA-CROSS-CHECK.md)
 - Rankings (`/rankings`): where populations shrink most by 2100, highest risk, fewest babies per woman
 - Share a picture: a 1600×900 image of the globe as you left it (or a country's chart) with its numbers, for X
-  (copied for pasting into the post; phones use the share sheet), or to copy or download
+  (copied for pasting into the post; phones use the share sheet), or to copy or download. "Post on X" on a country
+  page shares this picture too
 - Night mode that follows the system appearance
 - Link previews: every place has its own page and card, so a link to `/country/TWN` shows Taiwan's picture and
   numbers on X, Slack or iMessage (built at deploy by `scripts/pages/build-pages.mjs` and `scripts/og/render-cards.mjs`)

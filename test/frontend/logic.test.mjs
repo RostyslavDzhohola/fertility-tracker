@@ -23,8 +23,8 @@ test("risk words map the five API tiers to plain words; no score on the label", 
   assert.equal(L.isSmallPlace({ flags: ["small-population"] }), true);
 });
 
-test("one five-word scale: the legend, chips, meter and verdicts share bands and colors with the globe ramp", () => {
-  assert.deepEqual(L.OUTLOOK.map((o) => o.label), ["Growing", "About the same", "Shrinking", "Shrinking fast", "Half gone"]);
+test("one four-word scale: the legend, chips, meter and verdicts share bands and colors with the outlook ramp", () => {
+  assert.deepEqual(L.OUTLOOK.map((o) => o.label), ["Growing", "About the same", "Shrinking", "Shrinking fast"]);
   const word = (p) => L.outlookOf(p)?.label ?? null;
   assert.equal(word(40), "Growing");
   assert.equal(word(5.6), "Growing");
@@ -34,32 +34,24 @@ test("one five-word scale: the legend, chips, meter and verdicts share bands and
   assert.equal(word(-6), "Shrinking");
   assert.equal(word(-24), "Shrinking");
   assert.equal(word(-25), "Shrinking fast");
-  assert.equal(word(-49.4), "Shrinking fast");
-  assert.equal(word(-49.6), "Half gone", "shown as −50%: the word follows the number people see");
-  assert.equal(word(-90), "Half gone");
+  assert.equal(word(-49.6), "Shrinking fast", "no gray half-gone step: red only deepens");
+  assert.equal(word(-90), "Shrinking fast");
   assert.equal(word(null), null);
-  // Brazil-like: −24% by 2100 is "Shrinking", never a calm word next to a falling number.
-  assert.equal(word(-24), "Shrinking");
-  // Each word's color is the ramp's color inside its band, and a −49.6% place is colored gray like its word.
+  // Each word's color is the ramp's color inside its band.
   for (const [i, o] of L.OUTLOOK.entries()) assert.equal(L.outlookColor(i), L.changeColor(o.pct));
-  assert.equal(L.changeColor(-49.6), L.changeColor(-50));
   assert.equal(L.changeBand(-30), "fast");
+  assert.equal(L.changeBand(-70), "fast");
   assert.equal(L.changeBand(12), "growing");
   assert.equal(L.changeColor(null), null);
   assert.equal(L.changeColor(0), "#EEE5CD");
-  // Gray, darkening as more is lost (no hue: R ≈ G ≈ B).
   const rgb = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
   const lum = (hex) => rgb(hex).reduce((a, b) => a + b, 0);
-  for (const p of [-55, -70, -90]) {
-    const [r, g, b] = rgb(L.changeColor(p));
-    assert.ok(Math.max(r, g, b) - Math.min(r, g, b) < 16, `${p}% should be gray, got ${L.changeColor(p)}`);
-  }
-  assert.ok(lum(L.changeColor(-90)) < lum(L.changeColor(-70)) && lum(L.changeColor(-70)) < lum(L.changeColor(-55)));
-  // Shrinking is warm (red > blue), growing is green-blue (green and blue > red).
-  for (const p of [-10, -25, -45]) {
+  // Shrinking is warm (red > blue) all the way down, and darker the more is lost: no gray.
+  for (const p of [-10, -25, -45, -55, -70, -90]) {
     const [r, , b] = rgb(L.changeColor(p));
-    assert.ok(r > b + 60, `${p}% should be orange/red`);
+    assert.ok(r > b + 60, `${p}% should be orange/red, got ${L.changeColor(p)}`);
   }
+  assert.ok(lum(L.changeColor(-90)) < lum(L.changeColor(-70)) && lum(L.changeColor(-70)) < lum(L.changeColor(-55)) && lum(L.changeColor(-55)) < lum(L.changeColor(-30)));
   for (const p of [15, 40, 100]) {
     const [r, g] = rgb(L.changeColor(p));
     assert.ok(g > r + 40, `${p}% should be green`);
@@ -68,7 +60,63 @@ test("one five-word scale: the legend, chips, meter and verdicts share bands and
   assert.ok(lum(L.changeColor(100)) < lum(L.changeColor(30)));
   // The interactive accent (#2457FF) is not a data color.
   for (let p = -100; p <= 250; p += 5) assert.notEqual(L.changeColor(p), "#2457FF");
+});
 
+test("the globe's trend scale: % a year over the last 5 years, the same four words, red deepening", () => {
+  assert.deepEqual(L.TREND.map((o) => o.label), ["Growing", "About the same", "Shrinking", "Shrinking fast"]);
+  const word = (r) => L.TREND[L.trendStep(r)]?.label ?? null;
+  assert.equal(word(2.1), "Growing");
+  assert.equal(word(0.16), "Growing", "shown as 0.2%");
+  assert.equal(word(0.14), "About the same", "shown as 0.1%: the word follows the number people see");
+  assert.equal(word(-0.05), "About the same");
+  assert.equal(word(-0.16), "Shrinking", "shown as −0.2%");
+  assert.equal(word(-0.74), "Shrinking", "shown as −0.7%");
+  assert.equal(word(-0.75), "Shrinking fast", "shown as −0.8%");
+  assert.equal(word(-1.2), "Shrinking fast");
+  assert.equal(word(null), null);
+  for (const [i, t] of L.TREND.entries()) assert.equal(L.trendColorOf(i), L.trendColor(t.rate));
+  assert.equal(L.trendColor(0), "#EEE5CD");
+  const rgb = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  const lum = (hex) => rgb(hex).reduce((a, b) => a + b, 0);
+  assert.ok(lum(L.trendColor(-2.5)) < lum(L.trendColor(-1.5)) && lum(L.trendColor(-1.5)) < lum(L.trendColor(-0.5)));
+  for (const r of [-0.3, -1, -3]) {
+    const [red, , b] = rgb(L.trendColor(r));
+    assert.ok(red > b + 60, `${r}%/yr should be orange/red`);
+  }
+  assert.equal(L.trendWords(-0.43), "Shrinking 0.4% a year");
+  assert.equal(L.trendWords(1.96), "Growing 2.0% a year");
+  assert.equal(L.trendWords(0.04), "About the same size");
+  assert.equal(L.trendWords(null), "No trend in our sources");
+});
+
+test("the past: popAt reads the UN estimates before startYear and joins the forecast smoothly; trendAt looks back 5 years", () => {
+  const s = { estimateStartYear: 2020, startYear: 2024, endYear: 2027, places: { AAA: { estimate: [100, 110, 121, 133.1], medium: [146.41, 150, 150, 150], constant: [146.41, 140, 130, 120] } } };
+  assert.equal(L.firstYear(s), 2020);
+  assert.equal(L.popAt(s, "AAA", 2021), 110);
+  assert.equal(L.popAt(s, "AAA", 2023.5), (133.1 + 146.41) / 2, "between the last estimate and the first forecast year");
+  assert.equal(L.popAt(s, "AAA", 2019), 100, "clamped to the first year");
+  assert.equal(L.popAt(s, "AAA", 2022, "constant"), 121, "both futures share the past");
+  // 2020 → 2024 is +10% a year (4 years of data before 2025).
+  assert.ok(Math.abs(L.trendAt(s, "AAA", 2024) - 10) < 1e-9);
+  // At the first year: the change into the next year.
+  assert.ok(Math.abs(L.trendAt(s, "AAA", 2020) - 10) < 1e-9);
+  // A file without the past still works from startYear.
+  const old = { startYear: 2024, endYear: 2025, places: { AAA: { medium: [100, 90], constant: [100, 80] } } };
+  assert.equal(L.firstYear(old), 2024);
+  assert.equal(L.popAt(old, "AAA", 2000), 100);
+  // The published file: Ukraine was shrinking fast in 2026 (the war years), though the UN expected refugees back in 2025.
+  assert.equal(scen.estimateStartYear, 1950);
+  assert.ok(L.trendAt(scen, "UKR", 2026) < -1.5, `UKR 2026: ${L.trendAt(scen, "UKR", 2026)}`);
+  assert.ok(L.popAt(scen, "UKR", 1990) > 50e6, "Ukraine had over 50 million people in 1990");
+  assert.equal(L.TREND[L.trendStep(L.trendAt(scen, "NGA", 2026))].label, "Growing");
+});
+
+test("past years in captions and post text", () => {
+  assert.equal(L.peopleCaption(1.34, 1990, 2026), "In 1990: 13 for every 10 today.");
+  assert.equal(L.peopleCaption(1.01, 2015, 2026), "About as many in 2015 as today.");
+  assert.equal(L.peopleCaption(0.6, 2070, 2026), "6 of 10 still here in 2070.");
+  const rec = { iso3: "UKR", name: "Ukraine", tfr: { value: 0.988 } };
+  assert.equal(L.snapshotPostText({ rec, year: 1990, today: 2026, scenario: "medium", ratio: 1.33 }), "Ukraine in 1990: about 133 people for every 100 today (UN estimate). 0.99 babies per woman today.");
 });
 
 test("rounding ties: the printed %, its color and its word always agree, on both sides of every band edge", () => {
@@ -93,7 +141,7 @@ test("rounding ties: the printed %, its color and its word always agree, on both
     assert.equal(L.outlookOf(x)?.label, L.outlookOf(shown)?.label, `word for ${x} (shown ${L.fmtPct(x)})`);
     assert.equal(L.changeColor(x), L.changeColor(shown), `color for ${x} (shown ${L.fmtPct(x)})`);
   }
-  assert.equal(L.outlookOf(-49.5).label, "Half gone");
+  assert.equal(L.outlookOf(-49.5).label, "Shrinking fast");
   assert.equal(L.fmtPct(-49.5), `${M}50%`);
   assert.equal(L.outlookOf(-24.5).label, "Shrinking fast");
   assert.equal(L.fmtPct(-24.5), `${M}25%`);
@@ -369,7 +417,7 @@ test("plain verdicts and the 100-people sentence", () => {
   const today = L.todayYear(scen);
   const p = L.pctVsToday(scen, "TWN", 2100, "medium", today);
   assert.equal(L.verdict(twn, p, today, { peakYear: 2026 }), "Taiwan loses half its people or more by 2100.");
-  assert.equal(L.verdictShort(p), "half gone by 2100");
+  assert.equal(L.verdictShort(p), "shrinking fast by 2100");
   assert.equal(L.verdict({ name: "X" }, -30, 2026, { peakYear: 2026 }), "X is shrinking fast.");
   assert.equal(L.verdict({ name: "X" }, -20, 2026, { peakYear: 2060 }), "X grows for a while, then shrinks.");
   assert.equal(L.verdict({ name: "X" }, 0, 2026, { peakYear: 2026 }), "X stays about the same size.");
@@ -394,7 +442,7 @@ test("plain verdicts and the 100-people sentence", () => {
   assert.equal(L.migrationSentence(87800), "87,800 more people arrive than leave each year.");
   assert.equal(L.migrationSentence(10), "About as many people move in as move out.");
   assert.match(L.bornDiedSentence(twn.components), /^132,000 born and 205,000 died in 2023: more people die than are born\.$/);
-  assert.equal(L.documentTitle("country", twn, p), "Taiwan: half gone by 2100 · Fertility Tracker");
+  assert.equal(L.documentTitle("country", twn, p), "Taiwan: shrinking fast by 2100 · Fertility Tracker");
   assert.equal(L.documentTitle("rankings"), "Where populations will shrink most · Fertility Tracker");
   assert.equal(L.documentTitle("globe"), L.HOME_TITLE);
   assert.match(L.xPostText(twn, 0.437), /^Taiwan: 0\.87 babies per woman\. For every 100 people today, about 44 will be left in 2100 \(UN forecast\)\.$/);
