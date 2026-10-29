@@ -172,6 +172,7 @@ function startPages() {
   state.year = route.year != null ? Math.max(data.today, Math.min(data.end, route.year)) : data.end;
   home = createHome({
     navigate,
+    siteUrl,
     geoFetch,
     onFocusChange: (iso3) => {
       focusIso = iso3;

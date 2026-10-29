@@ -185,6 +185,50 @@ export function buildLayerIdle(topology, records, { budget = 8 } = {}) {
 
 // ------------------------------------------------------------------ the globe
 
+// One palette per system appearance (style.css has the page's). Country colors come from colorOf and stay the same at
+// night, so they keep their meaning; only the sea, borders, outlines and labels change.
+const PALETTES = {
+  light: {
+    halo: "120,160,195",
+    haloA: 0.28,
+    sea: ["#F1F7FB", "#DCE9F2", "#C3D7E6"],
+    flatSea: "#E3EDF4",
+    grat: "rgba(70,105,140,0.13)",
+    neutral: "#ECE9E3",
+    border: "rgba(255,255,255,0.95)",
+    coast: "rgba(55,80,105,0.32)",
+    hover: "rgba(31,35,40,0.75)",
+    dotHover: "#1F2328",
+    rim: "rgba(55,85,115,0.22)",
+    nodata: ["#F4F1EC", "#CBC4BA"],
+    accent: "#2457FF",
+    accentRgb: "36,87,255",
+    selHalo: "rgba(255,255,255,0.95)",
+    labelInk: "#1F2328",
+    labelHalo: "rgba(255,255,255,0.92)",
+  },
+  dark: {
+    halo: "70,120,170",
+    haloA: 0.22,
+    sea: ["#1F3448", "#172A3B", "#10202E"],
+    flatSea: "#152636",
+    grat: "rgba(150,185,215,0.10)",
+    neutral: "#2A2F35",
+    border: "rgba(16,19,22,0.9)",
+    coast: "rgba(160,190,215,0.28)",
+    hover: "rgba(235,238,242,0.85)",
+    dotHover: "#EEF1F4",
+    rim: "rgba(140,175,205,0.25)",
+    nodata: ["#22272D", "#3A4048"],
+    accent: "#6B8FFF",
+    accentRgb: "107,143,255",
+    selHalo: "rgba(14,17,20,0.9)",
+    labelInk: "#EEF1F4",
+    labelHalo: "rgba(14,17,20,0.88)",
+  },
+};
+const darkQuery = globalThis.matchMedia?.("(prefers-color-scheme: dark)");
+
 export function createGlobe(canvas, opts = {}) {
   const D = d3();
   const ctx = canvas.getContext("2d");
@@ -237,6 +281,13 @@ export function createGlobe(canvas, opts = {}) {
   let lastLabels = [];
   const stats = { draws: 0, total: 0, max: 0, build: 0, slow: [] };
   let hatch = null;
+  let pal = darkQuery?.matches ? PALETTES.dark : PALETTES.light;
+  // The system switches between day and night: recolor at once (or on the next show, if hidden).
+  darkQuery?.addEventListener?.("change", (e) => {
+    pal = e.matches ? PALETTES.dark : PALETTES.light;
+    hatch = null;
+    requestDraw();
+  });
 
   // ---------------------------------------------------------------- data
 
@@ -384,9 +435,9 @@ export function createGlobe(canvas, opts = {}) {
     const c = document.createElement("canvas");
     c.width = c.height = 8;
     const g = c.getContext("2d");
-    g.fillStyle = "#F4F1EC";
+    g.fillStyle = pal.nodata[0];
     g.fillRect(0, 0, 8, 8);
-    g.strokeStyle = "#CBC4BA";
+    g.strokeStyle = pal.nodata[1];
     g.lineWidth = 1;
     g.beginPath();
     g.moveTo(-2, 10);
@@ -643,28 +694,28 @@ export function createGlobe(canvas, opts = {}) {
     // Ocean.
     if (mode === "globe") {
       const halo = ctx.createRadialGradient(F.cx, F.cy, r * 0.98, F.cx, F.cy, r * 1.09);
-      halo.addColorStop(0, "rgba(120,160,195,0.28)");
-      halo.addColorStop(1, "rgba(120,160,195,0)");
+      halo.addColorStop(0, `rgba(${pal.halo},${pal.haloA})`);
+      halo.addColorStop(1, `rgba(${pal.halo},0)`);
       ctx.fillStyle = halo;
       ctx.beginPath();
       ctx.arc(F.cx, F.cy, r * 1.09, 0, 2 * Math.PI);
       ctx.fill();
       const g = ctx.createRadialGradient(F.cx - r * 0.35, F.cy - r * 0.4, r * 0.05, F.cx, F.cy, r);
-      g.addColorStop(0, "#F1F7FB");
-      g.addColorStop(0.65, "#DCE9F2");
-      g.addColorStop(1, "#C3D7E6");
+      g.addColorStop(0, pal.sea[0]);
+      g.addColorStop(0.65, pal.sea[1]);
+      g.addColorStop(1, pal.sea[2]);
       ctx.fillStyle = g;
     } else {
-      ctx.fillStyle = "#E3EDF4";
+      ctx.fillStyle = pal.flatSea;
     }
     ctx.fill(cache.sphere);
 
     ctx.lineWidth = 0.6;
-    ctx.strokeStyle = "rgba(70,105,140,0.13)";
+    ctx.strokeStyle = pal.grat;
     ctx.stroke(cache.grat);
 
     if (cache.neutral) {
-      ctx.fillStyle = "#ECE9E3";
+      ctx.fillStyle = pal.neutral;
       ctx.fill(cache.neutral);
     }
 
@@ -676,11 +727,11 @@ export function createGlobe(canvas, opts = {}) {
       ctx.fill(p);
     }
     ctx.lineJoin = "round";
-    ctx.strokeStyle = "rgba(255,255,255,0.95)";
+    ctx.strokeStyle = pal.border;
     ctx.lineWidth = k >= 4 ? 1.3 : k >= 2 ? 1 : 0.75;
     ctx.stroke(cache.borders);
     if (cache.coast) {
-      ctx.strokeStyle = "rgba(55,80,105,0.32)";
+      ctx.strokeStyle = pal.coast;
       ctx.lineWidth = 0.7;
       ctx.stroke(cache.coast);
     }
@@ -688,7 +739,7 @@ export function createGlobe(canvas, opts = {}) {
     // Hover outline.
     const hp = hover && cache.paths.get(hover);
     if (hp) {
-      ctx.strokeStyle = "rgba(31,35,40,0.75)";
+      ctx.strokeStyle = pal.hover;
       ctx.lineWidth = 1.6;
       ctx.stroke(hp);
     }
@@ -701,7 +752,7 @@ export function createGlobe(canvas, opts = {}) {
       ctx.fillStyle = colorOf(d.iso3) ?? nod;
       ctx.fill();
       ctx.lineWidth = 1.2;
-      ctx.strokeStyle = d.iso3 === hover ? "#1F2328" : "rgba(255,255,255,0.95)";
+      ctx.strokeStyle = d.iso3 === hover ? pal.dotHover : pal.border;
       ctx.stroke();
     }
 
@@ -710,10 +761,10 @@ export function createGlobe(canvas, opts = {}) {
       const sp = cache.paths.get(selected);
       const pl = places.get(selected);
       if (sp) {
-        ctx.strokeStyle = "rgba(255,255,255,0.95)";
+        ctx.strokeStyle = pal.selHalo;
         ctx.lineWidth = 6;
         ctx.stroke(sp);
-        ctx.strokeStyle = ACCENT;
+        ctx.strokeStyle = pal.accent;
         ctx.lineWidth = 3;
         ctx.stroke(sp);
       }
@@ -722,7 +773,7 @@ export function createGlobe(canvas, opts = {}) {
       if (dot) {
         ctx.beginPath();
         ctx.arc(dot.x, dot.y, dotR + 5, 0, 2 * Math.PI);
-        ctx.strokeStyle = ACCENT;
+        ctx.strokeStyle = pal.accent;
         ctx.lineWidth = 3;
         ctx.stroke();
       }
@@ -733,7 +784,7 @@ export function createGlobe(canvas, opts = {}) {
           const e = easeOut(pt);
           ctx.beginPath();
           ctx.arc(xy[0], xy[1], 10 + 46 * e, 0, 2 * Math.PI);
-          ctx.strokeStyle = `rgba(36,87,255,${0.55 * (1 - pt)})`;
+          ctx.strokeStyle = `rgba(${pal.accentRgb},${0.55 * (1 - pt)})`;
           ctx.lineWidth = 3;
           ctx.stroke();
           dirty = true;
@@ -742,7 +793,7 @@ export function createGlobe(canvas, opts = {}) {
     }
 
     if (mode === "globe") {
-      ctx.strokeStyle = "rgba(55,85,115,0.22)";
+      ctx.strokeStyle = pal.rim;
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.arc(F.cx, F.cy, r, 0, 2 * Math.PI);
@@ -751,8 +802,6 @@ export function createGlobe(canvas, opts = {}) {
 
     drawLabels(proj);
   }
-
-  const ACCENT = "#2457FF";
 
   function isFront(ll) {
     return mode !== "globe" || D.geoDistance(ll, viewCenter()) < Math.PI / 2 - 0.02;
@@ -827,15 +876,15 @@ export function createGlobe(canvas, opts = {}) {
       lastLabels.push({ iso3: c.pl.iso3, name: lab.name, line: lab.line, x: c.xy[0], y: c.xy[1], size: fs.name });
       const y1 = c.xy[1] - 2;
       const y2 = c.xy[1] + fs.line + 1;
-      ctx.strokeStyle = "rgba(255,255,255,0.92)";
+      ctx.strokeStyle = pal.labelHalo;
       ctx.lineWidth = 4 + (fs.name - 14) / 3;
       ctx.font = NAME_FONT;
       ctx.strokeText(lab.name, c.xy[0], y1);
-      ctx.fillStyle = "#1F2328";
+      ctx.fillStyle = pal.labelInk;
       ctx.fillText(lab.name, c.xy[0], y1);
       ctx.font = LINE_FONT;
       ctx.strokeText(lab.line, c.xy[0], y2);
-      ctx.fillStyle = "#1F2328";
+      ctx.fillStyle = pal.labelInk;
       ctx.fillText(lab.line, c.xy[0], y2);
     }
   }
@@ -1541,6 +1590,9 @@ export function createGlobe(canvas, opts = {}) {
     },
     get spinning() {
       return spin;
+    },
+    get theme() {
+      return pal === PALETTES.dark ? "dark" : "light";
     },
     get labels() {
       return lastLabels.slice();

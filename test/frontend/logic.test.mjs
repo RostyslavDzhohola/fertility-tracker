@@ -257,6 +257,49 @@ test("mailto link carries subject and body; falls back to the brief's address", 
   assert.ok(L.buildMailto(null, { iso3: "JPN", name: "Japan" }).startsWith(`mailto:${L.FALLBACK_EMAIL}?`));
 });
 
+test("email works without a mail program: Gmail and Outlook links carry the same address, subject and body", () => {
+  const m = L.buildEmailLinks(feedback, { iso3: "JPN", name: "Japan" });
+  const gmail = new URL(m.gmail);
+  assert.equal(gmail.origin, "https://mail.google.com");
+  assert.equal(gmail.searchParams.get("view"), "cm");
+  assert.equal(gmail.searchParams.get("to"), "andromedus+fertility@mail.grokbot.com");
+  assert.equal(gmail.searchParams.get("su"), "Fertility Tracker feedback: Japan");
+  assert.equal(gmail.searchParams.get("body"), m.body);
+  const outlook = new URL(m.outlook);
+  assert.equal(outlook.origin, "https://outlook.live.com");
+  assert.equal(outlook.searchParams.get("to"), m.address);
+  assert.equal(outlook.searchParams.get("subject"), m.subject);
+  assert.equal(outlook.searchParams.get("body"), m.body);
+  assert.equal(m.mailto, L.buildMailto(feedback, { iso3: "JPN", name: "Japan" }));
+});
+
+test("born, died, moved add up over the years and say whether moving in holds a place up", () => {
+  const series = [
+    { year: 2026, births: 700, deaths: 1000, netMigration: 200 },
+    { year: 2027, births: 700, deaths: 1000, netMigration: 200 },
+    { year: 2028, births: 700, deaths: 1000, netMigration: 200 },
+  ];
+  const f = L.flowsBetween(series, 2026, 2027);
+  assert.deepEqual(f, { from: 2026, to: 2027, years: 2, births: 1400, deaths: 2000, netMigration: 400, natural: -600, change: -200 });
+  assert.equal(L.flowsSentence(f, "Germany"), "600 more people die than are born. People moving in cut the loss to 200.");
+  assert.equal(L.flowsSentence({ ...f, netMigration: 700, change: 100 }, "Germany"), "More people die than are born. People moving in make up the difference.");
+  assert.equal(L.flowsSentence({ ...f, netMigration: -100 }, "Germany"), "More people die than are born, and more people leave than arrive.");
+  assert.equal(L.flowsSentence({ ...f, netMigration: 5 }, "Germany"), "More people die than are born. Moving in and out barely changes it.");
+  assert.equal(L.flowsSentence({ births: 3, deaths: 1, netMigration: 0, natural: 2 }, "the world", { world: true }), "More babies are born than people die. Moving doesn't change the world's total.");
+  assert.equal(L.flowsBetween(series, 2030, 2040), null);
+  assert.equal(L.flowsBetween([{ year: 2026, births: null, deaths: 1 }], 2026, 2026), null);
+});
+
+test("shared-picture words follow the slider year and the chosen future", () => {
+  const rec = { iso3: "TWN", name: "Taiwan", tfr: { value: 0.87 } };
+  assert.equal(L.snapshotPostText({ rec, year: 2070, today: 2026, scenario: "medium", ratio: 0.65 }), "Taiwan in 2070: for every 100 people today, about 65 left (UN forecast). 0.87 babies per woman today.");
+  assert.equal(L.snapshotPostText({ rec, year: 2100, today: 2026, scenario: "constant", ratio: 1.2 }), "Taiwan in 2100: for every 100 people today, about 120 (if birth rates stay the same). 0.87 babies per woman today.");
+  assert.equal(L.slugOf({ iso3: "CIV", name: "Côte d'Ivoire" }), "cote-d-ivoire");
+  assert.equal(L.slugOf({ iso3: "WLD", name: "World" }), "world");
+  assert.equal(L.peopleCaption(0.88, 2100, 2026), "9 of 10 still here in 2100.");
+  assert.equal(L.peopleCaption(1.2, 2060, 2026), "12 for every 10 today.");
+});
+
 test("X handle stays hidden while it is a TODO_ placeholder", () => {
   assert.equal(feedback.x.handle.startsWith("TODO_"), true);
   assert.equal(L.xHandle(feedback), null);

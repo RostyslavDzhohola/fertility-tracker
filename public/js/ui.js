@@ -1,6 +1,6 @@
 // Small shared UI pieces.
 
-import { h } from "./dom.js";
+import { h, announce, copyText } from "./dom.js";
 import * as L from "./logic.js";
 import { outlookPct, state } from "./store.js";
 
@@ -24,4 +24,34 @@ export function outlookChip(rec, { compact = false, pct = outlookPct(rec.iso3) }
     compact ? h("span", { class: "visually-hidden" }, "By 2100: ") : "By 2100: ",
     h("b", null, L.OUTLOOK[step].label),
   );
+}
+
+// "Email us" that always does something. A mailto: link does nothing when the computer has no mail program set up, so
+// the button opens a choice: Gmail or Outlook (a ready message in a new tab), the mail app, or copy the address.
+// Returns the button and the panel it opens, for the caller to place.
+export function emailChooser(feedback, ctx, { prefix = "email" } = {}) {
+  const m = L.buildEmailLinks(feedback, ctx);
+  const toggle = h("button", { type: "button", class: "btn btn-secondary", id: `${prefix}-btn`, "aria-expanded": "false", "aria-controls": `${prefix}-choices` }, "Email us");
+  const copyBtn = h("button", { type: "button", class: "btn btn-secondary btn-small", id: `${prefix}-copy` }, "Copy");
+  copyBtn.addEventListener("click", async () => {
+    const ok = await copyText(m.address);
+    copyBtn.textContent = ok ? "Copied" : "Copy failed";
+    announce(ok ? "Email address copied" : "Couldn't copy");
+    setTimeout(() => (copyBtn.textContent = "Copy"), 1500);
+  });
+  const app = (label, href, ext) => h("a", { class: "btn btn-secondary", href, ...(ext ? { target: "_blank", rel: "noopener" } : {}), "data-mail": label.toLowerCase().replace(/\s+/g, "-") }, label);
+  const panel = h(
+    "div",
+    { class: "email-choices", id: `${prefix}-choices`, hidden: true },
+    h("p", { class: "email-label" }, "Write to us in"),
+    h("div", { class: "email-apps" }, app("Gmail", m.gmail, true), app("Outlook", m.outlook, true), app("Mail app", m.mailto, false)),
+    h("p", { class: "fb-address" }, h("span", { class: "email-text" }, m.address), copyBtn),
+  );
+  toggle.addEventListener("click", () => {
+    const open = panel.hidden;
+    panel.hidden = !open;
+    toggle.setAttribute("aria-expanded", String(open));
+    if (open) panel.querySelector("a")?.focus({ preventScroll: true });
+  });
+  return { toggle, panel };
 }
