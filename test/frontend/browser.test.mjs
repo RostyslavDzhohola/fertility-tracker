@@ -11,6 +11,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
+import { buildPages } from "../../scripts/pages/build-pages.mjs";
 
 const ENABLED = process.env.FT_BROWSER_TESTS === "1";
 const repoDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
@@ -125,15 +126,21 @@ async function waitForOn(page, expr, ms = 20000) {
   throw new Error(`timed out waiting for ${expr}`);
 }
 
-// Vercel-like routing: files first, then vercel.json rewrites, then 404.html with status 404.
+// Vercel-like routing: vercel.json redirects, then files (including the share pages built in before()), then
+// rewrites, then 404.html with status 404. Sources like "/:code(AFG|ALB)" become named groups.
 function routeRe(source) {
-  return new RegExp("^" + source.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/:\w+/g, "[^/]+") + "$");
+  const parts = source.split(/(:\w+(?:\([^)]*\))?)/).map((part) => {
+    const m = /^:(\w+)(?:\(([^)]*)\))?$/.exec(part);
+    return m ? `(?<${m[1]}>${m[2] ?? "[^/]+"})` : part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  });
+  return new RegExp("^" + parts.join("") + "$");
 }
 
 before(async () => {
   if (!ENABLED) return;
   const bin = findChrome();
   if (!bin) throw new Error("FT_BROWSER_TESTS=1 but no Chrome found (set CHROME_BIN)");
+  await buildPages({ quiet: true });
   const vercel = JSON.parse(await readFile(path.join(repoDir, "vercel.json"), "utf8"));
   const rewrites = (vercel.rewrites ?? []).map((r) => [routeRe(r.source), r.destination]);
   const fileFor = async (p) => {
@@ -151,8 +158,9 @@ before(async () => {
   server = createServer(async (req, res) => {
     const p = decodeURIComponent(new URL(req.url, "http://x").pathname);
     for (const r of vercel.redirects ?? []) {
-      if (routeRe(r.source).test(p)) {
-        res.writeHead(308, { location: r.destination });
+      const m = routeRe(r.source).exec(p);
+      if (m) {
+        res.writeHead(r.permanent === false ? 307 : 308, { location: r.destination.replace(/:(\w+)/g, (all, k) => m.groups?.[k] ?? all) });
         return res.end();
       }
     }
@@ -1213,6 +1221,29 @@ test("the share dialog survives a second click, and a page change or Back closes
     await page.eval(`history.back(), 0`);
     await page.waitFor(`!document.getElementById("view-globe").hidden && !document.getElementById("snap").open`, 4000);
     assert.deepEqual(page.errors, []);
+  } finally {
+    await page.close();
+  }
+});
+
+test("every place has its own share page: a country link previews that country; unknown codes are a real 404", opts, async () => {
+  const twn = await fetch(`${base}/country/TWN`);
+  assert.equal(twn.status, 200);
+  const html = await twn.text();
+  assert.match(html, /<meta property="og:image" content="https:\/\/fertility-tracker-live\.vercel\.app\/og\/TWN\.jpg">/);
+  assert.match(html, /<meta name="twitter:image" content="https:\/\/fertility-tracker-live\.vercel\.app\/og\/TWN\.jpg">/);
+  assert.match(html, /<link rel="canonical" href="https:\/\/fertility-tracker-live\.vercel\.app\/country\/TWN">/);
+  assert.match(html, /<meta property="og:title" content="Taiwan: [^"]+ people by 2100, [^"]+ vs today">/);
+  assert.equal((await fetch(`${base}/country/XXX`)).status, 404);
+  const kor = await fetch(`${base}/KOR`, { redirect: "manual" });
+  assert.equal(kor.status, 307);
+  assert.equal(kor.headers.get("location"), "/country/KOR");
+  // The 404 page names the missing code and doesn't send the browser round in circles.
+  const page = await openPage({ path: "/country/XXX", ready: `document.readyState === "complete"` });
+  try {
+    await page.waitFor(`document.getElementById("nf-title")?.textContent === "We don't have a place with the code XXX."`, 3000);
+    await sleep(300);
+    assert.equal(await page.eval("location.pathname"), "/country/XXX");
   } finally {
     await page.close();
   }

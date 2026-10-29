@@ -3,7 +3,8 @@
 // No browser needed.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFile, readdir, access } from "node:fs/promises";
+import { readFile, readdir, access, mkdtemp, mkdir, copyFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { gzipSync } from "node:zlib";
 import vm from "node:vm";
 import path from "node:path";
@@ -110,7 +111,7 @@ test("every local asset the pages reference exists and is root-absolute", async 
       assert.ok(r.startsWith("/"), `${name}: ${r} must be root-absolute (pages are served from /country/… and /rankings)`);
       const p = r.replace(/^\//, "").split("?")[0];
       const file = p === "" ? "index.html" : p.endsWith("/") ? `${p}index.html` : p;
-      if (/^(country\/|rankings$)/.test(p)) continue; // app routes, served by the rewrite
+      if (/^(country\/|rankings$)/.test(p)) continue; // app pages, built at deploy (scripts/pages/build-pages.mjs)
       if (p === "api/v1/status.json") continue; // written at deploy time (gitignored)
       assert.ok(await exists(file), `${name}: ${r} is missing`);
     }
@@ -133,14 +134,18 @@ test("every local asset the pages reference exists and is root-absolute", async 
   for (const [f, src] of Object.entries(js)) assert.ok(!/fetch(?:Json)?\(\s*["'`](?!\/|\$\{API\}|https?:)/.test(src), `${f} has a relative fetch`);
 });
 
-test("Vercel serves the app's clean paths and the 404 sends short links to the country page", async () => {
+test("Vercel serves the share pages, short links redirect on the server, and the 404 never loops", async () => {
   const vercel = JSON.parse(await readFile(path.join(repo, "vercel.json"), "utf8"));
   assert.equal(vercel.outputDirectory, "public");
-  const rw = Object.fromEntries((vercel.rewrites ?? []).map((r) => [r.source, r.destination]));
-  assert.equal(rw["/country/:iso3"], "/index.html");
-  assert.equal(rw["/rankings"], "/index.html");
-  for (const r of vercel.rewrites) assert.ok(!r.source.startsWith("/api"), "nothing rewrites the API");
+  // Country and rankings pages are files (scripts/pages/build-pages.mjs), so unknown codes get a real 404.
+  assert.ok(!(vercel.rewrites ?? []).some((r) => /^\/(country|rankings)/.test(r.source)), "no catch-all rewrite for app pages");
   assert.ok(vercel.redirects.some((r) => r.source === "/api" && r.destination === "/api/"));
+  // "/KOR" → "/country/KOR" for every place, and only for places (so "/api", "/geo"… are never caught).
+  const short = vercel.redirects.find((r) => r.destination === "/country/:code");
+  const listed = /^\/:code\(([A-Z|]+)\)$/.exec(short?.source ?? "")?.[1]?.split("|") ?? [];
+  const countries = JSON.parse(await read("api/v1/countries.json")).countries.map((c) => c.iso3).sort();
+  assert.deepEqual(listed, countries, "the short-link list matches the places (regenerate it when places change)");
+  assert.equal(short.permanent, false);
 
   const script = pages["404.html"].match(/<script>([\s\S]*?)<\/script>/)[1];
   const go = (pathname, search = "") => {
@@ -152,7 +157,9 @@ test("Vercel serves the app's clean paths and the 404 sends short links to the c
   assert.equal(go("/kor/"), "/country/KOR");
   assert.equal(go("/fertility-tracker/JPN"), "/country/JPN");
   assert.equal(go("/country/twn/", "?year=2070"), "/country/TWN?year=2070");
-  assert.equal(go("/rankings/"), "/rankings");
+  // A code with no page lands on the 404 again: it must stay there, not reload itself.
+  assert.equal(go("/country/XXX"), null);
+  assert.equal(go("/country/XXX/"), null);
   assert.equal(go("/nope"), null);
   assert.equal(go("/api/v2/x.json"), null);
 });
@@ -204,5 +211,39 @@ test("the accent color only styles interactive things", () => {
     const [sel, body] = [m[1].trim(), m[2]];
     if (!/var\(--accent\)|#2457ff/i.test(body) || sel.startsWith(":root") || sel.startsWith("@")) continue;
     assert.match(sel, interactive, `${sel} uses the accent but isn't interactive`);
+  }
+});
+
+test("share pages: each place's page is index.html with its own title, description, canonical and card", async () => {
+  const { buildPages } = await import("../../scripts/pages/build-pages.mjs");
+  const dir = await mkdtemp(path.join(tmpdir(), "ft-pages-"));
+  try {
+    for (const f of ["index.html", "feedback.json", "js/logic.js", "js/package.json", "api/v1/countries.json", "api/v1/scenarios.json"]) {
+      await mkdir(path.dirname(path.join(dir, f)), { recursive: true });
+      await copyFile(path.join(root, f), path.join(dir, f));
+    }
+    const written = await buildPages({ dir, quiet: true });
+    const countries = JSON.parse(await read("api/v1/countries.json")).countries;
+    assert.equal(written.length, countries.length);
+    const page = await readFile(path.join(dir, "country/TWN/index.html"), "utf8");
+    const tag = (re) => page.match(re)?.[1];
+    assert.equal(tag(/<link rel="canonical" href="([^"]+)">/), "https://fertility-tracker-live.vercel.app/country/TWN");
+    assert.equal(tag(/<meta property="og:url" content="([^"]+)">/), "https://fertility-tracker-live.vercel.app/country/TWN");
+    assert.equal(tag(/<meta property="og:image" content="([^"]+)">/), "https://fertility-tracker-live.vercel.app/og/TWN.jpg");
+    assert.equal(tag(/<meta name="twitter:image" content="([^"]+)">/), "https://fertility-tracker-live.vercel.app/og/TWN.jpg");
+    assert.equal(tag(/<meta name="twitter:card" content="([^"]+)">/), "summary_large_image");
+    assert.match(tag(/<meta property="og:title" content="([^"]+)">/), /^Taiwan: [\d.]+ million people by 2100, −\d+% vs today$/);
+    assert.match(tag(/<meta name="description" content="([^"]+)">/), /babies per woman/);
+    assert.match(tag(/<title>([^<]+)<\/title>/), /^Taiwan: .+ · Fertility Tracker$/);
+    // Only the head changes: the app is the same file.
+    const body = (h) => h.slice(h.indexOf("<body>"));
+    assert.equal(body(page), body(html));
+    // Names with quotes or ampersands stay well-formed.
+    const civ = await readFile(path.join(dir, "country/CIV/index.html"), "utf8");
+    assert.match(civ, /<meta property="og:title" content="Cote d'Ivoire: /);
+    const rk = await readFile(path.join(dir, "rankings/index.html"), "utf8");
+    assert.match(rk, /<link rel="canonical" href="https:\/\/fertility-tracker-live\.vercel\.app\/rankings">/);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
   }
 });

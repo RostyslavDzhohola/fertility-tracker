@@ -17,6 +17,8 @@ the last (1.14 ÷ 2.1 replacement), so 100 → 54 → 29 → 16 → 9.
 - Share a picture: a 1600×900 image of the globe as you left it (or a country's chart) with its numbers, for X
   (copied for pasting into the post; phones use the share sheet), or to copy or download
 - Night mode that follows the system appearance
+- Link previews: every place has its own page and card, so a link to `/country/TWN` shows Taiwan's picture and
+  numbers on X, Slack or iMessage (built at deploy by `scripts/pages/build-pages.mjs` and `scripts/og/render-cards.mjs`)
 - Design: [docs/design/DESIGN-v3.md](docs/design/DESIGN-v3.md). Preview locally with `node scripts/serve.mjs` (port 8731)
 
 ## Data and refresh

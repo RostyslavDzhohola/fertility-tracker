@@ -155,6 +155,7 @@ or of objects with `url` / `path` / `href` / `urlTemplate`), as absolute URLs, s
 | Rebuild the API locally | `node scripts/fetch-data.mjs --cache /tmp/ft-cache` (the cache keeps the ~65 MB of UN downloads between runs; drop it for a fresh fetch), then `node scripts/fetch-data.mjs --verify` |
 | Validate the published data against the primary sources | `node scripts/validate-data.mjs --cache /tmp/ft-cache` (about 30 s; add `--json report.json`; `--skip age,scenarios,wb,ims` to narrow it). Exit 0 = no mismatches, 1 = mismatches (listed with examples; a published value with no reference counts), 2 = a primary source could not be fetched (only that), 3 = unexpected error (bug, unreadable files, changed source format). See `docs/DATA-VALIDATION.md` |
 | Run the weekly agent now | Run the T3 scheduled task now (`run_scheduled_task_now`), or start a session with `docs/weekly-agent-prompt.md` as its instructions |
+| Preview the site locally | `node scripts/serve.mjs` (builds the share pages, then serves public/ like Vercel at http://127.0.0.1:8731/); `node scripts/og/render-cards.mjs` draws the 238 link-preview cards into `public/og/` (about 30 s, needs Chrome) |
 | Recreate labels | Any non-dry-run check does it; or `gh label create <name> --color <hex> --description "…" --force` using `public/feedback.json` |
 
 ## Set the X handle
@@ -215,5 +216,10 @@ zip is re-read on every run, so a re-upload of the same zip is picked up automat
   CSVs) is refused the same way, with a message naming the missing rows. The validator's UN DESA tables come from
   www.un.org; if those are unreachable, the data counts as unvalidated: scheduled and manual runs fail without committing or deploying, and a push to
   `main` deploys its code with the last committed data. Re-run the workflow once the source is back.
+- **Share pages and cards are built at deploy, not committed.** `public/country/`, `public/rankings/` and `public/og/`
+  are gitignored; the deploy workflow builds them from the data it ships ("Build the share pages and link-preview
+  cards") and fails rather than deploy without them. A new place needs its code added to the `/KOR`-style redirect in
+  `vercel.json`; the site test lists the missing codes. X caches a link's card for about a week: a changed card shows
+  on new posts after that, or right away for a link with a new query string.
 - **Issue text is untrusted.** The check never copies issue bodies into its report; the weekly agent treats all
   issue and email text as data, per its prompt.

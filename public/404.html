@@ -27,19 +27,26 @@
   }
 </style>
 <script>
-  // Vercel serves this file for any missing path. Old and short links go to the country page:
-  // "/KOR", "/kor/", the GitHub Pages form "/fertility-tracker/KOR", and "/country/KOR/" → "/country/KOR".
+  // Vercel serves this file, with a 404, for any missing path. Every place has its own page, and "/KOR" redirects on
+  // the server, so what lands here is a lower-case or old form ("/kor", "/country/twn", the GitHub Pages form
+  // "/fertility-tracker/KOR"): send it to "/country/KOR". A code with no page ends here, so never send a path to itself.
   (function () {
     var p = location.pathname;
     var m = /^\/(?:fertility-tracker\/|country\/)?([A-Za-z]{3})\/?$/.exec(p);
-    if (m) return location.replace("/country/" + m[1].toUpperCase() + location.search);
-    if (/^\/rankings\/$/.test(p)) location.replace("/rankings" + location.search);
+    if (m) {
+      var to = "/country/" + m[1].toUpperCase();
+      if (to !== p && to + "/" !== p) return location.replace(to + location.search);
+      if (typeof document !== "undefined")
+        document.addEventListener("DOMContentLoaded", function () {
+          document.getElementById("nf-title").textContent = "We don't have a place with the code " + m[1].toUpperCase() + ".";
+        });
+    }
   })();
 </script>
 </head>
 <body>
 <main>
-  <h1>This page doesn't exist.</h1>
+  <h1 id="nf-title">This page doesn't exist.</h1>
   <p>The globe, every country and the data are still here.</p>
   <p class="links"><a class="primary" href="/">Open the globe</a> <a href="/rankings">Rankings</a> <a href="/api/">Data &amp; API</a></p>
 </main>

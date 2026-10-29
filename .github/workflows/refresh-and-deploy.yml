@@ -83,6 +83,18 @@ jobs:
       - name: Verify the API files about to be deployed
         run: node scripts/fetch-data.mjs --verify
 
+      # Link previews: X, Slack and search engines don't run JavaScript, so every place gets its own page (title,
+      # description, canonical link) and its own 1200x630 card picture, drawn from the data about to be deployed.
+      # Built here, not committed. Inter stands in for the system font the runner lacks.
+      - name: Build the share pages and link-preview cards
+        run: |
+          sudo apt-get install -y -qq fonts-inter > /dev/null 2>&1 || echo "::warning::fonts-inter not installed; cards use the runner's default font"
+          node scripts/pages/build-pages.mjs
+          node scripts/og/render-cards.mjs
+          pages=$(ls public/country | wc -l); cards=$(ls public/og | wc -l)
+          echo "Share pages: $pages, cards: $cards"
+          test "$pages" -ge 200 && test "$cards" -ge 200
+
       # Only the revision tested above may be committed and deployed. If the branch moved during this run, stop
       # here without committing or deploying: every push to main starts its own run of this workflow (queued behind
       # this one by the concurrency group), which refreshes, tests and deploys the newer revision. No rebase.

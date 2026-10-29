@@ -126,9 +126,14 @@ Keep the content, restyle it to the light theme, and use the same top bar. Add `
 
 ## 6. Routing, links and URLs
 
-- Clean paths served by the SPA through `vercel.json` rewrites: `/country/:iso3` and `/rankings` → `/index.html`. Asset
-  and API URLs become root-absolute (`/js/…`, `/api/v1/…`).
-- Backward compatibility: `/#KOR` → `/country/KOR` (replaceState on load), and `/KOR` (404.html) → `/country/KOR`.
+- Clean paths are files: the deploy builds `public/country/<ISO3>/index.html` for every place and
+  `public/rankings/index.html` from `index.html` (`scripts/pages/build-pages.mjs`), each with its own title,
+  description, canonical link and link-preview card (`/og/<ISO3>.jpg`, `scripts/og/render-cards.mjs`). X and other
+  link previews don't run JavaScript, so a link to `/country/TWN` previews Taiwan. Unknown codes have no file and get a
+  real 404. Asset and API URLs are root-absolute (`/js/…`, `/api/v1/…`).
+- Backward compatibility: `/#KOR` → `/country/KOR` (replaceState on load); `/KOR` → `/country/KOR` is a server
+  redirect in `vercel.json` (the list of codes must match the places; `test/frontend/site.test.mjs` checks it), and
+  404.html sends lower-case and old forms (`/kor`, `/country/twn`, `/fertility-tracker/KOR`) on without ever looping.
   `pageUrl(iso3)` (Share, OG, feedback context) now returns `https://fertility-tracker-live.vercel.app/country/KOR`.
 - The Back button works between pages (pushState for page changes; replaceState for year, scenario and focus tweaks).
 - The `<head>` keeps the agent-facing tags (`service-desc`, `llms.txt`, JSON-LD) on every route; the title updates per
@@ -222,6 +227,8 @@ the current scenario, sorted by the number it shows.
 | `topbar.js`, `search.js` | The top bar on every page, including `/api/` (`apipage.js`). |
 | `logic.js` | Pure functions, all under `test/frontend/logic.test.mjs`. |
 | `og.js` | The social card (`og.html` → `og.png`). |
+| `snapshot.js` | Share a picture: the 1600×900 picture of the view and its dialog (Post on X, Share, Copy, Download). |
+| `cards.js` | Link-preview cards (`og-cards.html` → `og/<ISO3>.jpg`): the Share picture for every place, 1200×630. |
 
 ### Layout
 

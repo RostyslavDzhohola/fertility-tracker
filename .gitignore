@@ -3,3 +3,7 @@ node_modules/
 .vercel/
 public/api/v1/status.json
 .env*
+# Built at deploy from index.html and the data (scripts/pages/build-pages.mjs, scripts/og/render-cards.mjs)
+public/country/
+public/rankings/
+public/og/

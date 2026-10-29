@@ -200,7 +200,7 @@ test("v3 site: root-absolute assets are followed and clean routes must survive a
   for (const p of ["style.css", "js/main.js", "js/logic.js", "js/dom.js", "geo/countries-110m.json", "geo/countries-50m.json", "country/KOR", "rankings"]) assert.equal(byPath[p]?.level, "pass", `${p}: ${JSON.stringify(byPath[p])}`);
   assert.equal(byPath["geo/countries-50m.json"].reason, "fetched by the site's JavaScript");
   assert.equal(byPath["country/KOR"].required, true);
-  assert.equal(byPath["country/KOR"].reason, "rewritten by vercel.json on the deployed branch");
+  assert.equal(byPath["country/KOR"].reason, "an app page on the deployed branch");
 
   routes = v3();
   delete routes["country/KOR"];
