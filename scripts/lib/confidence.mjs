@@ -37,9 +37,29 @@ export const NEW_CENSUS_FROM = 2015;
  */
 export const EUROSTAT_INCLUDES = { FRA: ["GLP", "MTQ", "GUF", "REU", "MYT"] };
 /** National footnotes that never change how a number compares (dates, rounding, sex totals). */
-const TRIVIAL_NOTE = /^Data refer to (\d|the Iranian Year)|randomly|rounding|may not add up|intersex|Densely Inhabited|unknown sex|^Figures for male and female/i;
-/** For births and deaths, only footnotes about which area or people are covered. */
-const COVERAGE_NOTE = /not in a position|controlled|occupied|exclud|without the data|not included|residents only|nationals only|including the number of transcribed/i;
+const TRIVIAL_NOTE =
+  /^Data refer to \d{1,2} [A-Z][a-z]+\.?$|randomly|rounding|may not add up|intersex|Densely Inhabited|unknown sex|^Figures for male and female|weight 500|gestation|length 25/i;
+/**
+ * Footnotes saying the national figure covers a different area or group than the UN's (nationals only, government
+ * controlled areas, a region left out or added). Such a figure is shown with its note but not graded higher or lower.
+ */
+export const COVERAGE_DIFFERS =
+  /nationals|citizens and permanent residents|comprises [A-Za-z ]*citizens|government controlled|occupied|without the data|not conducted|households only|Includes statistical data for|not in a position to provide/i;
+const MONTHS = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
+
+/**
+ * The day a national estimate refers to: a "Data refer to 31 December." footnote, else 1 July (the table's estimates
+ * are mid-year). null when it can't be lined up with a day (Iran's year runs from 21 March).
+ */
+export function estimateDate(year, notes) {
+  if (notes.some((t) => /Iranian Year|annual average/i.test(t))) return null;
+  for (const t of notes) {
+    const m = /^Data refer to (\d{1,2}) ([A-Za-z]+)\.?$/.exec(t.trim());
+    const mi = m ? MONTHS.indexOf(m[2].toLowerCase()) : -1;
+    if (mi >= 0) return `${year}-${String(mi + 1).padStart(2, "0")}-${String(Number(m[1])).padStart(2, "0")}`;
+  }
+  return `${year}-07-01`;
+}
 
 /** Births and deaths are compared only for places with at least this many people (the ranking's threshold). */
 export const MIN_EVENTS_POPULATION = 100_000;
@@ -329,12 +349,13 @@ function autoChecks({ rec, series, seriesOf, ds, pvsrPlace, footnotes, eurostat,
   const out = [];
   const iso2 = rec.iso2;
   // The national office's own footnotes to its figures (what area, which census it builds on), minus trivial ones.
-  const notesOf = (table, ...lists) => {
-    const texts = [...new Set(lists.flat().filter((n) => n != null))].map((n) => footnotes?.[table]?.[String(n)]).filter(Boolean);
-    return [...new Set(texts)].filter((t) => !TRIVIAL_NOTE.test(t));
-  };
+  const allNotes = (table, ...lists) => [...new Set([...new Set(lists.flat().filter((n) => n != null))].map((n) => footnotes?.[table]?.[String(n)]).filter(Boolean))];
+  const shown = (texts) => texts.filter((t) => !TRIVIAL_NOTE.test(t));
   const placeNotes = (table) => pvsrPlace?.notes?.[table] ?? [];
-  const popNotes = notesOf("2", placeNotes("2"), pvsrPlace?.estimate?.notes ?? []);
+  const estNotes = allNotes("2", placeNotes("2"), pvsrPlace?.estimate?.notes ?? []);
+  const popNotes = shown(estNotes);
+  // A figure for a different area or group than the UN's: shown with its note, not graded.
+  const graded = (gap, notes) => (notes.some((t) => COVERAGE_DIFFERS.test(t)) ? { gapPct: gap, verdict: "context", coverageDiffers: true } : { gapPct: gap, verdict: verdictOf(gap) });
   const unsdAsOf = pvsrPlace ? (footnotes?.asOf ?? null) : null;
   const extra = EUROSTAT_INCLUDES[rec.iso3] ?? [];
   const esGeo = iso2 ? [...(eurostat.population?.data.keys() ?? [])].find((g) => eurostatIso2(g) === iso2) : null;
@@ -358,23 +379,22 @@ function autoChecks({ rec, series, seriesOf, ds, pvsrPlace, footnotes, eurostat,
         forecast: esYear - 1 > latestEstimateYear,
       },
       notes: popNotes,
-      gapPct: gap,
-      verdict: verdictOf(gap),
+      ...graded(gap, popNotes),
       links: [{ label: "Eurostat: population on 1 January (demo_gind)", href: EUROSTAT_PAGES.population }],
     });
   } else if (pvsrPlace?.estimate?.total) {
     const e = pvsrPlace.estimate;
-    const un = julyPop(series, e.year);
-    const gap = gapPct(un, e.total);
+    const date = estimateDate(e.year, estNotes);
+    const un = date ? unPopulationOn(series, date) : julyPop(series, e.year);
+    const gap = date ? gapPct(un, e.total) : null;
     out.push({
       key: "today",
       kind: "unsd",
       asOf: unsdAsOf,
-      figure: { value: e.total, what: "official mid-year estimate the country reported to the UN Statistics Division", date: String(e.year), provisional: !!e.provisional, estimated: false },
-      unFigure: { value: un, what: `UN figure for 1 July ${e.year}`, date: `${e.year}-07-01`, forecast: e.year > latestEstimateYear },
+      figure: { value: e.total, what: "official estimate the country reported to the UN Statistics Division", date: date ?? String(e.year), provisional: !!e.provisional, estimated: false },
+      unFigure: { value: un, what: date ? "UN figure for the same day" : `UN figure for 1 July ${e.year} (the national figure's period can't be lined up with a day)`, date: date ?? `${e.year}-07-01`, forecast: e.year > latestEstimateYear },
       notes: popNotes,
-      gapPct: gap,
-      verdict: verdictOf(gap),
+      ...(date ? graded(gap, estNotes) : { gapPct: null, verdict: "context" }),
       links: [{ label: "UN Statistics Division: latest census and estimates (table 2)", href: "https://unstats.un.org/unsd/demographic-social/products/vitstats/seratab2.pdf" }],
     });
   }
@@ -389,10 +409,9 @@ function autoChecks({ rec, series, seriesOf, ds, pvsrPlace, footnotes, eurostat,
       asOf: unsdAsOf,
       figure: { value: c.total, what: "people counted by the census", date: c.date, provisional: !!c.provisional, estimated: false },
       unFigure: { value: un, what: "UN figure for the census day", date: c.date, forecast: Number(c.date.slice(0, 4)) > latestEstimateYear },
-      gapPct: gap,
-      verdict: verdictOf(gap),
+      ...graded(gap, allNotes("2", placeNotes("2"), c.notes ?? [])),
       unUsedUpTo: unLast,
-      notes: notesOf("2", placeNotes("2"), c.notes ?? []),
+      notes: shown(allNotes("2", placeNotes("2"), c.notes ?? [])),
       links: [{ label: "UN Statistics Division: latest census and estimates (table 2)", href: "https://unstats.un.org/unsd/demographic-social/products/vitstats/seratab2.pdf" }],
     });
   }
@@ -402,15 +421,15 @@ function autoChecks({ rec, series, seriesOf, ds, pvsrPlace, footnotes, eurostat,
     if (!v || v.code !== "C" || !v.number || v.numberUnclear || v.year < 2021 || !(julyPop(series, v.year) >= MIN_EVENTS_POPULATION)) continue;
     const un = series.find((r) => r.year === v.year)?.[key] ?? null;
     const gap = gapPct(un, v.number);
+    const notes = allNotes("3", placeNotes("3"), v.notes ?? []);
     out.push({
       key,
       kind: "unsd",
       asOf: unsdAsOf,
       figure: { value: v.number, what: key === "births" ? "births registered (registration reported as virtually complete)" : "deaths registered (registration reported as virtually complete)", date: String(v.year), provisional: !!v.provisional, estimated: false },
-      notes: notesOf("3", placeNotes("3"), v.notes ?? []).filter((t) => COVERAGE_NOTE.test(t)),
+      notes: shown(notes),
       unFigure: { value: un, what: `UN figure for ${v.year}`, date: String(v.year), forecast: v.year > latestEstimateYear },
-      gapPct: gap,
-      verdict: verdictOf(gap),
+      ...graded(gap, notes),
       links: [{ label: "UN Statistics Division: births and deaths (table 3)", href: "https://unstats.un.org/unsd/demographic-social/products/vitstats/seratab3.pdf" }],
     });
   }
@@ -495,11 +514,14 @@ export function buildConfidence({ rec, series, seriesOf = () => null, range, sto
   const birthsDeaths = ds || pvsrPlace ? birthsDeathsLevel(pvsrPlace, ds) : null;
   // Kept current between censuses: every birth and death registered, and the country's own recent figure agrees with
   // the UN's (Sweden and the Netherlands count everyone through registers; their last listed census is 2011).
-  const recentOfficial = crossChecks.filter((c) => c.key === "today" && c.kind !== "researched" && Number(String(c.figure?.date).slice(0, 4)) >= year - 2);
-  const keptCurrent = today != null && today !== "good" && birthsDeaths === "good" && recentOfficial.some((c) => c.verdict === "matches");
+  // Only automatic, like-for-like population figures newer than what the UN used can move the level: a census after
+  // its last count, or an official estimate after both its official estimates and its own last estimate year.
+  const figureYear = (c) => Number(String(c.figure?.date).slice(0, 4));
+  const newerThanUn = (c) => c.key === "census" || figureYear(c) > Math.max(ds?.officialEstimatesThrough ?? 0, latestEstimateYear);
+  const comparable = crossChecks.filter((c) => (c.key === "today" || c.key === "census") && c.kind !== "researched" && !c.coverageDiffers && c.gapPct != null && newerThanUn(c));
+  const keptCurrent = today != null && today !== "good" && birthsDeaths === "good" && comparable.some((c) => c.key === "today" && figureYear(c) >= year - 2 && c.verdict === "matches");
   if (keptCurrent) today = "good";
-  const popGap = crossChecks.filter((c) => (c.key === "today" || c.key === "census") && c.gapPct != null).map((c) => Math.abs(c.gapPct));
-  const downgraded = today != null && popGap.some((g) => g > DOWNGRADE_PCT);
+  const downgraded = today != null && comparable.some((c) => Math.abs(c.gapPct) > DOWNGRADE_PCT);
   if (downgraded) today = lower(today);
   const reassessed = sources.desaReassessed ? sources.desaReassessed.has(code) : null;
   const immigration = immigrationLevel(desa, reassessed);
@@ -538,7 +560,7 @@ export function buildConfidence({ rec, series, seriesOf = () => null, range, sto
         reassessed2024: reassessed,
         netMigrationBasis: ds?.migrationBasis ?? [],
       },
-      forecast: { level: forecast, at: [r2050, r2100].filter(Boolean) },
+      forecast: { level: forecast, adjusted: !!range?.adjusted, at: [r2050, r2100].filter(Boolean) },
       unSources: ds
         ? {
             page: ds.page ?? null,
@@ -553,9 +575,12 @@ export function buildConfidence({ rec, series, seriesOf = () => null, range, sto
   };
 }
 
-/** forecastRange for countries/{ISO3}.json: the UN's yearly 80%/95% bounds and Zero-migration path, or null. */
-export function forecastRange(ranges, code, startYear) {
+/**
+ * forecastRange for countries/{ISO3}.json: the UN's yearly 80%/95% bounds and Zero-migration path, or null. adjusted:
+ * a place the UN's interim update revised (Togo), whose bounds we rescaled to its revised forecast; not the UN's own.
+ */
+export function forecastRange(ranges, code, startYear, adjusted = false) {
   const r = ranges?.get(code);
   if (!r) return null;
-  return { startYear, ...r };
+  return { startYear, adjusted, ...r };
 }

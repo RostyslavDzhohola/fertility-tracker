@@ -419,7 +419,9 @@ function compareScenarios(r, published, ref) {
 // revised by the interim update are rescaled like their other scenarios (revised medium / original medium).
 const RANGE_KEYS = ["lower80", "upper80", "lower95", "upper95", "zeroMigration"];
 function compareRanges(r, published, ref) {
+  const sc = published.scenarios;
   const meta = (k) => ({ ...UN, description: `forecastRange.${k} vs WPP2024_TotalPopulationBySex (PopTotal x 1000)` });
+  const self = (description) => ({ ...SELF, description });
   for (const c of published.countries.countries) {
     const fr = published.details.get(c.iso3)?.forecastRange;
     const main = ref.main.get(c.iso3);
@@ -427,11 +429,17 @@ function compareRanges(r, published, ref) {
     const has = main && RANGE_KEYS.some((k) => main[k]?.some((v) => v != null));
     r.eq("forecastRange.coverage", { ...UN, description: "forecastRange present exactly where the UN publishes a range" }, c.iso3, "forecastRange", fr ? "present" : "missing", has ? "present" : "missing");
     if (!fr || !main) continue;
+    // Same years as the scenarios (the reference arrays start at sc.startYear), every year present, and marked as
+    // adjusted exactly where the interim update revised the place.
+    const n = sc.endYear - sc.startYear + 1;
+    r.eq("forecastRange.shape", self("forecastRange covers the scenarios' years, startYear..endYear"), c.iso3, "startYear/lengths", `${fr.startYear} ${RANGE_KEYS.map((k) => fr[k]?.length).join("/")}`, `${sc.startYear} ${RANGE_KEYS.map(() => n).join("/")}`);
+    r.eq("forecastRange.adjusted", self("forecastRange.adjusted marks the places the interim update revised"), c.iso3, "adjusted", String(!!fr.adjusted), String(!!upd));
     for (const k of RANGE_KEYS) {
-      for (let i = 0; i < fr[k].length; i++) {
+      for (let year = sc.startYear; year <= sc.endYear; year++) {
+        const i = year - sc.startYear;
         const want = main[k]?.[i] ?? null;
         const expect = upd && want != null && main.medium[i] ? Math.round((want * upd.medium[i]) / main.medium[i]) : want;
-        r.num(`forecastRange.${k}`, meta(k), c.iso3, `${fr.startYear + i} ${k}`, fr[k][i], expect, 0.5);
+        r.num(`forecastRange.${k}`, meta(k), c.iso3, `${year} ${k}`, fr[k]?.[year - fr.startYear] ?? null, expect, 0.5);
       }
     }
   }

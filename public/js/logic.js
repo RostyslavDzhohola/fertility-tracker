@@ -1081,21 +1081,27 @@ export function sureTodayText(t, now) {
   const newer = t.latestCensus && Number(t.latestCensus.date.slice(0, 4)) > unLast;
   let s = `Last census: ${t.lastCount}, ${yearsAgo(t.lastCount, now)}.`;
   if (newer) s += Number.isFinite(unLast) ? ` The UN's numbers don't use it yet: they rest on the ${unLast} count.` : " The UN's numbers don't use it yet.";
-  else if (t.keptCurrent) s += " Every birth and death is registered, and the country's own recent count matches the UN's, so the number stays current.";
+  else if (t.keptCurrent) s += " Almost all births and deaths are registered, and the country's own recent count matches the UN's, so the number stays current.";
   else if (now - t.lastCount > 10) s += " Since then, the UN adds births and deaths and estimates who moved.";
   if (t.downgraded) s += " The country's newest official figure is more than 5% away from the UN's: see below.";
   return s;
 }
 
-// Births and deaths: registered and complete, registered with gaps, or estimated from surveys.
+// Births and deaths: registered and reported as virtually complete (code C: 90% or more), registered with gaps (U),
+// or estimated from surveys. Births and deaths are described apart when they differ.
+const REG = { C: "almost all registered (90% or more)", U: "registered, but some are missed", "|": "taken from surveys or a census, not the register" };
 export function sureBirthsDeathsText(b) {
   if (!b) return null;
-  const codes = [b.births?.code, b.deaths?.code];
-  const yr = Math.max(b.births?.year ?? 0, b.deaths?.year ?? 0) || null;
-  if (b.level === "good") return `Every birth and death is registered${yr ? ` (latest year reported: ${yr})` : ""}.`;
+  const { births: bi, deaths: de } = b;
+  const one = (v) => (v?.code && REG[v.code] ? `${REG[v.code]} (${v.year})` : "not reported");
+  if (b.level === "good") {
+    const yr = bi?.year === de?.year ? bi?.year : null;
+    return yr ? `Almost all births and deaths are registered (90% or more), reported for ${yr}.` : `Births: ${one(bi)}. Deaths: ${one(de)}.`;
+  }
   if (b.level === "fair") {
-    if (codes.includes("U")) return "Births and deaths are registered, but some are missed: the UN corrects for the gaps.";
-    if (codes.includes("C")) return `Registered as complete, but the newest year reported is ${yr}.`;
+    if (bi?.code && de?.code && (bi.code !== de.code || bi.year !== de.year)) return `Births: ${one(bi)}. Deaths: ${one(de)}. The UN corrects for the gaps.`;
+    if (bi?.code === "U" || de?.code === "U") return "Births and deaths are registered, but some are missed: the UN corrects for the gaps.";
+    if (bi?.code === "C" || de?.code === "C") return `Almost all are registered, but the newest year reported is ${Math.max(bi?.year ?? 0, de?.year ?? 0)}.`;
     return "Births and deaths are partly registered: the UN corrects for the gaps.";
   }
   return "Most births and deaths aren't registered: the UN estimates them from surveys that ask families.";
@@ -1114,7 +1120,7 @@ export function sureForecastText(f) {
   const [a, b] = f?.at ?? [];
   if (!a) return null;
   const range = (p) => `${fmtCompact(p.lower95)} to ${fmtCompact(p.upper95)}`;
-  let s = `The UN gives a 95% chance of ${range(a)} people in ${a.year} (its forecast: ${fmtCompact(a.medium)})`;
+  let s = `${f.adjusted ? "Rescaled to the UN's 2026 correction of this country's numbers, the" : "The"} UN's model gives a 95% chance of ${range(a)} people in ${a.year} (its forecast: ${fmtCompact(a.medium)})`;
   s += b ? `, and ${range(b)} in ${b.year}.` : ".";
   const z = b ?? a;
   if (isNum(z.zeroMigration) && Math.abs(z.zeroMigration / z.medium - 1) >= 0.03)
@@ -1134,7 +1140,7 @@ export function sureSummary(rec, conf, now) {
   if (t.level === conf.level || (conf.level === "good" && t.level === "good"))
     reasons.push(t.register ? "a population register keeps the count" : t.keptCurrent ? "its own up-to-date count matches the UN's" : countWhy);
   if (bd.level === conf.level && conf.level !== "good") reasons.push(bd.level === "poor" ? "most births and deaths aren't registered" : "not every birth and death is registered");
-  if (conf.level === "good" && bd.level === "good") reasons.push("every birth and death is registered");
+  if (conf.level === "good" && bd.level === "good") reasons.push("almost all births and deaths are registered");
   if (t.downgraded && t.level === conf.level) reasons.push("its newest official figure differs from the UN's by more than 5%");
   return `${lead}: ${reasons.join(", and ") || countWhy}.`;
 }
@@ -1149,16 +1155,19 @@ export function checkText(c) {
   const un = fmtWords(c.unFigure?.value);
   const day = (d) => (d?.length === 10 ? fmtDate(d) : d);
   const first = c.figure?.provisional ? " (first results)" : "";
+  const when = (d) => (d?.length === 10 && d.endsWith("-07-01") ? `mid-${d.slice(0, 4)}` : day(d));
+  const covers = c.coverageDiffers ? " Their figure covers a different area or group (see their note), so the two can't be compared directly." : "";
+  const gw = c.coverageDiffers ? "" : gapWords(c);
   switch (c.key) {
     case "today":
       return c.kind === "eurostat"
-        ? `The national statistics office counted ${v} people on ${day(c.figure.date)} (${c.figure?.provisional ? "first results, " : ""}reported to Eurostat). The UN's figure for that day is ${un}${gapWords(c)}.`
-        : `The country's own estimate for ${c.figure.date} is ${v} people${first} (reported to the UN Statistics Division). The UN's figure is ${un}${gapWords(c)}.`;
+        ? `The national statistics office counted ${v} people on ${day(c.figure.date)} (${c.figure?.provisional ? "first results, " : ""}reported to Eurostat). The UN's figure for that day is ${un}${gw}.${covers}`
+        : `The country's own estimate for ${when(c.figure.date)} is ${v} people${first} (reported to the UN Statistics Division). The UN's figure is ${un}${gw}.${covers}`;
     case "census":
-      return `A census on ${day(c.figure.date)} counted ${v} people${first}. The UN's numbers don't include it yet; its figure for that day is ${un}${gapWords(c)}.`;
+      return `A census on ${day(c.figure.date)} counted ${v} people${first}. The UN's numbers don't include it yet; its figure for that day is ${un}${gw}.${covers}`;
     case "births":
     case "deaths":
-      return `${v} ${c.key} were registered in ${c.figure.date}, with registration reported as complete. The UN ${c.unFigure?.forecast ? "forecast" : "estimated"} ${un}${gapWords(c)}.`;
+      return `${v} ${c.key} were registered in ${c.figure.date}, with registration reported as virtually complete (90% or more). The UN ${c.unFigure?.forecast ? "forecast" : "estimated"} ${un}${gw}.${covers}`;
     case "immigrants": {
       const refugees = c.unAddsRefugees && c.verdict === "un-higher" ? " The UN adds refugees, whom national counts often leave out." : "";
       return `The national count of people born abroad was ${v} on ${day(c.figure.date)} (reported to Eurostat). The UN's mid-2024 figure is ${un}${gapWords(c)}.${refugees}`;

@@ -431,14 +431,29 @@ def census_record(cells):
     return rec
 
 
-def estimate_record(cells):
+def estimate_years(title, legend):
+    """The years Table 2's estimates refer to, read from the edition itself, never assumed: the title's
+    "(2024 - 2025)" gives the year of an unmarked estimate (the later one), and the legend's "♦ Data refer to 2024"
+    the year of a marked one. Anything else stops the extraction: a new edition must be checked by hand."""
+    m = re.search(r"\((\d{4})\s*-\s*(\d{4})\)", title or "")
+    d = re.search(r"refer to (\d{4})", legend.get("♦", ""))
+    if not m or not d:
+        raise SystemExit(f"Table 2: cannot read the estimate years from title {title!r} and legend ♦ {legend.get('♦')!r}")
+    first, last = int(m.group(1)), int(m.group(2))
+    marked = int(d.group(1))
+    if not (first <= marked < last):
+        raise SystemExit(f"Table 2: ♦ year {marked} is not inside the title's range {first}-{last}")
+    return {"unmarked": last, "marked": marked}
+
+
+def estimate_record(cells, years):
     code, tot = cells.get("estimateCode"), cells.get("estimateTotal")
     total, unclear, raw = num_cell(tot)
     if total is None and not unclear:
         return None
-    prov, y2024, notes = marks([code, tot])
+    prov, marked, notes = marks([code, tot])
     rec = {
-        "year": 2024 if y2024 else 2025,
+        "year": years["marked"] if marked else years["unmarked"],
         "code": code["text"] if code else None,
         "total": total,
         "provisional": prov,
@@ -585,6 +600,8 @@ def main():
     tables, codes, footnotes, places, unmatched = {}, {}, {}, {}, []
     for t in ("2", "3"):
         meta, rows, (legend, notes) = read_table(data[t], t)
+        if t == "2":
+            years = estimate_years(meta["title"], legend)
         tables[t] = {
             "title": meta["title"],
             "url": URLS[t],
@@ -614,7 +631,7 @@ def main():
                 p.setdefault("notes", {})[t] = name_notes
             if t == "2":
                 p["census"] = census_record(r["cells"])
-                p["estimate"] = estimate_record(r["cells"])
+                p["estimate"] = estimate_record(r["cells"], years)
             else:
                 for event in ("births", "deaths", "infantDeaths"):
                     p[event] = event_record(r["cells"], event)

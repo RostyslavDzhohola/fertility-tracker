@@ -484,8 +484,12 @@ test("how sure: the head count says how old it is, whether the UN uses it, and w
 });
 
 test("how sure: births and deaths, people born abroad and the forecast in plain words", () => {
-  assert.equal(L.sureBirthsDeathsText({ level: "good", births: { year: 2025, code: "C" }, deaths: { year: 2025, code: "C" } }), "Every birth and death is registered (latest year reported: 2025).");
+  assert.equal(L.sureBirthsDeathsText({ level: "good", births: { year: 2025, code: "C" }, deaths: { year: 2025, code: "C" } }), "Almost all births and deaths are registered (90% or more), reported for 2025.");
   assert.match(L.sureBirthsDeathsText({ level: "fair", births: { year: 2024, code: "U" }, deaths: { year: 2024, code: "U" } }), /some are missed/);
+  assert.equal(
+    L.sureBirthsDeathsText({ level: "fair", births: { year: 2025, code: "C" }, deaths: { year: 2023, code: "U" } }),
+    "Births: almost all registered (90% or more) (2025). Deaths: registered, but some are missed (2023). The UN corrects for the gaps.",
+  );
   assert.match(L.sureBirthsDeathsText({ level: "poor", births: null, deaths: null }), /from surveys/);
   assert.equal(L.sureImmigrationText({ dataType: "B", reassessed2024: false, refugeesAdded: false }), "Counted by country of birth. The UN carried its 2020 figure forward to 2024.");
   assert.equal(
@@ -495,7 +499,8 @@ test("how sure: births and deaths, people born abroad and the forecast in plain 
   assert.match(L.sureImmigrationText({ dataType: "I", reassessed2024: false }), /^No count exists/);
   assert.equal(L.sureImmigrationText({ dataType: null }), null);
   const f = { at: [{ year: 2050, medium: 381e6, lower95: 342e6, upper95: 420e6, zeroMigration: 350e6 }, { year: 2100, medium: 421e6, lower95: 256e6, upper95: 625e6, zeroMigration: 268e6 }] };
-  assert.equal(L.sureForecastText(f), "The UN gives a 95% chance of 342M to 420M people in 2050 (its forecast: 381M), and 256M to 625M in 2100. If nobody moved in or out, 268M in 2100 instead of 421M.");
+  assert.equal(L.sureForecastText(f), "The UN's model gives a 95% chance of 342M to 420M people in 2050 (its forecast: 381M), and 256M to 625M in 2100. If nobody moved in or out, 268M in 2100 instead of 421M.");
+  assert.match(L.sureForecastText({ ...f, adjusted: true }), /^Rescaled to the UN's 2026 correction of this country's numbers, the UN's model gives/);
 });
 
 test("how sure: one summary sentence names the weakest part", () => {
@@ -504,7 +509,7 @@ test("how sure: one summary sentence names the weakest part", () => {
   assert.equal(L.sureSummary(ukr, conf(), 2026), "Ukraine's numbers are mostly estimated: its last census was in 2001.");
   assert.equal(
     L.sureSummary(ukr, conf({ level: "good", today: { level: "good", lastCount: 2022 } }), 2026),
-    "Ukraine's numbers are solid: its last census was in 2022, and every birth and death is registered.",
+    "Ukraine's numbers are solid: its last census was in 2022, and almost all births and deaths are registered.",
   );
   assert.equal(L.sureSummary(ukr, conf({ level: "fair", today: { level: "good", lastCount: 2022 }, birthsDeaths: { level: "fair" } }), 2026), "Ukraine's numbers are partly estimated: not every birth and death is registered.");
   assert.equal(L.sureSummary(ukr, { level: null }, 2026), null);
@@ -514,7 +519,12 @@ test("how sure: automatic comparisons with newer national figures, in words", ()
   const today = { kind: "eurostat", key: "today", figure: { value: 83467117, date: "2026-01-01" }, unFigure: { value: 83859667 }, gapPct: 0.5, verdict: "matches" };
   assert.equal(L.checkText(today), "The national statistics office counted 83.5 million people on 1 Jan 2026 (reported to Eurostat). The UN's figure for that day is 83.9 million (within 2%).");
   const births = { kind: "unsd", key: "births", figure: { value: 433678, date: "2025" }, unFigure: { value: 692792, forecast: true }, gapPct: 59.7, verdict: "un-higher" };
-  assert.equal(L.checkText(births), "434,000 births were registered in 2025, with registration reported as complete. The UN forecast 693,000: the UN's is 60% higher.");
+  assert.equal(L.checkText(births), "434,000 births were registered in 2025, with registration reported as virtually complete (90% or more). The UN forecast 693,000: the UN's is 60% higher.");
+  const jpn = { ...births, figure: { value: 686173, date: "2024" }, unFigure: { value: 750000 }, gapPct: 9.4, verdict: "context", coverageDiffers: true };
+  assert.match(L.checkText(jpn), /The UN estimated 750,000\. Their figure covers a different area or group \(see their note\), so the two can't be compared directly\.$/);
+  const guy = { kind: "unsd", key: "today", figure: { value: 956044, date: "2024-12-31" }, unFigure: { value: 833900 }, gapPct: -12.8, verdict: "un-lower" };
+  assert.match(L.checkText(guy), /^The country's own estimate for 31 Dec 2024 is 956,000 people/);
+  assert.match(L.checkText({ ...guy, figure: { value: 1, date: "2025-07-01" } }), /estimate for mid-2025/);
   const fb = { kind: "eurostat", key: "immigrants", figure: { value: 940259, date: "2025-01-01" }, unFigure: { value: 1739901 }, gapPct: 85, verdict: "un-higher", unAddsRefugees: true };
   assert.match(L.checkText(fb), /the UN's is 85% higher\. The UN adds refugees, whom national counts often leave out\.$/);
   assert.match(L.checkText({ ...today, gapPct: -2.4, verdict: "un-lower" }), /the UN's is 2\.4% lower\.$/);

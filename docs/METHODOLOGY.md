@@ -159,13 +159,19 @@ site). The rules are published in `index.json` as `confidenceRules`:
   citizenship (this misses people who became citizens and counts children born there to foreign parents), or by
   country of birth but only carried forward from 2020. Poor: no data (modelled), or by citizenship and carried forward.
 - **The forecast.** By the half-width of the UN's 95% range for 2050: within 20% of the forecast is good, 20-40% fair,
-  more than 40% poor. By 2100 every range is wide: a typical place's runs from half to twice the forecast.
+  more than 40% poor. By 2100 every range is wide: a typical place's runs from half to twice the forecast. Togo's range
+  is the UN's, rescaled by us to its January 2026 correction (the UN revised only the central forecast), and says so
+  (`forecastRange.adjusted`).
 - **Overall** (`countries.json` `confidence`, the chip under each country's headline): the lower of today's
   population and births and deaths.
 
 **Comparisons with newer figures** (`crossChecks`). Within 2% the figures "match"; otherwise the site says which side
-the UN is on and by how much. Population on 1 January is compared with the UN's figure for that day, between its two
-1 July figures. France is compared with the UN's France plus its five overseas regions, which Eurostat counts as part
+the UN is on and by how much. Every national figure is compared with the UN's figure for the same day, between its two
+1 July figures: 1 January for Eurostat, and the day a national estimate refers to (its footnote, such as "Data refer to
+31 December"; otherwise mid-year). Where the national office's footnote says its figure covers a different area or group
+(government-controlled areas only, nationals only, a region left out or added), the comparison is shown with that note
+but not graded higher or lower, and it never changes a level. Only figures newer than what the UN used can lower the
+"today" level. France is compared with the UN's France plus its five overseas regions, which Eurostat counts as part
 of France. Each automatic comparison carries the national office's own footnotes to its figure, such as "Data refer to
 government controlled areas" (Cyprus) or "The national total includes an estimated 19,191,728 persons (37.4%) who were
 not enumerated" (Myanmar's 2024 census). Registered births and deaths are compared only where registration is reported as

@@ -212,10 +212,11 @@ export function buildDataset(raw) {
 
   // Detail payloads (one per country) and final summary shape.
   const detailOut = new Map();
+  const rangeAdjusted = new Set((raw.scenarios?.adjustments ?? []).map((a) => a.iso3));
   for (const rec of records) {
     const d = details.get(rec.iso3);
     const corridor = corridors?.get(rec.iso3) ?? null;
-    const range = forecastRange(raw.scenarios?.ranges, rec.iso3, raw.scenarios?.startYear);
+    const range = forecastRange(raw.scenarios?.ranges, rec.iso3, raw.scenarios?.startYear, rangeAdjusted.has(rec.iso3));
     const { confidence, crossChecks } = buildConfidence({
       rec,
       series: d.series,

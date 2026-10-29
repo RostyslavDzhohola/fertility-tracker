@@ -6,6 +6,7 @@ import test from "node:test";
 import {
   buildConfidence,
   DOWNGRADE_PCT,
+  estimateDate,
   eurostatIso2,
   gapPct,
   lastUnCount,
@@ -287,4 +288,42 @@ test("merging hand-checked notes keeps only what the verifier passed, applies it
   assert.deepEqual(Object.keys(notes[0]), ["key", "text", "figure", "unFigure", "verdict", "links", "quotes", "accessed"]);
   assert.deepEqual(dropped.map((d) => d.why), ["quote not found", "researcher could not open the source", "invalid: links"]);
   assert.equal(mergeCountry(research, null).notes.length, 0, "nothing merges unverified");
+});
+
+test("a national estimate is compared on its own reference day; Iran's year can't be lined up", () => {
+  assert.equal(estimateDate(2024, ["Data refer to 31 December."]), "2024-12-31");
+  assert.equal(estimateDate(2025, ["Data refer to 1 January.", "Postcensal estimates."]), "2025-01-01");
+  assert.equal(estimateDate(2025, []), "2025-07-01");
+  assert.equal(estimateDate(2025, ["Data refer to the Iranian Year which begins on 21 March and ends on 20 March of the following year."]), null);
+  const out = run({ ...ds({ censuses: [2020] }), ...pvsr({ estimate: { year: 2024, total: 1_000_000, notes: [39] } }, { 2: { 39: "Data refer to 31 December." } }) });
+  const t = out.crossChecks.find((c) => c.key === "today");
+  assert.equal(t.figure.date, "2024-12-31");
+  assert.equal(t.unFigure.value, unPopulationOn(series, "2024-12-31"));
+  assert.deepEqual(t.notes, [], "the date is in the comparison, not repeated as a note");
+});
+
+test("a national figure for a different area or group is shown with its note but not graded, and never moves the level", () => {
+  const out = run({ ...ds({ censuses: [2020] }), ...pvsr({ estimate: { year: 2025, total: 700_000, notes: [78] } }, { 2: { 78: "Data refer to government controlled areas." } }) });
+  const t = out.crossChecks.find((c) => c.key === "today");
+  assert.equal(t.verdict, "context");
+  assert.equal(t.coverageDiffers, true);
+  assert.ok(t.gapPct > 40);
+  assert.deepEqual(t.notes, ["Data refer to government controlled areas."]);
+  assert.equal(out.confidence.today.downgraded, false);
+  assert.equal(out.confidence.today.level, "good");
+});
+
+test("only figures newer than what the UN used can lower the level", () => {
+  const old = run({ ...ds({ censuses: [2020], officialEstimatesThrough: 2023 }), ...pvsr({ estimate: { year: 2023, total: 900_000, notes: [] } }) });
+  assert.equal(old.crossChecks.find((c) => c.key === "today").verdict, "un-higher");
+  assert.equal(old.confidence.today.downgraded, false, "the UN already had 2023's official estimate");
+  const newer = run({ ...ds({ censuses: [2020], officialEstimatesThrough: 2023 }), ...pvsr({ estimate: { year: 2025, total: 900_000, notes: [] } }) });
+  assert.equal(newer.confidence.today.downgraded, true);
+  assert.equal(newer.confidence.today.level, "fair");
+});
+
+test("Togo's range is marked as rescaled by us, not the UN's own", () => {
+  const range = { startYear: 2024, adjusted: true, lower80: [], upper80: [], lower95: [], upper95: [], zeroMigration: [] };
+  assert.equal(run({}, { range }).confidence.forecast.adjusted, true);
+  assert.equal(run({}).confidence.forecast.adjusted, false);
 });

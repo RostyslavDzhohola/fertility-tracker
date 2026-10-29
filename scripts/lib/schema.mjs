@@ -156,6 +156,7 @@ const confidence = objN("How sure this place's numbers are (index.json confidenc
   }),
   forecast: obj("The UN's own uncertainty about the future.", {
     level: LEVEL,
+    adjusted: T("boolean", "The range was rescaled by us to the UN's interim update (forecastRange.adjusted)."),
     at: arr("The forecast and its range in 2050 and 2100.", rangePoint),
   }),
   unSources: objN("What the UN says it used for this place, quoted from World Population Prospects 2024: Data Sources.", {
@@ -181,11 +182,13 @@ crossCheck.properties.accessed = T("string", "Researched notes only: when it was
 crossCheck.properties.unUsedUpTo = intN("census only: the newest census or register year the UN used.");
 crossCheck.properties.unAddsRefugees = T(nul("boolean"), "immigrants only: UN DESA added UNHCR refugee figures, which national registers may leave out.");
 crossCheck.properties.asOf = T(nul("string"), "Automatic checks: when the source last updated the figure (Eurostat dataset date, or the UN Statistics Division table's date).");
+crossCheck.properties.coverageDiffers = T("boolean", "Automatic checks: the national figure covers a different area or group (its footnote says so), so it is not graded higher or lower.");
 crossCheck.properties.notes = arr("Automatic checks: the national office's own footnotes to its figure (what area it covers, what it builds on), from the UN Statistics Division's tables.", T("string", "Footnote."));
 crossCheck.additionalProperties = false;
-const rangeArray = (d) => arr(`${d}: people on 1 July, startYear..2100 (index = year - startYear).`, T(nul("integer"), "People.", { minimum: 0 }));
+const rangeArray = (d) => arr(`${d}: people on 1 July, startYear..2100 (index = year - startYear).`, T(nul("integer"), "People.", { minimum: 0 }), { minItems: 77, maxItems: 77 });
 const forecastRange = objN("The UN's yearly forecast range and Zero-migration path (WPP 2024 TotalPopulationBySex). Null when the UN publishes none.", {
   startYear: int("First year (index 0)."),
+  adjusted: T("boolean", "True for places the UN's interim update revised (Togo): their bounds are the UN's, rescaled by us to the revised forecast, not the UN's own."),
   lower80: rangeArray("Lower 80 PI"),
   upper80: rangeArray("Upper 80 PI"),
   lower95: rangeArray("Lower 95 PI"),
