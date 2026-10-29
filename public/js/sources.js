@@ -164,7 +164,7 @@ function show(button, { focus = true, scroll = true } = {}) {
   const info = typeof button.srcInfo === "function" ? button.srcInfo() : button.srcInfo;
   if (!info) return;
   if (open) open.button.setAttribute("aria-expanded", "false");
-  const ext = (label, href) => h("a", { href, target: "_blank", rel: "noopener" }, label, h("span", { "aria-hidden": "true" }, " ↗"));
+  const ext = (label, href) => h("a", { href, target: "_blank", rel: "noopener" }, label, h("span", { "aria-hidden": "true" }, "\u00a0↗"));
   const src = info.src;
   const links = [
     ...(src?.file ? [ext(src.fileLabel ?? "Source file", src.file)] : []),
@@ -180,7 +180,14 @@ function show(button, { focus = true, scroll = true } = {}) {
     ),
     info.rows?.length ? h("dl", { class: "src-rows" }, ...info.rows.flatMap(([k, v]) => [h("dt", null, k), h("dd", null, v)])) : "",
     info.note ? h("p", { class: "src-note" }, info.note) : "",
-    info.quote?.text ? h("blockquote", { class: "src-quote" }, h("p", null, `“${info.quote.text}”`), info.quote.label ? h("footer", null, "— ", info.quote.href ? ext(info.quote.label, info.quote.href) : info.quote.label) : "") : "",
+    info.quote?.text
+      ? h(
+          "details",
+          { class: "src-quote" },
+          h("summary", null, "The UN's own words"),
+          h("blockquote", null, h("p", null, `“${info.quote.text}”`), info.quote.label ? h("footer", null, "— ", info.quote.href ? ext(info.quote.label, info.quote.href) : info.quote.label) : ""),
+        )
+      : "",
     info.check ? checkNote(info.check) : "",
     src ? h("p", { class: "src-from" }, "Source: ", ext(src.name, src.home), src.method ? [" · ", ext("how it's made", src.method)] : "") : "",
     links.length ? h("p", { class: "src-links" }, ...links) : "",

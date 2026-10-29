@@ -80,7 +80,7 @@ export const LEVEL_RULES = {
   birthsDeaths: {
     good: "Births and deaths both registered and reported as virtually complete (at least 90%), for 2018 or later",
     fair: "Registered, but at least one of the two incomplete or out of date: the UN corrects them",
-    poor: "No usable registration: the UN estimates births and deaths from surveys and models",
+    poor: "No usable registration (or only one of the two registered): the UN estimates births and deaths from surveys and models",
   },
   immigration: {
     good: "Counted by country of birth (census or population register), and reassessed by the UN for 2024",
@@ -318,7 +318,9 @@ function birthsDeathsLevel(pvsrPlace, ds) {
   const rb = ds?.registeredBirthsThrough ?? 0;
   const rd = ds?.registeredDeathsThrough ?? 0;
   if (!b && !d && rb >= 2018 && rd >= 2018 && !ds.birthsAdjusted && !ds.deathsAdjusted) return "good";
-  if (rb >= 2010 || rd >= 2010) return "fair";
+  // Both registered for 2010 or later, though incompletely; one of the two alone (Nigeria registers some deaths, no
+  // births) leaves the rest to surveys.
+  if (rb >= 2010 && rd >= 2010) return "fair";
   return "poor";
 }
 
@@ -338,6 +340,8 @@ function forecastLevel(r2050) {
 
 /** Census dates in the UNSD table can be ranges; the table keeps the first day. Sample surveys are not counts. */
 const isCensus = (c) => c && !/^SS/.test(c.code ?? "");
+/** A census whose total includes many people it could not reach (Myanmar 2024: 37% estimated) is not a full count. */
+const PARTIAL_COUNT = /not enumerated|could not be enumerated|were not counted/i;
 
 /**
  * Automatic comparisons with the newest national figures. Returns cross-check objects (kind: eurostat | unsd).
@@ -410,6 +414,7 @@ function autoChecks({ rec, series, seriesOf, ds, pvsrPlace, footnotes, eurostat,
       figure: { value: c.total, what: "people counted by the census", date: c.date, provisional: !!c.provisional, estimated: false },
       unFigure: { value: un, what: "UN figure for the census day", date: c.date, forecast: Number(c.date.slice(0, 4)) > latestEstimateYear },
       ...graded(gap, allNotes("2", placeNotes("2"), c.notes ?? [])),
+      partial: allNotes("2", c.notes ?? []).some((t) => PARTIAL_COUNT.test(t)),
       unUsedUpTo: unLast,
       notes: shown(allNotes("2", placeNotes("2"), c.notes ?? [])),
       links: [{ label: "UN Statistics Division: latest census and estimates (table 2)", href: "https://unstats.un.org/unsd/demographic-social/products/vitstats/seratab2.pdf" }],
@@ -491,7 +496,9 @@ export function buildConfidence({ rec, series, seriesOf = () => null, range, sto
 
   const unLast = lastUnCount(ds);
   const register = (ds?.registers ?? []).some((y) => y >= year - 10);
-  const pvsrCensus = isCensus(pvsrPlace?.census) && pvsrPlace.census.date ? pvsrPlace.census : null;
+  const censusNotes = (pvsrPlace?.census?.notes ?? []).map((n) => sources.pvsr?.footnotes?.["2"]?.[String(n)] ?? "");
+  const partialCensus = censusNotes.some((t) => PARTIAL_COUNT.test(t));
+  const pvsrCensus = isCensus(pvsrPlace?.census) && pvsrPlace.census.date && !partialCensus ? pvsrPlace.census : null;
   const pvsrYear = pvsrCensus ? Number(pvsrCensus.date.slice(0, 4)) : null;
   const lastCount = Math.max(unLast ?? -Infinity, pvsrYear ?? -Infinity);
   const crossChecks = [
@@ -518,7 +525,7 @@ export function buildConfidence({ rec, series, seriesOf = () => null, range, sto
   // its last count, or an official estimate after both its official estimates and its own last estimate year.
   const figureYear = (c) => Number(String(c.figure?.date).slice(0, 4));
   const newerThanUn = (c) => c.key === "census" || figureYear(c) > Math.max(ds?.officialEstimatesThrough ?? 0, latestEstimateYear);
-  const comparable = crossChecks.filter((c) => (c.key === "today" || c.key === "census") && c.kind !== "researched" && !c.coverageDiffers && c.gapPct != null && newerThanUn(c));
+  const comparable = crossChecks.filter((c) => (c.key === "today" || c.key === "census") && c.kind !== "researched" && !c.coverageDiffers && !c.partial && c.gapPct != null && newerThanUn(c));
   const keptCurrent = today != null && today !== "good" && birthsDeaths === "good" && comparable.some((c) => c.key === "today" && figureYear(c) >= year - 2 && c.verdict === "matches");
   if (keptCurrent) today = "good";
   const downgraded = today != null && comparable.some((c) => Math.abs(c.gapPct) > DOWNGRADE_PCT);
@@ -541,7 +548,9 @@ export function buildConfidence({ rec, series, seriesOf = () => null, range, sto
         register,
         keptCurrent,
         unOfficialEstimatesThrough: ds?.officialEstimatesThrough ?? null,
-        latestCensus: pvsrCensus ? { date: pvsrCensus.date, total: pvsrCensus.total ?? null, provisional: !!pvsrCensus.provisional } : null,
+        latestCensus: pvsrPlace?.census?.date && isCensus(pvsrPlace.census)
+          ? { date: pvsrPlace.census.date, total: pvsrPlace.census.total ?? null, provisional: !!pvsrPlace.census.provisional, partial: partialCensus }
+          : null,
         downgraded,
       },
       birthsDeaths: {

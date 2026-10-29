@@ -461,7 +461,7 @@ export function createCountryPage({ navigate, siteUrl }) {
       rows: [
         ["Counted", [...(m.dataType ?? "")].map((k) => how[k]).filter(Boolean).join(", and ") || "–"],
         ["Updated for 2024", m.reassessed2024 == null ? "–" : m.reassessed2024 ? "Yes: one of 60 places the UN fully reassessed" : "No: the UN carried its 2020 figure forward"],
-        ["Refugees", m.refugeesAdded ? "Added from the UN refugee agency's counts" : "Not added"],
+        ["Refugees living here", m.refugeesAdded ? "Added from the UN refugee agency's counts" : "Not added (people who fled abroad are counted where they live now)"],
         ...(m.netMigrationBasis?.length ? [["Net migration from", m.netMigrationBasis.map((k) => basis[k] ?? k).join("; ")]] : []),
       ],
       quote: c.unSources?.migration ? { text: c.unSources.migration, label: "UN, WPP 2024 Data Sources (net migration)", href: SRC.wppDataSources.file } : null,
@@ -508,16 +508,15 @@ export function createCountryPage({ navigate, siteUrl }) {
 
   function checkItem(c) {
     const when = c.kind === "researched" ? `Checked by hand, ${L.fmtDate(c.accessed)}` : `${L.checkSourceLabel(c)}${c.asOf ? `, as of ${L.fmtDate(c.asOf)}` : ""}`;
-    const badge = { matches: "Matches", "un-higher": "UN higher", "un-lower": "UN lower", context: "Context" }[c.verdict];
     return h(
       "li",
-      { class: "sure-check", "data-verdict": c.verdict },
-      h("p", null, h("span", { class: "sure-badge" }, badge), " ", L.checkText(c)),
-      c.notes?.length ? h("p", { class: "sure-note" }, "Their note: ", c.notes.join(" ")) : "",
+      { class: "sure-check", "data-verdict": c.coverageDiffers ? "context" : c.verdict },
+      h("p", null, h("span", { class: "sure-badge" }, L.checkBadge(c)), " ", L.checkText(c)),
+      c.notes?.length ? h("details", { class: "sure-note" }, h("summary", null, "Their note"), h("p", null, c.notes.join(" "))) : "",
       h(
         "p",
         { class: "src-links" },
-        ...c.links.map((l) => h("a", { href: l.href, target: "_blank", rel: "noopener" }, l.label, h("span", { "aria-hidden": "true" }, " ↗"))),
+        ...c.links.map((l) => h("a", { href: l.href, target: "_blank", rel: "noopener" }, l.label, h("span", { "aria-hidden": "true" }, "\u00a0↗"))),
         h("span", { class: "sure-when" }, when),
       ),
     );
@@ -546,18 +545,26 @@ export function createCountryPage({ navigate, siteUrl }) {
     setText(el.sureSentence, L.sureSummary(rec, c, now) ?? "How sure the UN is about the future, from its own range.");
     const rows = [];
     if (c.today?.level) rows.push(sureRow(rec, "today", c.today.level, L.sureTodayText(c.today, now), () => todayInfo(rec, c), L.sureTodayWord(c.today)));
-    if (c.birthsDeaths?.level) rows.push(sureRow(rec, "birthsDeaths", c.birthsDeaths.level, L.sureBirthsDeathsText(c.birthsDeaths), () => birthsDeathsInfo(rec, c)));
+    if (c.birthsDeaths?.level) rows.push(sureRow(rec, "birthsDeaths", c.birthsDeaths.level, L.sureBirthsDeathsText(c.birthsDeaths, detail.crossChecks ?? []), () => birthsDeathsInfo(rec, c)));
     if (c.immigration?.level) rows.push(sureRow(rec, "immigration", c.immigration.level, L.sureImmigrationText(c.immigration), () => immigrationInfo(rec, c)));
     if (c.forecast?.level) rows.push(sureRow(rec, "forecast", c.forecast.level, L.sureForecastText(c.forecast), () => forecastInfo(rec, c.forecast)));
     el.sureRows.replaceChildren(...rows);
-    const checks = detail.crossChecks ?? [];
-    el.sureChecksWrap.hidden = !checks.length;
-    el.sureChecks.replaceChildren(...checks.map(checkItem));
+    // Hand-checked notes on today's number and on net migration already sit next to them (under the chart and under
+    // "Why it's happening"): here, only a pointer to them.
+    const all = detail.crossChecks ?? [];
+    const inline = all.filter((x) => x.kind === "researched" && (x.key === "today" || x.key === "net"));
+    const checks = all.filter((x) => !inline.includes(x));
+    el.sureChecksWrap.hidden = false;
+    el.sureChecks.replaceChildren(
+      ...checks.map(checkItem),
+      ...(inline.length ? [h("li", { class: "sure-pointer" }, `More notes from other sources sit ${inline.some((x) => x.key === "today") ? "under the chart" : ""}${inline.length > 1 ? " and " : ""}${inline.some((x) => x.key === "net") ? "under “Why it's happening”" : ""}.`)] : []),
+      ...(!all.length ? [h("li", { class: "sure-pointer" }, `No newer national figure found yet for ${L.theName(rec)}. Countries are checked by hand a few at a time, weakest data first.`)] : []),
+    );
     el.sureHow.replaceChildren(
       "How we grade: ",
-      h("a", { href: sureLink, target: "_blank", rel: "noopener" }, "the rules", h("span", { "aria-hidden": "true" }, " ↗")),
-      ". The colors, the risk score and the 100 people are our own simple math on these numbers: ",
-      h("a", { href: ownLink, target: "_blank", rel: "noopener" }, "how it works", h("span", { "aria-hidden": "true" }, " ↗")),
+      h("a", { href: sureLink, target: "_blank", rel: "noopener" }, "the rules", h("span", { "aria-hidden": "true" }, "\u00a0↗")),
+      ". The colors, the risk level and the 100-people pictures on this page are our own simple math on these numbers: ",
+      h("a", { href: ownLink, target: "_blank", rel: "noopener" }, "how it works", h("span", { "aria-hidden": "true" }, "\u00a0↗")),
       ".",
     );
   }

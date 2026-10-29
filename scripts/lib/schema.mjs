@@ -132,6 +132,7 @@ const confidence = objN("How sure this place's numbers are (index.json confidenc
       date: T("string", "Census day (first day, for a census over several days)."),
       total: intN("People counted."),
       provisional: T("boolean", "Provisional result."),
+      partial: T("boolean", "The total includes many people the census could not reach, estimated instead (its footnote says so): not used as a head count."),
     }),
     downgraded: T("boolean", "Level lowered one step: a newer official population differs from the UN's by more than index.json confidenceRules.downgradePct."),
   }),
@@ -180,6 +181,7 @@ crossCheck.properties.text = T("string", "Researched notes only: what the source
 crossCheck.properties.quotes = arr("Researched notes only: verbatim excerpts with the numbers.", obj("A quote.", { text: T("string", "Verbatim."), href: T("string", "Where it appears.") }));
 crossCheck.properties.accessed = T("string", "Researched notes only: when it was checked (YYYY-MM-DD).");
 crossCheck.properties.unUsedUpTo = intN("census only: the newest census or register year the UN used.");
+crossCheck.properties.partial = T("boolean", "census only: its total includes many people it could not reach, estimated instead.");
 crossCheck.properties.unAddsRefugees = T(nul("boolean"), "immigrants only: UN DESA added UNHCR refugee figures, which national registers may leave out.");
 crossCheck.properties.asOf = T(nul("string"), "Automatic checks: when the source last updated the figure (Eurostat dataset date, or the UN Statistics Division table's date).");
 crossCheck.properties.coverageDiffers = T("boolean", "Automatic checks: the national figure covers a different area or group (its footnote says so), so it is not graded higher or lower.");

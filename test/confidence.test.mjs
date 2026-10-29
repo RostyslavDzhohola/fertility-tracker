@@ -95,6 +95,7 @@ test("births and deaths: complete registration is good, gaps are fair, surveys a
   assert.equal(level({ year: 2014, code: "|" }, null, { registeredBirthsThrough: null, registeredDeathsThrough: null }), "poor");
   assert.equal(level(null, null, { registeredBirthsThrough: 2022, registeredDeathsThrough: 2022 }), "good", "the UN's own inputs when the country reported nothing");
   assert.equal(level(null, null, { registeredBirthsThrough: 2022, registeredDeathsThrough: 2022, birthsAdjusted: true }), "fair");
+  assert.equal(level(null, null, { registeredBirthsThrough: null, registeredDeathsThrough: 2022 }), "poor", "Nigeria: some deaths registered, no births");
 });
 
 test("people born abroad: by birthplace is good, citizenship fair, none poor; one step lower if only carried forward", () => {
@@ -326,4 +327,13 @@ test("Togo's range is marked as rescaled by us, not the UN's own", () => {
   const range = { startYear: 2024, adjusted: true, lower80: [], upper80: [], lower95: [], upper95: [], zeroMigration: [] };
   assert.equal(run({}, { range }).confidence.forecast.adjusted, true);
   assert.equal(run({}).confidence.forecast.adjusted, false);
+});
+
+test("a census that couldn't reach everyone is shown, but not used as the last head count", () => {
+  const out = run({ ...ds({ censuses: [2014] }), ...pvsr({ census: { date: "2024-09-30", code: "DF", total: 1_100_000, notes: [97] } }, { 2: { 97: "The national total includes an estimated 19,191,728 persons (37.4%) who were not enumerated across many locations." } }) });
+  assert.equal(out.confidence.today.lastCount, 2014);
+  assert.equal(out.confidence.today.latestCensus.partial, true);
+  const c = out.crossChecks.find((x) => x.key === "census");
+  assert.equal(c.partial, true);
+  assert.equal(out.confidence.today.downgraded, false, "a partly estimated total doesn't lower the level");
 });

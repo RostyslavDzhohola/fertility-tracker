@@ -1423,7 +1423,8 @@
               "required": [
                 "date",
                 "total",
-                "provisional"
+                "provisional",
+                "partial"
               ],
               "properties": {
                 "date": {
@@ -1440,6 +1441,10 @@
                 "provisional": {
                   "type": "boolean",
                   "description": "Provisional result."
+                },
+                "partial": {
+                  "type": "boolean",
+                  "description": "The total includes many people the census could not reach, estimated instead (its footnote says so): not used as a head count."
                 }
               },
               "additionalProperties": false
@@ -2054,6 +2059,10 @@
               "null"
             ],
             "description": "census only: the newest census or register year the UN used."
+          },
+          "partial": {
+            "type": "boolean",
+            "description": "census only: its total includes many people it could not reach, estimated instead."
           },
           "unAddsRefugees": {
             "type": [

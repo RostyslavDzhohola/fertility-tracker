@@ -1560,7 +1560,7 @@ test("how sure is this: a newer official figure far from the UN's says so; match
     })`);
     assert.equal(r.word, "Official figure differs");
     assert.equal(r.verdict, "un-higher");
-    assert.match(r.first, /The country's own estimate for 2025 is 108 million people.*the UN's is 9\.7% higher/);
+    assert.match(r.first, /The country's own estimate for mid-2025 is 108 million people.*the UN's is 9\.7% higher/);
     assert.match(r.first, /UN Statistics Division \(national statistics offices\), as of 5 Oct 2026/);
   } finally {
     await page.close();

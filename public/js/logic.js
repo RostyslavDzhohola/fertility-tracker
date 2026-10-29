@@ -1080,9 +1080,11 @@ export function sureTodayText(t, now) {
   const unLast = newestUnCount(t);
   const newer = t.latestCensus && Number(t.latestCensus.date.slice(0, 4)) > unLast;
   let s = `Last census: ${t.lastCount}, ${yearsAgo(t.lastCount, now)}.`;
-  if (newer) s += Number.isFinite(unLast) ? ` The UN's numbers don't use it yet: they rest on the ${unLast} count.` : " The UN's numbers don't use it yet.";
+  const oe = t.unOfficialEstimatesThrough ? ` and official estimates up to ${t.unOfficialEstimatesThrough}` : "";
+  if (newer) s += Number.isFinite(unLast) ? ` The UN's 2024 numbers came before it: the counts it lists end in ${unLast}${oe}.` : " The UN's 2024 numbers came before it.";
   else if (t.keptCurrent) s += " Almost all births and deaths are registered, and the country's own recent count matches the UN's, so the number stays current.";
   else if (now - t.lastCount > 10) s += " Since then, the UN adds births and deaths and estimates who moved.";
+  if (t.latestCensus?.partial) s += ` Its ${t.latestCensus.date.slice(0, 4)} census couldn't reach everyone, so much of its total is estimated.`;
   if (t.downgraded) s += " The country's newest official figure is more than 5% away from the UN's: see below.";
   return s;
 }
@@ -1090,8 +1092,14 @@ export function sureTodayText(t, now) {
 // Births and deaths: registered and reported as virtually complete (code C: 90% or more), registered with gaps (U),
 // or estimated from surveys. Births and deaths are described apart when they differ.
 const REG = { C: "almost all registered (90% or more)", U: "registered, but some are missed", "|": "taken from surveys or a census, not the register" };
-export function sureBirthsDeathsText(b) {
+export function sureBirthsDeathsText(b, checks = []) {
   if (!b) return null;
+  // Registration can be complete while the UN's figure (a 2024 forecast) is off: say so, so the two don't seem to clash.
+  const off = checks.filter((c) => (c.key === "births" || c.key === "deaths") && (c.verdict === "un-higher" || c.verdict === "un-lower") && Math.abs(c.gapPct) >= 5);
+  const tail = off.length ? ` The UN's figures for ${off.map((c) => c.key).join(" and ")} are ${off.length > 1 ? "each " : ""}more than 5% off the registered counts: see below.` : "";
+  return birthsDeathsBody(b) + tail;
+}
+function birthsDeathsBody(b) {
   const { births: bi, deaths: de } = b;
   const one = (v) => (v?.code && REG[v.code] ? `${REG[v.code]} (${v.year})` : "not reported");
   if (b.level === "good") {
@@ -1124,7 +1132,7 @@ export function sureForecastText(f) {
   s += b ? `, and ${range(b)} in ${b.year}.` : ".";
   const z = b ?? a;
   if (isNum(z.zeroMigration) && Math.abs(z.zeroMigration / z.medium - 1) >= 0.03)
-    s += ` If nobody moved in or out, ${fmtCompact(z.zeroMigration)} in ${z.year} instead of ${fmtCompact(z.medium)}.`;
+    s += ` If nobody moved in or out, it would be ${fmtCompact(z.zeroMigration)} in ${z.year} instead of ${fmtCompact(z.medium)}.`;
   return s;
 }
 
@@ -1139,14 +1147,28 @@ export function sureSummary(rec, conf, now) {
   const countWhy = t.lastCount == null ? "it has no census on record" : `its last census was in ${t.lastCount}`;
   if (t.level === conf.level || (conf.level === "good" && t.level === "good"))
     reasons.push(t.register ? "a population register keeps the count" : t.keptCurrent ? "its own up-to-date count matches the UN's" : countWhy);
-  if (bd.level === conf.level && conf.level !== "good") reasons.push(bd.level === "poor" ? "most births and deaths aren't registered" : "not every birth and death is registered");
+  const gapsIn = ["births", "deaths"].filter((k) => bd[k]?.code && bd[k].code !== "C");
+  const partly = gapsIn.length === 1 ? `not all ${gapsIn[0]} are registered` : "not all births and deaths are registered";
+  if (bd.level === conf.level && conf.level !== "good") reasons.push(bd.level === "poor" ? "most births and deaths aren't registered" : partly);
   if (conf.level === "good" && bd.level === "good") reasons.push("almost all births and deaths are registered");
   if (t.downgraded && t.level === conf.level) reasons.push("its newest official figure differs from the UN's by more than 5%");
   return `${lead}: ${reasons.join(", and ") || countWhy}.`;
 }
 
 const gapPctWords = (g) => `${Math.abs(g) < 10 ? Math.abs(g).toFixed(1).replace(/\.0$/, "") : Math.round(Math.abs(g))}%`;
-const gapWords = (c) => (c.gapPct == null ? "" : c.verdict === "matches" ? " (within 2%)" : `: the UN's is ${gapPctWords(c.gapPct)} ${c.gapPct > 0 ? "higher" : "lower"}`);
+const gapWords = (c) =>
+  c.gapPct == null ? "" : c.verdict === "matches" ? (Math.abs(c.gapPct) < 0.5 ? " (the same, within 0.5%)" : ` (${gapPctWords(c.gapPct)} apart)`) : `: the UN's is ${gapPctWords(c.gapPct)} ${c.gapPct > 0 ? "higher" : "lower"}`;
+
+// The badge on a comparison: "Matches" under 1%, "Close" up to 2%; for a UN forecast of births or deaths, which way it
+// was off.
+export function checkBadge(c) {
+  if (c.coverageDiffers) return "Different area";
+  if (c.verdict === "matches") return Math.abs(c.gapPct ?? 0) < 1 ? "Matches" : "Close";
+  if (c.verdict === "context") return "Context";
+  const forecast = c.unFigure?.forecast && (c.key === "births" || c.key === "deaths");
+  if (forecast) return c.verdict === "un-higher" ? "UN forecast too high" : "UN forecast too low";
+  return c.verdict === "un-higher" ? "UN higher" : "UN lower";
+}
 
 // What a newer national figure says, next to the UN's (automatic checks; hand-checked notes carry their own text).
 export function checkText(c) {
@@ -1164,7 +1186,9 @@ export function checkText(c) {
         ? `The national statistics office counted ${v} people on ${day(c.figure.date)} (${c.figure?.provisional ? "first results, " : ""}reported to Eurostat). The UN's figure for that day is ${un}${gw}.${covers}`
         : `The country's own estimate for ${when(c.figure.date)} is ${v} people${first} (reported to the UN Statistics Division). The UN's figure is ${un}${gw}.${covers}`;
     case "census":
-      return `A census on ${day(c.figure.date)} counted ${v} people${first}. The UN's numbers don't include it yet; its figure for that day is ${un}${gw}.${covers}`;
+      return c.partial
+        ? `A census on ${day(c.figure.date)} put the population at ${v}${first}, but much of that total is estimated for areas it couldn't reach (see their note). The UN's figure for that day is ${un}${gw}.`
+        : `A census on ${day(c.figure.date)} counted ${v} people${first}. The UN's numbers don't include it yet; its figure for that day is ${un}${gw}.${covers}`;
     case "births":
     case "deaths":
       return `${v} ${c.key} were registered in ${c.figure.date}, with registration reported as virtually complete (90% or more). The UN ${c.unFigure?.forecast ? "forecast" : "estimated"} ${un}${gw}.${covers}`;
