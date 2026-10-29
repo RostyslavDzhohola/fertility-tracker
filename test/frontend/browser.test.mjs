@@ -47,13 +47,16 @@ function send(method, params = {}, sessionId) {
 // The app is up: data loaded, pages created, and (on the globe page) the globe has drawn.
 const APP_READY = `document.documentElement.classList.contains("ready") && !!window.FT && (document.getElementById("view-globe").hidden || FT.home.globe.ready)`;
 
-async function openPage({ width = 1440, height = 900, mobile = false, path: urlPath = "/?year=2100", ready = APP_READY, setup, reducedMotion = false }) {
+async function openPage({ width = 1440, height = 900, mobile = false, path: urlPath = "/?year=2100", ready = APP_READY, setup, reducedMotion = false, dark = false }) {
   const { targetId } = await send("Target.createTarget", { url: "about:blank" });
   const { sessionId } = await send("Target.attachToTarget", { targetId, flatten: true });
   const s = (m, p) => send(m, p, sessionId);
   await s("Emulation.setDeviceMetricsOverride", { width, height, deviceScaleFactor: 1, mobile });
   if (mobile) await s("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 5 });
-  if (reducedMotion) await s("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
+  const features = [];
+  if (reducedMotion) features.push({ name: "prefers-reduced-motion", value: "reduce" });
+  if (dark) features.push({ name: "prefers-color-scheme", value: "dark" });
+  if (features.length) await s("Emulation.setEmulatedMedia", { features });
   await s("Page.enable");
   await s("Runtime.enable");
   const errors = [];
@@ -493,8 +496,10 @@ test("§9.6 search is typo-tolerant, finds names, aliases and codes, and flies t
     await settle(page, 8000);
     assert.ok((await page.eval(`${G}.k`)) > 3, "flew in");
     const p = await page.eval(`${G}.screenOf("TWN")`);
-    const card = await page.eval(`document.getElementById("card").getBoundingClientRect().left`);
-    assert.ok(p && p.x > 0 && p.x < card && p.y > 60 && p.y < 760, `Taiwan in view beside the card: ${JSON.stringify(p)}`);
+    // The card opens on the left; the zoom buttons stay put on the right. Taiwan lands between them.
+    const card = await page.eval(`document.getElementById("card").getBoundingClientRect().right`);
+    const ctrl = await page.eval(`document.getElementById("zoom-ctrl").getBoundingClientRect().left`);
+    assert.ok(p && p.x > card && p.x < ctrl && p.y > 60 && p.y < 760, `Taiwan in view beside the card: ${JSON.stringify(p)}`);
     assert.equal(await page.eval("window.scrollY"), 0);
     assert.deepEqual(page.errors, []);
   } finally {
@@ -756,7 +761,10 @@ test("B1 every word on screen matches the number beside it: card, search, Shrink
     for (let i = 1; i < list.length; i++) assert.ok(list[i] >= list[i - 1], `sorted by shown %: ${list}`);
     // No "risk" wording outside "More numbers" on the globe page.
     assert.ok(!/Risk of shrinking|Most at risk/i.test(await page.eval(`document.getElementById("view-globe").textContent`)));
-    // Switching the scenario re-words the chip.
+    // The list took the card's place; pick Brazil again. Switching the scenario re-words the chip.
+    assert.equal(await page.eval(`document.getElementById("card").hidden`), true, "the list replaces the card");
+    await page.eval(`document.getElementById("risk-btn").click(), FT.home.selectFromSearch("BRA"), 0`);
+    await page.waitFor(`!document.getElementById("card").hidden`, 2000);
     await page.eval(`document.querySelector('#dock .seg[data-s="constant"]').click(), 0`);
     await sleep(300);
     assert.match(await page.eval(`document.getElementById("card-risk").getAttribute("title") ?? document.querySelector("#card-risk .risk-chip").title`), /if birth rates stay the same/);
@@ -1039,6 +1047,172 @@ test("Skip to content moves focus to the main content and keeps the page, year a
     assert.equal(await page.eval(`location.pathname + location.search`), "/country/TWN?year=2070&scenario=constant");
     assert.deepEqual(await page.eval(`({ year: Math.round(FT.state.year), scenario: FT.state.scenario })`), { year: 2070, scenario: "constant" });
     assert.equal(await page.eval(`document.getElementById("view-country").hidden`), false);
+  } finally {
+    await page.close();
+  }
+});
+
+// ------------------------------------------------------------------ night mode, email, the card, shared pictures
+
+test("night mode follows the system: the page and the globe switch palettes live, without a reload", opts, async () => {
+  const page = await openPage({ dark: true });
+  try {
+    const bg = () => page.eval(`getComputedStyle(document.body).backgroundColor`);
+    assert.equal(await bg(), "rgb(18, 21, 24)");
+    assert.equal(await page.eval(`${G}.theme`), "dark");
+    await page.s("Emulation.setEmulatedMedia", { features: [{ name: "prefers-color-scheme", value: "light" }] });
+    await page.waitFor(`${G}.theme === "light"`, 2000);
+    assert.equal(await bg(), "rgb(246, 244, 239)");
+    await page.s("Emulation.setEmulatedMedia", { features: [{ name: "prefers-color-scheme", value: "dark" }] });
+    await page.waitFor(`${G}.theme === "dark"`, 2000);
+    assert.deepEqual(page.errors, []);
+  } finally {
+    await page.close();
+  }
+});
+
+test("Email us always does something: Gmail and Outlook open a ready message, the mail app and Copy are there too", opts, async () => {
+  const page = await openPage({});
+  try {
+    await page.eval(`document.getElementById("fb-btn").click(), 0`);
+    await page.waitFor(`!document.getElementById("fb-panel").hidden`, 2000);
+    assert.equal(await page.eval(`document.getElementById("fb-email-choices").hidden`), true);
+    await page.eval(`document.getElementById("fb-email-btn").click(), 0`);
+    const links = await page.eval(`[...document.querySelectorAll("#fb-email-choices a")].map((a) => ({ mail: a.dataset.mail, href: a.href, target: a.target }))`);
+    assert.deepEqual(links.map((l) => l.mail), ["gmail", "outlook", "mail-app"]);
+    const gmail = new URL(links[0].href);
+    assert.equal(gmail.origin, "https://mail.google.com");
+    assert.equal(gmail.searchParams.get("to"), "andromedus+fertility@mail.grokbot.com");
+    assert.match(gmail.searchParams.get("body"), /^Page: https:\/\/fertility-tracker-live\.vercel\.app\//);
+    assert.equal(links[0].target, "_blank");
+    assert.equal(new URL(links[1].href).origin, "https://outlook.live.com");
+    assert.match(links[2].href, /^mailto:andromedus\+fertility@mail\.grokbot\.com\?subject=/);
+    assert.equal(await page.eval(`document.getElementById("fb-email-btn").getAttribute("aria-expanded")`), "true");
+    assert.equal(await page.eval(`!!document.getElementById("fb-email-copy")`), true);
+    // The country page's "Email us" opens the same choice, with the place in the subject.
+    await page.eval(`FT.navigate("/country/JPN"), 0`);
+    await page.waitFor(`!!document.getElementById("cv-email-btn")`, 4000);
+    await page.eval(`document.getElementById("more").open = true; document.getElementById("cv-email-btn").click(), 0`);
+    const su = await page.eval(`new URL(document.querySelector("#cv-email-choices a[data-mail=gmail]").href).searchParams.get("su")`);
+    assert.equal(su, "Fertility Tracker feedback: Japan");
+    assert.deepEqual(page.errors, []);
+  } finally {
+    await page.close();
+  }
+});
+
+test("the card opens on the left and the zoom buttons never move", opts, async () => {
+  const page = await openPage({});
+  try {
+    const ctrl = () => page.eval(`(() => { const r = document.getElementById("zoom-ctrl").getBoundingClientRect(); return [Math.round(r.left), Math.round(r.top)]; })()`);
+    const before = await ctrl();
+    await page.eval(`FT.home.selectFromSearch("FRA"), 0`);
+    await page.waitFor(`!document.getElementById("card").hidden`, 3000);
+    await sleep(400);
+    assert.deepEqual(await ctrl(), before);
+    const card = await page.eval(`(() => { const r = document.getElementById("card").getBoundingClientRect(); return { left: r.left, right: r.right }; })()`);
+    assert.ok(card.left < 40 && card.right < before[0] - 200, `card on the left: ${JSON.stringify(card)}`);
+  } finally {
+    await page.close();
+  }
+});
+
+test("Share makes a 1600×900 picture of the view; Post on X copies it and opens the post with the words and link", opts, async () => {
+  const page = await openPage({ path: "/?year=2070&focus=JPN" });
+  try {
+    await page.waitFor(`FT.home.selected === "JPN" && !document.getElementById("card").hidden`, 3000);
+    await settle(page, 8000);
+    await page.eval(`(() => {
+      window.__opened = null;
+      window.__copied = 0;
+      window.open = (u) => { window.__opened = u; return null; };
+      Object.defineProperty(navigator, "clipboard", { configurable: true, value: { write: async () => { window.__copied++; }, writeText: async () => {} } });
+    })()`);
+    await page.eval(`document.getElementById("share-view").click(), 0`);
+    await page.waitFor(`document.getElementById("snap").open && !document.getElementById("snap-img").hidden && document.getElementById("snap-img").complete && document.getElementById("snap-img").naturalWidth > 0`, 8000);
+    assert.deepEqual(await page.eval(`[document.getElementById("snap-img").naturalWidth, document.getElementById("snap-img").naturalHeight]`), [1600, 900]);
+    assert.match(await page.eval(`document.getElementById("snap-download").getAttribute("download")`), /^fertility-tracker-japan-2070\.png$/);
+    await page.eval(`document.getElementById("snap-x").click(), 0`);
+    await page.waitFor(`!!window.__opened`, 3000);
+    const intent = new URL(await page.eval("window.__opened"));
+    assert.equal(intent.origin + intent.pathname, "https://x.com/intent/post");
+    assert.match(intent.searchParams.get("text"), /^Japan in 2070: for every 100 people today, about \d+ left \(UN forecast\)\./);
+    assert.equal(intent.searchParams.get("url"), "https://fertility-tracker-live.vercel.app/?year=2070&focus=JPN");
+    assert.equal(await page.eval("window.__copied"), 1);
+    assert.match(await page.eval(`document.getElementById("snap-status").textContent`), /^Picture copied/);
+    // While it is open, globe keys do nothing; Escape closes it.
+    const k0 = await page.eval(`${G}.k`);
+    await page.key("+", { code: "Equal", text: "+", vk: 187 });
+    await sleep(300);
+    assert.equal(await page.eval(`${G}.k`), k0);
+    await page.key("Escape", { vk: 27 });
+    await page.waitFor(`!document.getElementById("snap").open`, 2000);
+    // The country page shares its chart.
+    await page.eval(`FT.navigate("/country/TWN?year=2070"), 0`);
+    await page.waitFor(`!document.getElementById("view-country").hidden && !!FT.country`, 4000);
+    await page.eval(`document.getElementById("cv-share").click(), 0`);
+    await page.waitFor(`document.getElementById("snap").open && !document.getElementById("snap-img").hidden && document.getElementById("snap-img").naturalWidth === 1600`, 8000);
+    assert.deepEqual(page.errors, []);
+  } finally {
+    await page.close();
+  }
+});
+
+test("born, died, moved follows the slider and adds up to the change", opts, async () => {
+  const page = await openPage({ path: "/country/DEU?year=2070" });
+  try {
+    await page.waitFor(`document.querySelector("#why-born .tile-span")?.textContent === "From now to 2070 (UN forecast)"`, 6000);
+    // The numbers are readable by screen readers; only the bars are hidden.
+    assert.match(await page.eval(`document.querySelector("#why-born .bd-pic").getAttribute("aria-hidden") ?? "visible"`), /visible/);
+    const vals = await page.eval(`[...document.querySelectorAll("#why-born .bd-row")].map((r) => r.className.replace("bd-row ", ""))`);
+    assert.deepEqual(vals, ["born", "died", "moved"]);
+    await page.eval(`(() => { const i = document.querySelector("#cv-controls input.tc-range"); i.value = "2100"; i.dispatchEvent(new Event("input", { bubbles: true })); })()`);
+    await page.waitFor(`document.querySelector("#why-born .tile-span")?.textContent === "From now to 2100 (UN forecast)"`, 3000);
+    assert.deepEqual(page.errors, []);
+  } finally {
+    await page.close();
+  }
+});
+
+test("the share dialog survives a second click, and a page change or Back closes it", opts, async () => {
+  const page = await openPage({ path: "/?year=2070&focus=JPN" });
+  try {
+    await page.waitFor(`FT.home.selected === "JPN"`, 3000);
+    await settle(page, 8000);
+    // Two clicks in a row: one dialog, showing the second picture, whose file still loads.
+    await page.eval(`document.getElementById("share-view").click(), document.getElementById("share-view").click(), 0`);
+    await page.waitFor(`document.getElementById("snap").open && document.getElementById("snap-img").naturalWidth === 1600`, 8000);
+    await sleep(300);
+    assert.equal(await page.eval(`(async () => (await fetch(document.getElementById("snap-img").src)).ok)()`), true);
+    assert.equal(await page.eval(`document.querySelectorAll("dialog.snap").length`), 1);
+    // Closed and opened again in the same moment: the new picture shows.
+    await page.eval(`document.getElementById("snap").close(), document.getElementById("share-view").click(), 0`);
+    await sleep(500);
+    await page.waitFor(`document.getElementById("snap").open && document.getElementById("snap-img").naturalWidth === 1600 && !document.getElementById("snap-x").disabled`, 8000);
+    // A Post on X still copying when the dialog closes never opens X.
+    await page.eval(`(() => {
+      window.__opened = null;
+      window.open = (u) => { window.__opened = u; return null; };
+      Object.defineProperty(navigator, "clipboard", { configurable: true, value: { write: () => new Promise((r) => (window.__finishCopy = r)), writeText: async () => {} } });
+    })()`);
+    await page.eval(`document.getElementById("snap-x").click(), 0`);
+    await page.waitFor(`typeof window.__finishCopy === "function"`, 2000);
+    await page.eval(`document.getElementById("snap-close").click(), window.__finishCopy(), 0`);
+    await sleep(300);
+    assert.equal(await page.eval("window.__opened"), null);
+    assert.equal(await page.eval(`document.getElementById("snap").open`), false);
+    await page.eval(`document.getElementById("share-view").click(), 0`);
+    await page.waitFor(`document.getElementById("snap").open && document.getElementById("snap-img").naturalWidth === 1600`, 8000);
+    // A page change closes it.
+    await page.eval(`FT.navigate("/country/JPN?year=2070"), 0`);
+    await page.waitFor(`!document.getElementById("view-country").hidden`, 4000);
+    assert.equal(await page.eval(`document.getElementById("snap").open`), false);
+    // So does Back, from the country page's picture.
+    await page.eval(`document.getElementById("cv-share").click(), 0`);
+    await page.waitFor(`document.getElementById("snap").open`, 4000);
+    await page.eval(`history.back(), 0`);
+    await page.waitFor(`!document.getElementById("view-globe").hidden && !document.getElementById("snap").open`, 4000);
+    assert.deepEqual(page.errors, []);
   } finally {
     await page.close();
   }

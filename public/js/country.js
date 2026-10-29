@@ -3,10 +3,12 @@
 
 import { $, h, s, setText, setAttr, media, focusNoScroll, announce, copyText } from "./dom.js";
 import * as L from "./logic.js";
-import { data, state, subscribe, popNow, ratioNow, pctNow, pct2100, peakYear, loadDetail, cachedDetail, setYear, yearInt } from "./store.js";
+import { data, state, subscribe, popNow, ratioNow, pctNow, pct2100, outlookPct, peakYear, loadDetail, cachedDetail, setYear, yearInt } from "./store.js";
 import { createTimeControls } from "./controls.js";
 import { createPopChart } from "./charts.js";
 import { peopleRow } from "./people.js";
+import { emailChooser } from "./ui.js";
+import { openShare, renderSnapshot, chartVisual } from "./snapshot.js";
 
 const GEN_LABELS = ["Today", "Children", "Grandchildren", "Great-grandchildren"];
 
@@ -41,9 +43,12 @@ export function createCountryPage({ navigate, siteUrl }) {
     whatifReset: $("whatif-reset"),
     more: $("more"),
     moreBody: $("more-body"),
+    share: $("cv-share"),
   };
 
   let current = null; // record
+  let chartModel = null; // what the chart shows, for the shared picture
+  let series = null; // the place's yearly UN figures, once its file has loaded
   let token = 0;
   let whatIf = null;
 
@@ -128,7 +133,12 @@ export function createCountryPage({ navigate, siteUrl }) {
     else sentence = `In ${y}, about the same number of people as today.`;
     setText(el.ppSentence, sentence);
     chart.update(state.year, state.mix);
+    if (y !== lastFlowsYear) {
+      lastFlowsYear = y;
+      renderFlows();
+    }
   }
+  let lastFlowsYear = null;
 
   function placeName() {
     return L.theName(current);
@@ -136,6 +146,9 @@ export function createCountryPage({ navigate, siteUrl }) {
 
   function renderChart(rec, detail) {
     const today = data.today;
+    series = detail?.series ?? null;
+    lastFlowsYear = null;
+    renderFlows();
     const past = (detail?.series ?? []).filter((r) => r.variant === "estimate" && r.population != null).map((r) => [r.year, r.population]);
     const arr = (sc) => (data.scen?.places?.[rec.iso3]?.[sc] ?? []).map((v, i) => [data.start + i, v]);
     const medium = arr("medium");
@@ -158,6 +171,7 @@ export function createCountryPage({ navigate, siteUrl }) {
             : `If birth rates stay where they are, ${placeName()} ends up ${L.fmtPct(diff, { plus: false })} bigger than the UN forecast.`;
     }
     setText(el.chSentence, sentence);
+    chartModel = { iso3: rec.iso3, past: pastAll, medium, constant, today };
     chart.setData({ past: pastAll, medium, constant, today, peak, name: placeName(), year: state.year, mix: state.mix });
   }
 
@@ -188,21 +202,8 @@ export function createCountryPage({ navigate, siteUrl }) {
       h("p", { class: "tile-text" }, L.babiesSentence(tfr)),
     );
 
+    renderFlows();
     const c = rec.components;
-    const max = Math.max(c?.births ?? 0, c?.deaths ?? 0) || 1;
-    const bar = (cls, label, v) =>
-      h(
-        "div",
-        { class: `bd-row ${cls}` },
-        h("span", { class: "bd-label" }, label),
-        h("span", { class: "bd-track" }, h("span", { class: "bd-fill", style: { width: `${Math.max(2, (100 * (v ?? 0)) / max)}%` } })),
-        h("span", { class: "bd-val" }, L.fmtFlow(v, { plus: false })),
-      );
-    el.born.replaceChildren(
-      h("h3", { class: "tile-title" }, `Born vs died${c?.year ? `, ${c.year}` : ""}`),
-      h("div", { class: "tile-pic bd-pic", "aria-hidden": "true" }, bar("born", "Born", c?.births), bar("died", "Died", c?.deaths)),
-      h("p", { class: "tile-text" }, L.bornDiedSentence(c)),
-    );
 
     // Moving: arrows labelled with the people who arrived and left (UN migrant stock: everyone alive today who moved),
     // and the yearly net in words. No global source counts yearly arrivals and departures separately.
@@ -228,7 +229,52 @@ export function createCountryPage({ navigate, siteUrl }) {
     el.move.replaceChildren(
       h("h3", { class: "tile-title" }, "Moving in vs out"),
       pic,
-      h("p", { class: "tile-text" }, world ? "Moving doesn't change the world's total." : L.yearlyNetSentence(net)),
+      h("p", { class: "tile-text" }, world ? "Moving doesn't change the world's total." : L.yearlyNetSentence(net, c?.year)),
+    );
+  }
+
+  // Born, died, moved: where the change comes from, from now to the slider year (one year at today). It follows the
+  // slider. The UN counts moving as one yearly net figure (moved in minus moved out), so that is what the bar shows.
+  function renderFlows() {
+    if (!current) return;
+    const rec = current;
+    const world = rec.iso3 === "WLD";
+    const y = yearInt();
+    const today = data.today;
+    let f = series ? (y > today ? L.flowsBetween(series, today, y, { midyear: true }) : L.flowsBetween(series, y, y)) : null;
+    let span = y > today ? `From now to ${y}` : `In ${y}, one year`;
+    if (!f && rec.components) {
+      // Until the place's file loads: its latest year from countries.json.
+      const c = rec.components;
+      const natural = Number.isFinite(c.births) && Number.isFinite(c.deaths) ? c.births - c.deaths : null;
+      f = { births: c.births, deaths: c.deaths, netMigration: c.netMigration ?? 0, natural, change: natural == null ? null : natural + (c.netMigration ?? 0) };
+      span = `In ${c.year}, one year`;
+    }
+    const net = world ? 0 : f?.netMigration ?? 0;
+    const max = Math.max(f?.births ?? 0, f?.deaths ?? 0, Math.abs(net)) || 1;
+    const bar = (cls, label, v, sign = "") =>
+      h(
+        "div",
+        { class: `bd-row ${cls}` },
+        h("span", { class: "bd-label" }, label),
+        h("span", { class: "bd-track", "aria-hidden": "true" }, h("span", { class: "bd-fill", style: { width: `${Math.max(2, (100 * Math.abs(v ?? 0)) / max)}%` } })),
+        h("span", { class: "bd-val" }, v == null ? "–" : sign + L.fmtFlow(Math.abs(v), { plus: false })),
+      );
+    const rows = [bar("born", "Born", f?.births, "+"), bar("died", "Died", f?.deaths, L.MINUS)];
+    if (!world) rows.push(net < 0 ? bar("left", "Moved away", net, L.MINUS) : bar("moved", "Moved in", net, "+"));
+    const change = f?.change;
+    const total = h(
+      "p",
+      { class: "bd-total" },
+      h("span", null, "Change"),
+      h("b", { "data-band": change == null ? "" : change < 0 ? "down" : "up" }, change == null ? "–" : L.fmtFlow(change, { plus: true })),
+    );
+    el.born.replaceChildren(
+      h("h3", { class: "tile-title" }, "Born, died, moved"),
+      h("p", { class: "tile-span" }, span, f?.years && y > today ? " (UN forecast)" : ""),
+      h("div", { class: "tile-pic bd-pic flows" }, ...rows, total),
+      h("p", { class: "tile-text" }, L.flowsSentence(f, placeName(), { world })),
+      world ? "" : h("p", { class: "tile-note" }, "Moved in: people who moved in, minus people who moved away."),
     );
   }
 
@@ -396,7 +442,7 @@ export function createCountryPage({ navigate, siteUrl }) {
     shareBtn.addEventListener("click", () => share(rec, shareBtn, r2100));
     const fb = data.feedback;
     const issue = fb ? L.buildIssueUrl(fb, "data-problem", { iso3: rec.iso3, name: rec.name, siteUrl: siteUrl() }) : null;
-    const mail = L.buildMailto(fb, { iso3: rec.iso3, name: rec.name, siteUrl: siteUrl() });
+    const email = emailChooser(fb, { iso3: rec.iso3, name: rec.name, siteUrl: siteUrl() }, { prefix: "cv-email" });
     const shareSec = h(
       "div",
       { class: "cv-more-sec" },
@@ -405,10 +451,11 @@ export function createCountryPage({ navigate, siteUrl }) {
         "p",
         { class: "actions" },
         shareBtn,
-        h("a", { class: "btn btn-secondary", href: xUrl, target: "_blank", rel: "noopener" }, "Post on X"),
+        h("a", { class: "btn btn-secondary", href: xUrl, target: "_blank", rel: "noopener" }, "Post link on X"),
         issue ? h("a", { class: "btn btn-secondary", href: issue, target: "_blank", rel: "noopener", id: "report-link" }, "Report a problem with these numbers") : "",
-        h("a", { class: "btn btn-secondary", href: mail }, "Email us"),
+        email.toggle,
       ),
+      email.panel,
       h("p", { class: "muted small" }, "Sources: UN World Population Prospects 2024 (CC BY 3.0 IGO), UN DESA International Migrant Stock 2024, World Bank (CC BY 4.0). GitHub issues are public; email stays private."),
     );
     el.moreBody.replaceChildren(stats, factorBlock, migBlock, links, shareSec);
@@ -430,12 +477,45 @@ export function createCountryPage({ navigate, siteUrl }) {
     setTimeout(() => (btn.textContent = "Copy link"), 1600);
   }
 
+  // ---------------------------------------------------------------- share a picture: the chart and the numbers
+
+  el.share?.addEventListener("click", () => {
+    const rec = current;
+    if (!rec) return;
+    const y = yearInt();
+    const arr = (sc) => (data.scen?.places?.[rec.iso3]?.[sc] ?? []).map((v, i) => [data.start + i, v]);
+    const model = chartModel?.iso3 === rec.iso3 ? chartModel : { past: [], medium: arr("medium"), constant: arr("constant"), today: data.today };
+    const url = L.pageUrl(rec.iso3, siteUrl()) + L.buildQuery({ year: y, scenario: state.scenario }, { defaultYear: data.end });
+    const m = {
+      rec,
+      year: y,
+      today: data.today,
+      scenario: state.scenario,
+      pop: popNow(rec.iso3),
+      pct: pctNow(rec.iso3),
+      ratio: ratioNow(rec.iso3),
+      outlookPct: outlookPct(rec.iso3),
+      url,
+      visual: chartVisual(model, { year: y, scenario: state.scenario, name: placeName() }),
+    };
+    openShare({
+      make: () => renderSnapshot(m),
+      text: L.snapshotPostText(m),
+      url,
+      fileName: `fertility-tracker-${L.slugOf(rec)}-${y}.png`,
+      alt: `People in ${placeName()}, 1950 to 2100, with ${L.fmtWords(m.pop)} people in ${y}, ${L.fmtPct(m.pct)} vs today.`,
+    });
+  });
+
   // ---------------------------------------------------------------- lifecycle
 
   subscribe((what) => {
     if (!current || el.view.hidden) return;
     if (what === "year" || what === "mix") renderLive();
-    if (what === "scenario") renderHero(current);
+    if (what === "scenario") {
+      renderHero(current);
+      renderFlows();
+    }
   });
 
   async function show(iso3) {
@@ -459,6 +539,8 @@ export function createCountryPage({ navigate, siteUrl }) {
       el.more.open = false;
     }
     const my = ++token;
+    series = null;
+    lastFlowsYear = null;
     renderHero(rec);
     setText(el.ppTitle, `Start with 100 people in ${L.theName(rec)}`);
     renderLive();

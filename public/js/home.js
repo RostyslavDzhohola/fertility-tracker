@@ -3,15 +3,16 @@
 
 import { $, h, setText, setAttr, media, focusNoScroll, announce, idle } from "./dom.js";
 import * as L from "./logic.js";
-import { data, state, subscribe, popNow, ratioNow, pctNow, pct2100, fetchJson, setYear, play, yearInt } from "./store.js";
+import { data, state, subscribe, popNow, ratioNow, pctNow, pct2100, outlookPct, fetchJson, setYear, play, yearInt } from "./store.js";
 import { createGlobe, buildLayerIdle } from "./globe.js";
 import { createTimeControls } from "./controls.js";
 import { peopleRow } from "./people.js";
 import { outlookChip } from "./ui.js";
+import { openShare, renderSnapshot, globeVisual, shareOpen } from "./snapshot.js";
 
 const SEEN_KEY = "ft.seenIntro";
 
-export function createHome({ navigate, onFocusChange, geoFetch = null }) {
+export function createHome({ navigate, onFocusChange, siteUrl = () => L.SITE_URL, geoFetch = null }) {
   const el = {
     view: $("view-globe"),
     canvas: $("globe"),
@@ -48,6 +49,8 @@ export function createHome({ navigate, onFocusChange, geoFetch = null }) {
     cardPeopleCap: $("card-people-cap"),
     cardReasons: $("card-reasons"),
     cardCta: $("card-cta"),
+    cardShare: $("card-share"),
+    shareView: $("share-view"),
     topbar: document.querySelector(".topbar"),
     geoError: $("geo-error"),
     geoRetry: $("geo-retry"),
@@ -242,6 +245,8 @@ export function createHome({ navigate, onFocusChange, geoFetch = null }) {
   }
 
   function openRiskPanel() {
+    // The card and the list share the left side: the list replaces the card, and picking a row opens that card.
+    closeCard({ returnFocus: false });
     renderRiskList();
     el.riskPanel.hidden = false;
     setAttr(el.riskBtn, "aria-expanded", "true");
@@ -285,7 +290,8 @@ export function createHome({ navigate, onFocusChange, geoFetch = null }) {
       const f = globe.frame;
       return { x: 0, y: mid - f.cy };
     }
-    return { x: -(el.card.offsetWidth + 24) / 2, y: 0 };
+    // The card sits on the left, so the place moves right of center.
+    return { x: (el.card.offsetWidth + 24) / 2, y: 0 };
   }
 
   const people = peopleRow(el.cardPeople, { per: 10, maxExtra: 10 });
@@ -303,20 +309,7 @@ export function createHome({ navigate, onFocusChange, geoFetch = null }) {
     setText(el.cardPct, y === data.today || pct == null ? "" : `${L.fmtPct(pct)} vs today`);
     el.cardPct.dataset.band = L.changeBand(pct) ?? "";
     people.update(ratioNow(rec.iso3));
-    const r = ratioNow(rec.iso3);
-    const n = r == null ? null : Math.round(r * 10);
-    setText(
-      el.cardPeopleCap,
-      r == null
-        ? "No forecast for this place."
-        : y === data.today
-          ? "Each figure is one tenth of today's people. Move the slider."
-          : r < 0.995
-            ? `${n === 10 ? "Almost all" : `${Math.max(0, n)} of 10`} still here in ${y}.`
-            : r > 1.005
-              ? `${n} for every 10 today.`
-              : `About the same as today.`,
-    );
+    setText(el.cardPeopleCap, L.peopleCaption(ratioNow(rec.iso3), y, data.today));
   }
 
   function renderCardStatic(rec) {
@@ -326,7 +319,8 @@ export function createHome({ navigate, onFocusChange, geoFetch = null }) {
     const reasons = [L.tfrReason(rec), L.birthsDeathsReason(rec, data.latestEstimateYear)].filter(Boolean);
     el.cardReasons.replaceChildren(...reasons.map((t) => h("li", null, t)));
     setAttr(el.cardCta, "href", L.countryPath(rec.iso3) + currentQuery());
-    el.cardCta.replaceChildren(`See ${L.possessiveOf(rec)} story`, h("span", { class: "arrow", "aria-hidden": "true" }, " →"));
+    const label = rec.name.length <= 12 ? `See ${L.possessiveOf(rec)} story` : "See the story";
+    el.cardCta.replaceChildren(label, h("span", { class: "arrow", "aria-hidden": "true" }, " →"));
   }
 
   function currentQuery() {
@@ -386,6 +380,61 @@ export function createHome({ navigate, onFocusChange, geoFetch = null }) {
     if (source === "keyboard" || source === "list") focusNoScroll(el.cardName);
   }
 
+  // ---------------------------------------------------------------- share a picture
+
+  // The part of the canvas the picture shows, in CSS pixels. The whole globe when it fits on screen; on phones, a square
+  // around the place; zoomed in (or on the flat map), the area you can see between the card and the controls, made
+  // square from the canvas around it.
+  function snapshotCrop() {
+    const f = globe.frame;
+    const phone = f.W < 700;
+    const r = f.r * globe.k;
+    if (globe.mode === "globe" && 2.1 * r <= Math.min(f.W, f.H) * 1.05) {
+      const size = 2.12 * r;
+      return { x: f.cx - size / 2, y: f.cy - size / 2, w: size, h: size };
+    }
+    const top = el.topbar?.getBoundingClientRect().bottom ?? 0;
+    const bottom = el.dockWrap?.getBoundingClientRect().top ?? f.H;
+    if (phone && globe.mode === "globe") {
+      // The globe is wider than a phone: a square as wide as the screen, around the place (or the middle).
+      const at = selected && selected !== "WLD" ? globe.screenOf(selected) : null;
+      const size = f.W;
+      const cy = at ? at.y : (top + bottom) / 2;
+      return { x: 0, y: Math.max(0, Math.min(f.H - size, cy - size / 2)), w: size, h: size };
+    }
+    const left = !phone && !el.card.hidden ? el.card.getBoundingClientRect().right : 0;
+    const right = !phone && el.zoomCtrl ? el.zoomCtrl.getBoundingClientRect().left : f.W;
+    if (globe.mode === "flat" && globe.k < 1.5) return { x: 0, y: top, w: f.W, h: Math.max(1, bottom - top) };
+    const size = Math.min(Math.max(right - left, bottom - top), f.H);
+    const cx = (left + right) / 2;
+    const cy = (top + bottom) / 2;
+    return { x: cx - size / 2, y: Math.max(0, Math.min(f.H - size, cy - size / 2)), w: size, h: size };
+  }
+
+  function shareView() {
+    const iso3 = selected ?? "WLD";
+    const rec = data.records.get(iso3);
+    if (!rec) return;
+    globe.stopSpin();
+    closeRiskPanel();
+    el.tip.hidden = true;
+    const y = yearInt();
+    const visual = globeVisual(el.canvas, snapshotCrop());
+    const q = L.buildQuery({ year: y, scenario: state.scenario, ...(iso3 !== "WLD" ? { focus: iso3 } : {}) }, { defaultYear: data.end });
+    const base = siteUrl();
+    const url = (base.endsWith("/") ? base : base + "/") + q;
+    const m = { rec, year: y, today: data.today, scenario: state.scenario, pop: popNow(iso3), pct: pctNow(iso3), ratio: ratioNow(iso3), outlookPct: outlookPct(iso3), url, visual };
+    openShare({
+      make: () => renderSnapshot(m),
+      text: L.snapshotPostText(m),
+      url,
+      fileName: `fertility-tracker-${L.slugOf(rec)}-${y}.png`,
+      alt: `${L.displayName(rec)} on the globe in ${y}: ${L.fmtWords(m.pop)} people, ${L.fmtPct(m.pct)} vs today.`,
+    });
+  }
+  el.shareView?.addEventListener("click", shareView);
+  el.cardShare?.addEventListener("click", shareView);
+
   // ---------------------------------------------------------------- zoom controls, view mode
 
   el.zoomIn.addEventListener("click", () => globe.zoomToward(selected !== "WLD" ? selected : null, 2));
@@ -404,7 +453,7 @@ export function createHome({ navigate, onFocusChange, geoFetch = null }) {
   }
 
   document.addEventListener("keydown", (e) => {
-    if (!visible || e.defaultPrevented) return;
+    if (!visible || e.defaultPrevented || shareOpen()) return;
     const t = e.target;
     const typing = t instanceof HTMLElement && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable);
     if (e.key === "Escape") {

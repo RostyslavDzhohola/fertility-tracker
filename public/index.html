@@ -5,8 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Fertility Tracker: every country's population, today to 2100</title>
 <meta name="description" content="Spin the globe and slide to 2100: which countries keep growing, which shrink, and how fast. UN forecasts for every country, in plain words. Free JSON, CSV and API for people and AI agents.">
-<meta name="theme-color" content="#F6F4EF">
-<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#F6F4EF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#121518" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light dark">
 <link rel="canonical" href="https://fertility-tracker-live.vercel.app/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Fertility Tracker">
@@ -38,6 +39,7 @@
 <link rel="modulepreload" href="/js/home.js">
 <link rel="modulepreload" href="/js/controls.js">
 <link rel="modulepreload" href="/js/search.js">
+<link rel="modulepreload" href="/js/snapshot.js">
 <link rel="stylesheet" href="/style.css">
 <script type="application/ld+json" id="dataset-jsonld">
 {
@@ -142,6 +144,7 @@
         <button type="button" data-mode="globe" aria-pressed="true">Globe</button>
         <button type="button" data-mode="flat" aria-pressed="false">Flat</button>
       </div>
+      <button type="button" class="share-fab" id="share-view" aria-label="Share a picture of this view"><svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true" focusable="false"><path d="M10 12.5V3M6.4 6.4 10 2.8l3.6 3.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4.5 10.5v5a1.5 1.5 0 0 0 1.5 1.5h8a1.5 1.5 0 0 0 1.5-1.5v-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Share</span></button>
     </div>
 
     <aside class="card" id="card" aria-labelledby="card-name" hidden>
@@ -156,7 +159,10 @@
       <div class="people card-people" id="card-people" aria-hidden="true"></div>
       <p class="card-cap" id="card-people-cap"></p>
       <ul class="card-reasons" id="card-reasons"></ul>
-      <a class="btn btn-primary btn-block card-cta" id="card-cta" href="/">See the story</a>
+      <div class="card-actions">
+        <a class="btn btn-primary card-cta" id="card-cta" href="/">See the story</a>
+        <button type="button" class="btn btn-secondary card-share" id="card-share" aria-label="Share a picture"><svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true" focusable="false"><path d="M10 12.5V3M6.4 6.4 10 2.8l3.6 3.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4.5 10.5v5a1.5 1.5 0 0 0 1.5 1.5h8a1.5 1.5 0 0 0 1.5-1.5v-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+      </div>
     </aside>
 
     <div class="dock-wrap" id="dock-wrap">
@@ -205,6 +211,7 @@
         <p class="verdict" id="cv-verdict"></p>
         <div class="meter" id="cv-meter"></div>
         <p class="lede" id="cv-lede"></p>
+        <button type="button" class="btn btn-secondary cv-share" id="cv-share"><svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true" focusable="false"><path d="M10 12.5V3M6.4 6.4 10 2.8l3.6 3.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4.5 10.5v5a1.5 1.5 0 0 0 1.5 1.5h8a1.5 1.5 0 0 0 1.5-1.5v-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Share a picture</span></button>
       </header>
 
       <div class="time-zone">

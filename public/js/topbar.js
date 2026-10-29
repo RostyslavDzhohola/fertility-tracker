@@ -1,8 +1,9 @@
 // The top bar on every page: wordmark, the big search, nav, and a small Feedback popover (DESIGN-v3 §2, §5).
 
-import { $, h, setAttr, focusNoScroll, announce, copyText } from "./dom.js";
+import { $, h, setAttr, focusNoScroll } from "./dom.js";
 import * as L from "./logic.js";
 import { createSearch } from "./search.js";
+import { emailChooser } from "./ui.js";
 
 // opts: getPlaces, getRecord, getPct(iso3), getYear(), topPlaces(n), onSelect(iso3), getFeedback(), siteUrl()
 export function createTopbar(opts) {
@@ -62,14 +63,7 @@ export function createTopbar(opts) {
     const fb = opts.getFeedback?.() ?? null;
     const site = opts.siteUrl?.() ?? L.SITE_URL;
     const gh = fb ? L.buildChooserUrl(fb, { siteUrl: site }) : null;
-    const address = fb?.email?.address || L.FALLBACK_EMAIL;
-    const copyBtn = h("button", { type: "button", class: "btn btn-secondary btn-small" }, "Copy");
-    copyBtn.addEventListener("click", async () => {
-      const ok = await copyText(address);
-      copyBtn.textContent = ok ? "Copied" : "Copy failed";
-      announce(ok ? "Copied to clipboard" : "Couldn't copy");
-      setTimeout(() => (copyBtn.textContent = "Copy"), 1500);
-    });
+    const email = emailChooser(fb, { siteUrl: site }, { prefix: "fb-email" });
     const x = L.xProfileUrl(fb);
     const handle = L.xHandle(fb);
     fbPanel.replaceChildren(
@@ -79,10 +73,10 @@ export function createTopbar(opts) {
         "div",
         { class: "fb-actions" },
         gh ? h("a", { class: "btn btn-primary", href: gh, target: "_blank", rel: "noopener", id: "fb-github" }, "Give feedback on GitHub") : "",
-        h("a", { class: "btn btn-secondary", href: L.buildMailto(fb, { siteUrl: site }), id: "fb-email" }, "Email us"),
+        email.toggle,
       ),
+      email.panel,
       h("p", { class: "fb-note" }, "GitHub issues are public; email stays private."),
-      h("p", { class: "fb-address" }, h("span", { class: "email-text" }, address), copyBtn),
       x && handle ? h("p", { class: "fb-note" }, "Follow updates on X: ", h("a", { href: x, rel: "noopener" }, `@${handle}`)) : "",
     );
   }

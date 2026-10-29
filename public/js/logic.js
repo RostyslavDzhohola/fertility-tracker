@@ -464,12 +464,26 @@ export function buildChooserUrl(feedback, ctx) {
   return appendQuery(gh.chooserUrl, params);
 }
 
-export function buildMailto(feedback, ctx) {
+// One message, three ways to send it. A mailto: link does nothing on a computer with no mail program set up (or a
+// browser with no web mail registered for it), so Gmail and Outlook get links that open a ready message in the browser.
+export function buildEmailLinks(feedback, ctx) {
   const address = feedback?.email?.address || FALLBACK_EMAIL;
   const subjectBase = feedback?.email?.subject || "Fertility Tracker feedback";
   const subject = ctx?.name ? `${subjectBase}: ${ctx.name}` : subjectBase;
   const body = `Page: ${pageUrl(ctx?.iso3, ctx?.siteUrl ?? feedback?.site?.url ?? SITE_URL)}\n\nWhat should we fix or add?\n`;
-  return `mailto:${address}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  const e = encodeURIComponent;
+  return {
+    address,
+    subject,
+    body,
+    mailto: `mailto:${address}?subject=${e(subject)}&body=${e(body)}`,
+    gmail: `https://mail.google.com/mail/?view=cm&fs=1&to=${e(address)}&su=${e(subject)}&body=${e(body)}`,
+    outlook: `https://outlook.live.com/mail/0/deeplink/compose?to=${e(address)}&subject=${e(subject)}&body=${e(body)}`,
+  };
+}
+
+export function buildMailto(feedback, ctx) {
+  return buildEmailLinks(feedback, ctx).mailto;
 }
 
 export function xHandle(feedback) {
@@ -726,11 +740,13 @@ export function migrationSentence(net) {
 }
 
 // "Each year, 32,800 more people leave than arrive."
-export function yearlyNetSentence(net) {
+// The latest year's net moving, with its year, so it can't be mistaken for the forecast beside it.
+export function yearlyNetSentence(net, year = null) {
   if (!isNum(net)) return "No recent figure for people moving in and out.";
-  if (Math.abs(net) < 50) return "Each year, about as many people arrive as leave.";
+  const when = year ? `In ${year}` : "Last year";
+  if (Math.abs(net) < 50) return `${when}, about as many people arrived as left.`;
   const n = fmtFlow(Math.abs(net), { plus: false });
-  return net < 0 ? `Each year, ${n} more people leave than arrive.` : `Each year, ${n} more people arrive than leave.`;
+  return net < 0 ? `${when}, ${n} more people left than arrived.` : `${when}, ${n} more people arrived than left.`;
 }
 
 export function bornDiedSentence(c) {
@@ -739,6 +755,49 @@ export function bornDiedSentence(c) {
   const d = fmtFlow(c.deaths, { plus: false });
   if (c.deaths > c.births) return `${b} born and ${d} died in ${c.year}: more people die than are born.`;
   return `${b} born and ${d} died in ${c.year}: more babies are born than people die.`;
+}
+
+// Where the change in people comes from, over a span of years: births, deaths and people moving in minus people moving
+// out, added up from the UN's yearly figures (medium variant). The UN publishes moving only as a yearly net figure;
+// arrivals and departures counted separately exist only as "people alive who moved" (migrant stock).
+// The yearly figures cover calendar years, while the slider compares 1 July populations. midyear: true counts half of
+// the first and last year, so the span runs from 1 July `from` to 1 July `to` like the population it explains.
+export function flowsBetween(series, from, to, { midyear = false } = {}) {
+  let births = 0;
+  let deaths = 0;
+  let net = 0;
+  let years = 0;
+  for (const r of series ?? []) {
+    if (r.year < from || r.year > to) continue;
+    if (!isNum(r.births) || !isNum(r.deaths)) return null;
+    const w = midyear && from < to && (r.year === from || r.year === to) ? 0.5 : 1;
+    births += w * r.births;
+    deaths += w * r.deaths;
+    if (isNum(r.netMigration)) net += w * r.netMigration;
+    years++;
+  }
+  if (!years) return null;
+  return { from, to, years, births, deaths, netMigration: net, natural: births - deaths, change: births - deaths + net };
+}
+
+// One plain sentence for flowsBetween(): does moving in hold the place up? name: "Germany", "the United States".
+export function flowsSentence(f, name, { world = false } = {}) {
+  if (!f || !isNum(f.natural)) return "No yearly figures for births, deaths and moving.";
+  const fl = (v) => fmtFlow(Math.abs(v), { plus: false });
+  const nat = f.natural;
+  const mig = world ? 0 : f.netMigration;
+  // Moving that changes the total by under 2% of births or deaths barely matters.
+  const moves = Math.abs(mig) >= 0.02 * Math.max(f.births, f.deaths, 1);
+  if (world) return nat < 0 ? "More people die than are born. Moving doesn't change the world's total." : "More babies are born than people die. Moving doesn't change the world's total.";
+  if (nat < 0) {
+    if (!moves) return "More people die than are born. Moving in and out barely changes it.";
+    if (mig < 0) return "More people die than are born, and more people leave than arrive.";
+    if (nat + mig >= 0) return `${fl(nat)} more people die than are born. People moving in add ${fl(mig)}, so ${name} ${nat + mig > 0 ? "still grows" : "stays the same size"}.`;
+    return `${fl(nat)} more people die than are born. People moving in cut the loss to ${fl(nat + mig)}.`;
+  }
+  if (!moves) return "More babies are born than people die. Moving in and out barely changes it.";
+  if (mig < 0) return nat + mig < 0 ? `More babies are born than people die, but so many leave that ${name} shrinks.` : "More babies are born than people die. Some people leave, but fewer than are born.";
+  return "More babies are born than people die, and more people move in than leave.";
 }
 
 export function babiesSentence(tfr) {
@@ -798,6 +857,39 @@ export function xPostText(rec, ratio2100) {
     text += n < 100 ? ` For every 100 people today, about ${n} will be left in 2100 (UN forecast).` : ` For every 100 people today, about ${n} in 2100 (UN forecast).`;
   }
   return text;
+}
+
+// "south-korea", "cote-d-ivoire", "world": for file names.
+export function slugOf(rec) {
+  const name = rec?.iso3 === "WLD" ? "world" : rec?.name ?? rec?.iso3 ?? "place";
+  return (
+    String(name)
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "place"
+  );
+}
+
+// Under the ten people (globe card, shared picture). r: people in `year` per person today.
+export function peopleCaption(r, year, today) {
+  if (!isNum(r)) return "No forecast for this place.";
+  if (year === today) return "Each figure is one tenth of today's people. Move the slider.";
+  const n = Math.round(r * 10);
+  if (r < 0.995) return `${n === 10 ? "Almost all" : `${Math.max(0, n)} of 10`} still here in ${year}.`;
+  if (r > 1.005) return `${n} for every 10 today.`;
+  return "About the same as today.";
+}
+
+// The words that go with a shared picture: the place, the slider year and the chosen future, like the picture.
+export function snapshotPostText({ rec, year, today, scenario, ratio }) {
+  const who = displayName(rec);
+  const tfr = isNum(rec?.tfr?.value) ? ` ${fmtTfr(rec.tfr.value)} babies per woman today.` : "";
+  if (!isNum(ratio) || year === today) return `${who}: where its population is headed by 2100.${tfr}`;
+  const n = Math.round(100 * ratio);
+  const future = scenario === "constant" ? "if birth rates stay the same" : "UN forecast";
+  return `${who} in ${year}: for every 100 people today, about ${n}${n < 100 ? " left" : ""} (${future}).${tfr}`;
 }
 
 export const HOME_TITLE = "Fertility Tracker: every country's population, today to 2100";

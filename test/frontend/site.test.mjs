@@ -80,7 +80,8 @@ test("head points people and agents at the data (root-absolute), with JSON-LD", 
   assert.ok(ld.license && ld.creator && ld.name && ld.description);
   assert.match(html, /<meta name="twitter:card" content="summary_large_image">/);
   assert.match(html, /<meta property="og:image" content="https:\/\/fertility-tracker-live\.vercel\.app\/og\.png">/);
-  assert.match(html, /<meta name="color-scheme" content="light">/);
+  // Day and night follow the system (style.css has both palettes).
+  assert.match(html, /<meta name="color-scheme" content="light dark">/);
   assert.match(pages["api/index.html"], /<link rel="service-desc" type="application\/json" href="\/api\/v1\/openapi\.json">/);
 });
 
@@ -198,7 +199,7 @@ test("first globe paint stays under 600 KB compressed (DESIGN-v3 §8)", async ()
 test("the accent color only styles interactive things", () => {
   // Every CSS rule that paints with --accent belongs to a control, a link, the slider, the focus ring or the chart's
   // year marker (which follows the slider and scrubs it).
-  const interactive = /(a\b|a:|button|\.btn|\.seg|\.chip|\.tabs|\.tc-|\.search|\.icon-btn|\.pill-btn|\.view-mode|:focus|\.skip-link|\.topnav|\.risk-row|\.risk-all|\.text-btn|\.cv-more summary|\.whatif|\.opt-name b|\.marker|\.m-bubble|\.menu-btn|\.links|\.partners|summary|\.rk-small|\.rk-more|\.tc-bubble|\.tc-slider)/;
+  const interactive = /(a\b|a:|button|\.btn|\.seg|\.chip|\.tabs|\.tc-|\.search|\.icon-btn|\.pill-btn|\.view-mode|:focus|\.skip-link|\.topnav|\.risk-row|\.risk-all|\.text-btn|\.cv-more summary|\.whatif|\.opt-name b|\.marker|\.m-bubble|\.menu-btn|\.links|\.partners|summary|\.rk-small|\.rk-more|\.tc-bubble|\.tc-slider|\.share-fab)/;
   for (const m of css.matchAll(/([^{}]+)\{([^}]*)\}/g)) {
     const [sel, body] = [m[1].trim(), m[2]];
     if (!/var\(--accent\)|#2457ff/i.test(body) || sel.startsWith(":root") || sel.startsWith("@")) continue;
