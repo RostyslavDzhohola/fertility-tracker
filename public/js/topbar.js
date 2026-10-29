@@ -5,7 +5,8 @@ import * as L from "./logic.js";
 import { createSearch } from "./search.js";
 import { emailChooser } from "./ui.js";
 
-// opts: getPlaces, getRecord, getPct(iso3), getYear(), topPlaces(n), onSelect(iso3), getFeedback(), siteUrl()
+// opts: getPlaces, getRecord, getPct(iso3), getYear(), topPlaces(n), onSelect(iso3), getFeedback(), siteUrl(),
+//   getContext() → { iso3, name } of the place on screen (country page or globe card), for the feedback links
 export function createTopbar(opts) {
   const search = createSearch({
     wrap: $("search-wrap"),
@@ -62,8 +63,10 @@ export function createTopbar(opts) {
   function fillFeedback() {
     const fb = opts.getFeedback?.() ?? null;
     const site = opts.siteUrl?.() ?? L.SITE_URL;
-    const gh = fb ? L.buildChooserUrl(fb, { siteUrl: site }) : null;
-    const email = emailChooser(fb, { siteUrl: site }, { prefix: "fb-email" });
+    // Feedback started on a place says which place.
+    const ctx = { ...(opts.getContext?.() ?? {}), siteUrl: site };
+    const gh = fb ? L.buildChooserUrl(fb, ctx) : null;
+    const email = emailChooser(fb, ctx, { prefix: "fb-email" });
     const x = L.xProfileUrl(fb);
     const handle = L.xHandle(fb);
     fbPanel.replaceChildren(

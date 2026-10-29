@@ -56,8 +56,11 @@ test("page changes push history; year, scenario and focus tweaks only replace it
   assert.match(main, /history\.pushState\(null, "", url\)/, "navigate() pushes");
   const pushes = [...allJs.matchAll(/history\.pushState\(/g)].length;
   assert.equal(pushes, 1, "pushState only in navigate()");
-  assert.match(main, /const syncUrl = debounce\(/);
-  assert.match(main.slice(main.indexOf("const syncUrl")), /history\.replaceState\(history\.state, "", url\)/);
+  // Year and scenario changes replace the entry after a pause; navigate() writes the pending one before pushing.
+  assert.match(main, /const syncUrl = \(\) => \{\s*clearTimeout\(urlTimer\);\s*urlTimer = setTimeout\(writeUrl, 250\);/);
+  assert.match(main.slice(main.indexOf("function writeUrl")), /history\.replaceState\(history\.state, "", url\)/);
+  const nav = main.slice(main.indexOf("function navigate"), main.indexOf("history.pushState"));
+  assert.match(nav, /writeUrl\(\);/, "navigate() writes the pending URL first");
   assert.ok(!/history\.(push|replace)State/.test(js["store.js"]), "the store never writes history (no spam while playing)");
 });
 

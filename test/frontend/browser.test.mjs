@@ -1257,3 +1257,81 @@ test("every place has its own share page: a country link previews that country; 
     await page.close();
   }
 });
+
+test("Share right after load waits for the globe: the picture has the map, not a blank", opts, async () => {
+  // Ready as soon as the data is in, before the globe's first frame (Terra round 3).
+  const page = await openPage({ path: "/?year=2026", ready: `document.documentElement.classList.contains("ready") && !!window.FT` });
+  try {
+    await page.eval(`document.getElementById("share-view").click(), 0`);
+    try {
+      await page.waitFor(`document.getElementById("snap").open && document.getElementById("snap-img").naturalWidth === 1600`, 40000);
+    } catch (err) {
+      const state = await page.eval(`JSON.stringify({ open: document.getElementById("snap")?.open, w: document.getElementById("snap-img")?.naturalWidth, loading: document.querySelector(".snap-loading")?.textContent, ready: FT.home.globe.ready })`);
+      throw new Error(`${err.message}: ${state} ${JSON.stringify(page.errors)}`);
+    }
+    // Count distinct colors across the left half: a drawn globe has dozens, an empty background a handful.
+    const colors = await page.eval(`(() => {
+      const img = document.getElementById("snap-img");
+      const c = document.createElement("canvas");
+      c.width = 1600; c.height = 900;
+      const g = c.getContext("2d");
+      g.drawImage(img, 0, 0);
+      const d = g.getImageData(60, 60, 780, 700).data;
+      const seen = new Set();
+      for (let i = 0; i < d.length; i += 4 * 97) seen.add((d[i] >> 3) + "," + (d[i + 1] >> 3) + "," + (d[i + 2] >> 3));
+      return seen.size;
+    })()`);
+    assert.ok(colors > 40, `the picture's map has ${colors} colors`);
+    assert.deepEqual(page.errors, []);
+  } finally {
+    await page.close();
+  }
+});
+
+test("keyboard: / search, Enter opens the card with focus in it, Escape closes it and focus returns to the globe", opts, async () => {
+  const page = await openPage({});
+  try {
+    await page.eval(`${G}.stopSpin(), 0`);
+    await page.key("/", { code: "Slash", text: "/", vk: 191 });
+    await page.type("taiwan");
+    await page.key("Enter", { text: "\r", vk: 13 });
+    await page.waitFor(`FT.home.selected === "TWN" && !document.getElementById("card").hidden`, 3000);
+    assert.equal(await page.eval("document.activeElement.id"), "card-name");
+    await page.key("Escape", { vk: 27 });
+    await page.waitFor(`document.getElementById("card").hidden`, 2000);
+    assert.equal(await page.eval("document.activeElement.id"), "globe");
+  } finally {
+    await page.close();
+  }
+});
+
+test("top-bar Feedback started on a country page names that country", opts, async () => {
+  const page = await openPage({ path: "/country/USA", ready: `!!window.FT && !!FT.data.feedback && !document.getElementById("view-country").hidden` });
+  try {
+    await page.eval(`document.getElementById("fb-btn").click(), 0`);
+    await page.waitFor(`!!document.querySelector("#fb-email-choices a[data-mail=gmail]")`, 3000);
+    const gm = new URL(await page.eval(`document.querySelector("#fb-email-choices a[data-mail=gmail]").href`));
+    assert.equal(gm.searchParams.get("su"), "Fertility Tracker feedback: United States");
+    assert.match(gm.searchParams.get("body"), /^Page: https:\/\/fertility-tracker-live\.vercel\.app\/country\/USA\n/);
+    const gh = new URL(await page.eval(`document.getElementById("fb-github").href`));
+    assert.equal(gh.searchParams.get("country"), "USA");
+  } finally {
+    await page.close();
+  }
+});
+
+test("Back returns to the year you left, even when you move the slider and switch pages at once", opts, async () => {
+  const page = await openPage({ path: "/country/USA?year=2029" });
+  try {
+    await page.waitFor(`!document.getElementById("view-country").hidden && Math.round(FT.state.year) === 2029`, 4000);
+    await page.eval(`(() => { const i = document.querySelector("#cv-controls input.tc-range"); i.value = "2030"; i.dispatchEvent(new Event("input", { bubbles: true })); FT.navigate("/rankings"); })()`);
+    await page.waitFor(`!document.getElementById("view-rankings").hidden`, 3000);
+    await page.eval(`history.back(), 0`);
+    await page.waitFor(`!document.getElementById("view-country").hidden`, 3000);
+    await sleep(200);
+    assert.equal(await page.eval("location.pathname + location.search"), "/country/USA?year=2030");
+    assert.equal(await page.eval("Math.round(FT.state.year)"), 2030);
+  } finally {
+    await page.close();
+  }
+});
