@@ -473,26 +473,44 @@ function ensureDialog() {
   );
   document.body.append(el.root);
 
-  el.close.addEventListener("click", () => el.root.close());
+  // Every way of closing ends the opening at once, before anything else can run: a pending clipboard reply then finds
+  // it gone, and a new opening right after can't be undone by a late close event.
+  const closeNow = ({ quiet = false } = {}) => {
+    const inv = state;
+    retire(inv);
+    el.img.removeAttribute("src");
+    if (el.root.open) el.root.close();
+    if (inv && !quiet) focusBack(inv.returnFocus);
+  };
+  el.close.addEventListener("click", () => closeNow());
   // A click on the dim backdrop closes it.
   el.root.addEventListener("click", (e) => {
     if (e.target === el.root) {
       const r = el.root.getBoundingClientRect();
       const inside = e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
-      if (!inside) el.root.close();
+      if (!inside) closeNow();
     }
   });
-  // Closing (button, Escape, backdrop, or a page change) ends the opening that is showing.
+  // Escape.
+  el.root.addEventListener("cancel", (e) => {
+    e.preventDefault();
+    closeNow();
+  });
+  // Any other close (dialog.close() from elsewhere). If a new picture opened before this event arrived, the dialog
+  // is open again and that picture stays.
   el.root.addEventListener("close", () => {
+    if (el.root.open || !state) return;
     const inv = state;
-    if (!inv) return;
     retire(inv);
     el.img.removeAttribute("src");
-    if (!inv.quiet) focusBack(inv.returnFocus);
+    focusBack(inv.returnFocus);
   });
+  el.closeNow = closeNow;
 
+  // Still the picture on screen? Checked after every wait.
+  const live = (inv) => state === inv && el.root.open;
   const say = (inv, msg) => {
-    if (state !== inv) return;
+    if (!live(inv)) return;
     el.status.textContent = msg;
     announce(msg);
   };
@@ -520,7 +538,7 @@ function ensureDialog() {
     // Copy before X opens: the clipboard only takes a picture while this tab has focus. The copy starts inside the
     // click, so the window still opens within the click's grace period.
     const copied = await copyPicture(inv);
-    if (state !== inv) return; // closed or replaced while copying
+    if (!live(inv)) return; // closed or replaced while copying
     if (!copied) download(inv);
     const w = window.open(intent, "_blank");
     if (w) w.opener = null;
@@ -582,7 +600,7 @@ export async function openShare(opts) {
     if (state === inv) el.loading.textContent = "Couldn't make the picture. Try again.";
     return;
   }
-  if (state !== inv) return; // closed or replaced meanwhile
+  if (state !== inv || !el.root.open) return; // closed or replaced meanwhile
   const file = new File([blob], opts.fileName, { type: "image/png" });
   inv.blob = blob;
   inv.file = file;
@@ -612,7 +630,5 @@ export const shareOpen = () => !!dlg?.root.open;
 
 // A page change closes it without moving focus: the new page places focus itself.
 export function closeShare() {
-  if (!dlg?.root.open) return;
-  if (state) state.quiet = true;
-  dlg.root.close();
+  if (dlg?.root.open) dlg.closeNow({ quiet: true });
 }

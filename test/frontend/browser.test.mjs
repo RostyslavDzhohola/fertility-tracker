@@ -1185,6 +1185,24 @@ test("the share dialog survives a second click, and a page change or Back closes
     await sleep(300);
     assert.equal(await page.eval(`(async () => (await fetch(document.getElementById("snap-img").src)).ok)()`), true);
     assert.equal(await page.eval(`document.querySelectorAll("dialog.snap").length`), 1);
+    // Closed and opened again in the same moment: the new picture shows.
+    await page.eval(`document.getElementById("snap").close(), document.getElementById("share-view").click(), 0`);
+    await sleep(500);
+    await page.waitFor(`document.getElementById("snap").open && document.getElementById("snap-img").naturalWidth === 1600 && !document.getElementById("snap-x").disabled`, 8000);
+    // A Post on X still copying when the dialog closes never opens X.
+    await page.eval(`(() => {
+      window.__opened = null;
+      window.open = (u) => { window.__opened = u; return null; };
+      Object.defineProperty(navigator, "clipboard", { configurable: true, value: { write: () => new Promise((r) => (window.__finishCopy = r)), writeText: async () => {} } });
+    })()`);
+    await page.eval(`document.getElementById("snap-x").click(), 0`);
+    await page.waitFor(`typeof window.__finishCopy === "function"`, 2000);
+    await page.eval(`document.getElementById("snap-close").click(), window.__finishCopy(), 0`);
+    await sleep(300);
+    assert.equal(await page.eval("window.__opened"), null);
+    assert.equal(await page.eval(`document.getElementById("snap").open`), false);
+    await page.eval(`document.getElementById("share-view").click(), 0`);
+    await page.waitFor(`document.getElementById("snap").open && document.getElementById("snap-img").naturalWidth === 1600`, 8000);
     // A page change closes it.
     await page.eval(`FT.navigate("/country/JPN?year=2070"), 0`);
     await page.waitFor(`!document.getElementById("view-country").hidden`, 4000);
