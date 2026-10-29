@@ -342,7 +342,9 @@ export function createHome({ navigate, onFocusChange, siteUrl = () => L.SITE_URL
     setText(el.cardName, rec.name);
     el.cardRisk.replaceChildren(outlookChip(rec));
     const reasons = [L.tfrReason(rec), L.birthsDeathsReason(rec, data.latestEstimateYear)].filter(Boolean);
-    el.cardReasons.replaceChildren(...reasons.map((t) => h("li", null, t)));
+    // How sure the numbers are (countries.json confidence); the country page says why.
+    const sure = rec.confidence ? h("li", { class: "card-sure", "data-level": rec.confidence }, L.sureCardText(rec.confidence)) : null;
+    el.cardReasons.replaceChildren(...reasons.map((t) => h("li", null, t)), ...(sure ? [sure] : []));
     setAttr(el.cardCta, "href", L.countryPath(rec.iso3) + currentQuery());
     const label = rec.name.length <= 12 ? `See ${L.possessiveOf(rec)} story` : "See the story";
     el.cardCta.replaceChildren(label, h("span", { class: "arrow", "aria-hidden": "true" }, " →"));

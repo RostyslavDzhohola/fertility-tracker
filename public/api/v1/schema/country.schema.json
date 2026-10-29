@@ -1357,6 +1357,7 @@
             "unCensuses",
             "unRegisters",
             "register",
+            "keptCurrent",
             "unOfficialEstimatesThrough",
             "latestCensus",
             "downgraded"
@@ -1401,6 +1402,10 @@
             "register": {
               "type": "boolean",
               "description": "Kept by a population register (used in the last 10 years)."
+            },
+            "keptCurrent": {
+              "type": "boolean",
+              "description": "Last census over 10 years old, but kept current: births and deaths fully registered and the country's own figure from the last two years within 2% of the UN's."
             },
             "unOfficialEstimatesThrough": {
               "type": [

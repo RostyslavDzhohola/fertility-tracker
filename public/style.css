@@ -3853,6 +3853,19 @@ body.page-globe {
 .blk-sure {
   scroll-margin-top: calc(var(--topbar-h) + 120px);
 }
+/* The globe card's "Data: …" line: its bullet is the level's color. */
+.card-reasons .card-sure {
+  color: var(--muted);
+}
+.card-reasons .card-sure[data-level="good"]::before {
+  background: var(--sure-good);
+}
+.card-reasons .card-sure[data-level="fair"]::before {
+  background: var(--sure-fair);
+}
+.card-reasons .card-sure[data-level="poor"]::before {
+  background: var(--sure-poor);
+}
 .blk-sure:focus {
   outline: none;
 }

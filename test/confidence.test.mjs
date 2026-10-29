@@ -52,6 +52,21 @@ test("today's level: census age with the UN's 15-year cutoff, registers are alwa
   assert.match(LEVEL_RULES.today.poor, /15 years/);
 });
 
+test("kept current: an old census, but complete registration and a recent official figure that matches the UN's", () => {
+  const es = { data: new Map([["AA", new Map([[2026, { value: 1_005_000, flag: null }]])]]), updated: "2026-10-27" };
+  const complete = pvsr({ births: { year: 2025, code: "C" }, deaths: { year: 2025, code: "C" } });
+  const out = run({ ...ds({ censuses: [2011] }), ...complete, eurostat: { population: es, foreignBorn: null } });
+  assert.equal(out.confidence.today.level, "good");
+  assert.equal(out.confidence.today.keptCurrent, true);
+  // Not when births and deaths aren't fully registered, nor when the figures differ.
+  const partial = run({ ...ds({ censuses: [2011] }), ...pvsr({ births: { year: 2025, code: "U" }, deaths: { year: 2025, code: "U" } }), eurostat: { population: es, foreignBorn: null } });
+  assert.equal(partial.confidence.today.level, "fair");
+  const off = { data: new Map([["AA", new Map([[2026, { value: 950_000, flag: null }]])]]), updated: "2026-10-27" };
+  const differs = run({ ...ds({ censuses: [2011] }), ...complete, eurostat: { population: off, foreignBorn: null } });
+  assert.equal(differs.confidence.today.keptCurrent, false);
+  assert.equal(differs.confidence.today.level, "poor", "fair, then one step lower for the 5.8% gap");
+});
+
 test("a newer census the UN couldn't use counts as the last head count, and is compared with the UN", () => {
   const out = run({ ...ds({ censuses: [2001] }), ...pvsr({ census: { date: "2024-07-01", code: "DJ", total: 950_000, provisional: true, notes: [7] } }, { 2: { 7: "Excluding the north." } }) });
   assert.equal(out.confidence.today.lastCount, 2024);
@@ -257,4 +272,19 @@ test("the cross-check queue puts weak data, big gaps and big places first, and s
   assert.equal(fresh.fresh, true);
   assert.equal(fresh.score, 0);
   assert.equal(queueScore(place({ crossChecks: [{ kind: "researched", key: "today", accessed: "2026-01-01" }] }), { now }).fresh, false);
+});
+
+test("merging hand-checked notes keeps only what the verifier passed, applies its fixes, and drops invalid notes", async () => {
+  const { mergeCountry } = await import("../scripts/checks/merge-crosschecks.mjs");
+  const check = (o) => ({ key: "today", text: "The office counted 10 people.", figure: { value: 10, what: "people", date: 2025 }, unFigure: { value: 11, what: "UN", field: "x", date: "2025" }, verdict: "un-higher", links: [{ label: "Office", href: "https://stat.example" }], quotes: [{ text: "10 people", href: "https://stat.example" }], confidence: "verified", ...o });
+  const research = { iso3: "AAA", researched: "2026-10-29", checks: [check(), check({ key: "net" }), check({ confidence: "unverified" }), check({ links: [] })] };
+  const verify = { checks: [{ index: 0, ok: true, fix: { text: "Fixed." } }, { index: 1, ok: false, problems: ["quote not found"] }, { index: 2, ok: true }, { index: 3, ok: true }] };
+  const { notes, dropped } = mergeCountry(research, verify);
+  assert.equal(notes.length, 1);
+  assert.equal(notes[0].text, "Fixed.");
+  assert.equal(notes[0].accessed, "2026-10-29");
+  assert.deepEqual(notes[0].unFigure, { value: 11, what: "UN", date: "2025" }, "extra fields dropped");
+  assert.deepEqual(Object.keys(notes[0]), ["key", "text", "figure", "unFigure", "verdict", "links", "quotes", "accessed"]);
+  assert.deepEqual(dropped.map((d) => d.why), ["quote not found", "researcher could not open the source", "invalid: links"]);
+  assert.equal(mergeCountry(research, null).notes.length, 0, "nothing merges unverified");
 });

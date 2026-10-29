@@ -3,8 +3,8 @@
   "description": "Fertility, births, deaths, net migration, migrant stocks, UN projections to 2100 (medium and constant-fertility scenarios) and a population-decline risk score for every country. Static files, no key, CORS open, refreshed weekly.",
   "apiVersion": "v1",
   "schemaVersion": "1.0.0",
-  "generatedAt": "2026-10-29T23:30:20Z",
-  "contentHash": "298d7cdf66d082c79a276c8dda9779146a71d07c5623a7951963754ac8e247ca",
+  "generatedAt": "2026-10-29T23:35:56Z",
+  "contentHash": "54af8245575d3371c16228b6de62e24626a734ac9c9517db502046a9654a24e9",
   "baseUrl": "https://fertility-tracker-live.vercel.app/api/v1/",
   "latestEstimateYear": 2023,
   "replacementTfr": 2.1,
@@ -424,7 +424,7 @@
     "matchPct": 2,
     "downgradePct": 5,
     "today": {
-      "good": "Counted by a census in the last 10 years, or kept by a population register",
+      "good": "Counted by a census in the last 10 years, kept by a population register, or kept current: births and deaths fully registered and the country's own population figure from the last two years within 2% of the UN's",
       "fair": "Last census 11 to 15 years ago",
       "poor": "Last census more than 15 years ago (the UN's own cutoff), or none",
       "downgrade": "One step lower when a newer official population differs from the UN's by more than 5%"

@@ -126,6 +126,7 @@ const confidence = objN("How sure this place's numbers are (index.json confidenc
     unCensuses: arr("Census years the UN based its estimates on (WPP 2024 Data Sources).", T("integer", "Year.")),
     unRegisters: arr("Population-register years the UN used.", T("integer", "Year.")),
     register: T("boolean", "Kept by a population register (used in the last 10 years)."),
+    keptCurrent: T("boolean", "Last census over 10 years old, but kept current: births and deaths fully registered and the country's own figure from the last two years within 2% of the UN's."),
     unOfficialEstimatesThrough: intN("The UN used the country's official population estimates up to this year."),
     latestCensus: objN("Latest census reported to the UN Statistics Division.", {
       date: T("string", "Census day (first day, for a census over several days)."),

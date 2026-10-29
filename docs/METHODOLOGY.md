@@ -145,8 +145,10 @@ Every country page has a **How sure is this?** section, and every record in the 
 **Levels.** Each part gets `good`, `fair` or `poor` ("Solid numbers", "Partly estimated", "Mostly estimated" on the
 site). The rules are published in `index.json` as `confidenceRules`:
 
-- **Today's population (last head count).** Good: a census in the last 10 years, or a population register. Fair: the
-  last census was 11-15 years ago. Poor: more than 15 years ago, or never. Fifteen years is the UN's own cutoff for an
+- **Today's population (last head count).** Good: a census in the last 10 years, a population register, or kept
+  current (every birth and death registered, and the country's own population figure from the last two years within 2%
+  of the UN's: Sweden and the Netherlands count everyone through registers, though their last listed census is 2011).
+  Fair: the last census was 11-15 years ago. Poor: more than 15 years ago, or never. Fifteen years is the UN's own cutoff for an
   old census (WPP 2024 Summary of Results, annex 1: 23 places). The newest census counts even when the UN couldn't use
   it yet (reported to the UN Statistics Division after the 2024 revision). One step lower when a newer official
   population differs from the UN's by more than 5%.

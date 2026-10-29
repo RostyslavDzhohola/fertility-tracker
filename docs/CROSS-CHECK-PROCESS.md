@@ -44,9 +44,15 @@ whose notes are under 180 days old. Places under 100,000 people are left out (`-
 2. **Verify.** Someone who did not research it opens every link and confirms that each quote is on that page and holds
    the number used. Drop any check that fails, any check marked `unverified`, and anything resting on news or
    Wikipedia. Keep the text plain: what was counted, when, and how it compares.
-3. **Merge.** Copy the verified checks into `scripts/data/crosschecks.json` under the country's code. Keep `key`,
-   `text`, `figure`, `unFigure`, `verdict`, `links`, `quotes` and `accessed` (the pipeline drops anything else). Set
-   `checked` at the top to today.
+3. **Merge.** The verifier writes one file per country next to the research (`{ISO3}.json`: per check `index`, `ok`,
+   `problems`, and `fix` for small certain corrections). Then:
+   ```sh
+   node scripts/checks/merge-crosschecks.mjs --research <research dir> --verify <verify dir> --dry-run
+   node scripts/checks/merge-crosschecks.mjs --research <research dir> --verify <verify dir>
+   ```
+   Only checks the verifier passed and the researcher could open are merged, with the fixes applied, into
+   `scripts/data/crosschecks.json` (a merged country's earlier notes are replaced). The script lists what it dropped
+   and why.
 4. **Build and test.** `node scripts/fetch-data.mjs` (the hand-checked notes reach `crossChecks` in
    `countries/{ISO3}.json`), then `node --test`. Look at each country page.
 5. **PR.** One PR per batch, listing the countries and anything dropped in step 2 and why.

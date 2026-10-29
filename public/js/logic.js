@@ -1058,6 +1058,11 @@ export const SURE_WORDS = {
   forecast: { good: "Narrow range to 2050", fair: "Wide range", poor: "Very wide range" },
 };
 
+// The globe card's line: how sure, in a few words (its page has "How sure is this?").
+export function sureCardText(level) {
+  return { good: "Data: solid (counted recently)", fair: "Data: partly estimated", poor: "Data: mostly estimated" }[level] ?? "";
+}
+
 // The head-count word; when a newer official figure pulled the level down, it says that instead of the count's age.
 export function sureTodayWord(t) {
   return t?.downgraded ? "Official figure differs" : SURE_WORDS.today[t?.level] ?? "";
@@ -1076,6 +1081,7 @@ export function sureTodayText(t, now) {
   const newer = t.latestCensus && Number(t.latestCensus.date.slice(0, 4)) > unLast;
   let s = `Last census: ${t.lastCount}, ${yearsAgo(t.lastCount, now)}.`;
   if (newer) s += Number.isFinite(unLast) ? ` The UN's numbers don't use it yet: they rest on the ${unLast} count.` : " The UN's numbers don't use it yet.";
+  else if (t.keptCurrent) s += " Every birth and death is registered, and the country's own recent count matches the UN's, so the number stays current.";
   else if (now - t.lastCount > 10) s += " Since then, the UN adds births and deaths and estimates who moved.";
   if (t.downgraded) s += " The country's newest official figure is more than 5% away from the UN's: see below.";
   return s;
@@ -1125,7 +1131,8 @@ export function sureSummary(rec, conf, now) {
   const lead = { good: `${possessive(name)} numbers are solid`, fair: `${possessive(name)} numbers are partly estimated`, poor: `${possessive(name)} numbers are mostly estimated` }[conf.level];
   const reasons = [];
   const countWhy = t.lastCount == null ? "it has no census on record" : `its last census was in ${t.lastCount}`;
-  if (t.level === conf.level || (conf.level === "good" && t.level === "good")) reasons.push(t.register ? "a population register keeps the count" : countWhy);
+  if (t.level === conf.level || (conf.level === "good" && t.level === "good"))
+    reasons.push(t.register ? "a population register keeps the count" : t.keptCurrent ? "its own up-to-date count matches the UN's" : countWhy);
   if (bd.level === conf.level && conf.level !== "good") reasons.push(bd.level === "poor" ? "most births and deaths aren't registered" : "not every birth and death is registered");
   if (conf.level === "good" && bd.level === "good") reasons.push("every birth and death is registered");
   if (t.downgraded && t.level === conf.level) reasons.push("its newest official figure differs from the UN's by more than 5%");

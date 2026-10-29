@@ -51,7 +51,8 @@ export const DOWNGRADE_PCT = 5;
 export const LEVELS = ["good", "fair", "poor"];
 export const LEVEL_RULES = {
   today: {
-    good: "Counted by a census in the last 10 years, or kept by a population register",
+    good:
+      "Counted by a census in the last 10 years, kept by a population register, or kept current: births and deaths fully registered and the country's own population figure from the last two years within 2% of the UN's",
     fair: "Last census 11 to 15 years ago",
     poor: "Last census more than 15 years ago (the UN's own cutoff), or none",
     downgrade: `One step lower when a newer official population differs from the UN's by more than ${DOWNGRADE_PCT}%`,
@@ -491,10 +492,15 @@ export function buildConfidence({ rec, series, seriesOf = () => null, range, sto
   ];
 
   let today = ds || pvsrCensus ? todayLevel({ lastCount: Number.isFinite(lastCount) ? lastCount : null, register }, year) : null;
+  const birthsDeaths = ds || pvsrPlace ? birthsDeathsLevel(pvsrPlace, ds) : null;
+  // Kept current between censuses: every birth and death registered, and the country's own recent figure agrees with
+  // the UN's (Sweden and the Netherlands count everyone through registers; their last listed census is 2011).
+  const recentOfficial = crossChecks.filter((c) => c.key === "today" && c.kind !== "researched" && Number(String(c.figure?.date).slice(0, 4)) >= year - 2);
+  const keptCurrent = today != null && today !== "good" && birthsDeaths === "good" && recentOfficial.some((c) => c.verdict === "matches");
+  if (keptCurrent) today = "good";
   const popGap = crossChecks.filter((c) => (c.key === "today" || c.key === "census") && c.gapPct != null).map((c) => Math.abs(c.gapPct));
   const downgraded = today != null && popGap.some((g) => g > DOWNGRADE_PCT);
   if (downgraded) today = lower(today);
-  const birthsDeaths = ds || pvsrPlace ? birthsDeathsLevel(pvsrPlace, ds) : null;
   const reassessed = sources.desaReassessed ? sources.desaReassessed.has(code) : null;
   const immigration = immigrationLevel(desa, reassessed);
   const r2050 = rangeAt(range, series, 2050);
@@ -511,6 +517,7 @@ export function buildConfidence({ rec, series, seriesOf = () => null, range, sto
         unCensuses: ds?.censuses ?? [],
         unRegisters: ds?.registers ?? [],
         register,
+        keptCurrent,
         unOfficialEstimatesThrough: ds?.officialEstimatesThrough ?? null,
         latestCensus: pvsrCensus ? { date: pvsrCensus.date, total: pvsrCensus.total ?? null, provisional: !!pvsrCensus.provisional } : null,
         downgraded,
