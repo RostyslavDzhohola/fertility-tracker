@@ -134,6 +134,7 @@ export async function renderCard(iso3) {
     rec,
     year,
     today: d.today,
+    lastEstimate: 2023,
     scenario: "medium",
     pop,
     pct,
@@ -141,7 +142,7 @@ export async function renderCard(iso3) {
     outlookPct: pct,
     url: L.pageUrl(iso3 === "WLD" ? null : iso3, d.site),
     // The card crop takes 30 px off the bottom: lift the legend clear of it.
-    visual: globeVisual(globe, { x: 0, y: 0, w: GLOBE, h: GLOBE }, { legendInset: 58 }),
+    visual: globeVisual(globe, { x: 0, y: 0, w: GLOBE, h: GLOBE }, { legendInset: 58, scale: "outlook" }),
   };
   const big = await drawSnapshot(m);
   // 16:9 → X's 1.91:1: drop 30 px top and bottom (margins only), then scale to 1200×630.

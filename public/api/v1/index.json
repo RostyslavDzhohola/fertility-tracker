@@ -3,8 +3,8 @@
   "description": "Fertility, births, deaths, net migration, migrant stocks, UN projections to 2100 (medium and constant-fertility scenarios) and a population-decline risk score for every country. Static files, no key, CORS open, refreshed weekly.",
   "apiVersion": "v1",
   "schemaVersion": "1.0.0",
-  "generatedAt": "2026-10-28T04:53:48Z",
-  "contentHash": "34860e390786db37620efb7acd826ef2bb608945aa99e73c0b979bb342f252cc",
+  "generatedAt": "2026-10-29T17:46:18Z",
+  "contentHash": "1fef420e75b1a834141f1b8a24c206ce7b6348b3d09d92e429da2d2e0b72b48e",
   "baseUrl": "https://fertility-tracker-live.vercel.app/api/v1/",
   "latestEstimateYear": 2023,
   "replacementTfr": 2.1,
@@ -288,7 +288,7 @@
       "path": "scenarios.json",
       "url": "https://fertility-tracker-live.vercel.app/api/v1/scenarios.json",
       "format": "json",
-      "description": "Population of every country + WLD each year 2024-2100 under two UN WPP 2024 scenarios: medium (\"UN forecast\") and constant fertility (\"If birth rates stay the same\").",
+      "description": "Population of every country + WLD each year: UN estimates 1950-2023, then 2024-2100 under two UN WPP 2024 scenarios: medium (\"UN forecast\") and constant fertility (\"If birth rates stay the same\").",
       "schema": "https://fertility-tracker-live.vercel.app/api/v1/schema/scenarios.schema.json"
     },
     {

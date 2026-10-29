@@ -389,6 +389,11 @@ function compareScenarios(r, published, ref) {
     // Medium in scenarios.json (UN PopTotal) vs the country series (UN TPopulation1July): equal to within 1 person.
     const d = published.details.get(c.iso3);
     for (const s of d?.series ?? []) {
+      if (s.year < sc.startYear && s.year >= sc.estimateStartYear) {
+        // The shared past is the series' own UN estimate, copied.
+        r.num("scenarios.estimate=series", self("scenarios estimate = countries/{ISO3}.json series population (UN estimates)"), c.iso3, `${s.year}`, p.estimate?.[s.year - sc.estimateStartYear] ?? null, s.population, TOLERANCE.people);
+        continue;
+      }
       if (s.year < sc.startYear || s.year > sc.endYear) continue;
       r.num("scenarios.medium=series", self("scenarios medium = countries/{ISO3}.json series population (same UN medium projection)"), c.iso3, `${s.year}`, p.medium[s.year - sc.startYear], s.population, TOLERANCE.people + 1);
     }

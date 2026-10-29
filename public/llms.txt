@@ -10,7 +10,7 @@ Sources: World Bank World Development Indicators (latest reported year: fertilit
 - [countries.json](https://fertility-tracker-live.vercel.app/api/v1/countries.json): one summary record per country + WLD: population, tfr, median age, 65+ share, latest births/deaths/net migration (absolute and per 1,000), immigrant/emigrant stock, UN 2050/2100 projection, generation ratio, risk {score, tier, rank, factors}
 - [countries/{ISO3}.json](https://fertility-tracker-live.vercel.app/api/v1/countries/KOR.json): everything for one country, including yearly series 1950-2100 (population, births, deaths, naturalChange, netMigration, populationChange, tfr, medianAge, share65), migrant stock history, top 10 origin and destination countries, full risk breakdown
 - [risk.json](https://fertility-tracker-live.vercel.app/api/v1/risk.json): countries ranked by population-decline risk (rank 1 = highest), component points, inputs, factors and the full methodology
-- [scenarios.json](https://fertility-tracker-live.vercel.app/api/v1/scenarios.json): population of every country + WLD each year 2024-2100 under two UN scenarios: places[ISO3].medium ("UN forecast") and places[ISO3].constant ("If birth rates stay the same": fertility held at its 2023 level, mortality and migration as in the forecast); index = year - startYear
+- [scenarios.json](https://fertility-tracker-live.vercel.app/api/v1/scenarios.json): population of every country + WLD each year: places[ISO3].estimate (UN estimates 1950-2023, index = year - estimateStartYear), then 2024-2100 under two UN scenarios: places[ISO3].medium ("UN forecast") and places[ISO3].constant ("If birth rates stay the same": fertility held at its 2023 level, mortality and migration as in the forecast); index = year - startYear
 - [countries.csv](https://fertility-tracker-live.vercel.app/api/v1/countries.csv): one row per country, nested fields flattened with underscores
 - [timeseries.csv](https://fertility-tracker-live.vercel.app/api/v1/timeseries.csv): long format iso3,year,variant,metric,value (variant = estimate | projection), about 11 MB
 - [status.json](https://fertility-tracker-live.vercel.app/api/v1/status.json): when the weekly refresh last ran, whether it succeeded, and the deployed commit
@@ -33,6 +33,7 @@ Sources: World Bank World Development Indicators (latest reported year: fertilit
 - Highest-risk countries: GET api/v1/risk.json -> .ranking[0:10] -> {rank, name, score, tier, factors}
 - One country now and in 2050: GET api/v1/countries/JPN.json -> .tfr, .components, .series[] where year == 2050
 - A country in 2070 under both scenarios: GET api/v1/scenarios.json -> .places.TWN.medium[2070 - .startYear] and .places.TWN.constant[2070 - .startYear]
+- A country in 1990: GET api/v1/scenarios.json -> .places.UKR.estimate[1990 - .estimateStartYear]
 - Where a country's emigrants live: GET api/v1/countries/UKR.json -> .migrationCorridors.topDestinations
 - Spreadsheet: GET api/v1/countries.csv; all years: GET api/v1/timeseries.csv
 - Change detection: GET api/v1/index.json -> compare contentHash with your cached copy

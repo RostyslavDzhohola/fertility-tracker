@@ -241,7 +241,8 @@ const scenariosSchema = obj("scenarios.json", {
   generatedAt: T("string", "When the numbers last changed (ISO 8601).", { format: "date-time" }),
   source: T("object", "UN WPP 2024 file, interim update, vintage, licence and citation."),
   unit: T("string", "Unit of every number in places.", { const: "people" }),
-  startYear: int("First year in each array (index 0)."),
+  estimateStartYear: int("First year in each place's estimate array (index 0)."),
+  startYear: int("First year in each scenario array (index 0)."),
   endYear: int("Last year in each array."),
   scenarios: obj("The two scenarios.", {
     medium: scenarioMeta("UN forecast", "Medium"),
@@ -260,6 +261,11 @@ const scenariosSchema = obj("scenarios.json", {
   ),
   places: T("object", "One entry per country plus WLD (every record in countries.json), keyed by ISO3.", {
     additionalProperties: obj("Population paths for one place.", {
+      estimate: arr(
+        "The past both scenarios share: UN estimates of people on 1 July for each year estimateStartYear..startYear - 1 (index = year - estimateStartYear); null = missing.",
+        T(nul("integer"), "People.", { minimum: 0 }),
+        { minItems: 1 },
+      ),
       medium: scenarioArray("UN forecast (medium)"),
       constant: scenarioArray("If birth rates stay the same (constant fertility)"),
     }),
@@ -272,7 +278,7 @@ export function schemas() {
       ...header(
         "Fertility Tracker: scenarios.json",
         "scenarios.schema.json",
-        "Population of every country and the world each year to 2100 under two UN WPP 2024 scenarios: medium and constant fertility.",
+        "Population of every country and the world each year from 1950 (UN estimates) to 2100 under two UN WPP 2024 scenarios: medium and constant fertility.",
       ),
       ...scenariosSchema,
     },

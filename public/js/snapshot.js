@@ -100,8 +100,9 @@ function person(g, x, y, s, f, alive, gone) {
 // ---------------------------------------------------------------- the picture's left half
 
 // The globe as drawn on screen. `crop` is a rectangle of the canvas in CSS pixels; parts outside the canvas stay
-// background. The legend goes along the bottom, `legendInset` px up from it.
-export function globeVisual(canvas, crop, { legendInset = 24 } = {}) {
+// background. The legend goes along the bottom, `legendInset` px up from it. scale: "trend" (the site's globe: change
+// per year) or "outlook" (the link cards: 2100 vs today).
+export function globeVisual(canvas, crop, { legendInset = 24, scale = "trend" } = {}) {
   return (g, box, t) => {
     const bg = g.createRadialGradient(box.x + box.w / 2, box.y + box.h * 0.45, 0, box.x + box.w / 2, box.y + box.h * 0.45, box.w * 0.75);
     bg.addColorStop(0, t.globeBg);
@@ -111,23 +112,25 @@ export function globeVisual(canvas, crop, { legendInset = 24 } = {}) {
     const cw = canvas.clientWidth || canvas.width;
     const ch = canvas.clientHeight || canvas.height;
     const px = canvas.width / cw;
-    const scale = Math.min(box.w / crop.w, box.h / crop.h);
-    const ox = box.x + (box.w - crop.w * scale) / 2;
-    const oy = box.y + (box.h - crop.h * scale) / 2;
+    const zoom = Math.min(box.w / crop.w, box.h / crop.h);
+    const ox = box.x + (box.w - crop.w * zoom) / 2;
+    const oy = box.y + (box.h - crop.h * zoom) / 2;
     const x0 = Math.max(0, crop.x);
     const y0 = Math.max(0, crop.y);
     const x1 = Math.min(cw, crop.x + crop.w);
     const y1 = Math.min(ch, crop.y + crop.h);
     if (x1 > x0 && y1 > y0) {
       g.imageSmoothingQuality = "high";
-      g.drawImage(canvas, x0 * px, y0 * px, (x1 - x0) * px, (y1 - y0) * px, ox + (x0 - crop.x) * scale, oy + (y0 - crop.y) * scale, (x1 - x0) * scale, (y1 - y0) * scale);
+      g.drawImage(canvas, x0 * px, y0 * px, (x1 - x0) * px, (y1 - y0) * px, ox + (x0 - crop.x) * zoom, oy + (y0 - crop.y) * zoom, (x1 - x0) * zoom, (y1 - y0) * zoom);
     }
-    legend(g, box, t, legendInset);
+    legend(g, box, t, legendInset, scale);
   };
 }
 
-function legend(g, box, t, inset) {
-  const items = L.OUTLOOK.map((o, i) => ({ label: o.label, color: L.outlookColor(i) }));
+// The globe's colors, on the scale it was drawn with: how fast each place was growing or shrinking over the 5 years
+// up to the picture's year, or 2100 compared with today.
+function legend(g, box, t, inset, scale) {
+  const items = scale === "outlook" ? L.OUTLOOK.map((o, i) => ({ label: o.label, color: L.outlookColor(i) })) : L.TREND.map((o, i) => ({ label: o.label, color: L.trendColorOf(i) }));
   // As big as fits: it has to read in a phone's X feed, where the picture is about a quarter of this size.
   let size = 26;
   let sw, gap, widths, total;
@@ -292,7 +295,8 @@ export function chartVisual(model, { year, scenario, name }) {
 
 // ---------------------------------------------------------------- the whole picture
 
-// m: { rec, year, today, scenario, pop, pct, ratio, outlookPct (2100 vs today), url, visual(g, box, theme) }
+// m: { rec, year, today, lastEstimate (the UN's last counted year), scenario, pop, pct, ratio, outlookPct (2100 vs today),
+//      url, visual(g, box, theme) }
 // The picture on a canvas (Share makes a PNG of it; the link-preview cards crop it to 1200×630).
 export async function drawSnapshot(m) {
   const c = document.createElement("canvas");
@@ -410,7 +414,9 @@ export async function drawSnapshot(m) {
   // Footer: which future, the source, then the link.
   g.fillStyle = t.ink2;
   g.font = font(750, 26);
-  g.fillText(L.SCENARIO_LABELS[m.scenario] ?? L.SCENARIO_LABELS.medium, x, SNAP_H - 130, maxW);
+  // A year the UN has counted is an estimate, whichever future is selected.
+  const counted = Number.isFinite(m.lastEstimate) && m.year <= m.lastEstimate;
+  g.fillText(counted ? "UN estimate" : L.SCENARIO_LABELS[m.scenario] ?? L.SCENARIO_LABELS.medium, x, SNAP_H - 130, maxW);
   g.fillStyle = t.muted;
   g.font = font(600, 22);
   g.fillText("Source: UN World Population Prospects 2024", x, SNAP_H - 96, maxW);
@@ -609,7 +615,8 @@ export async function openShare(opts) {
   let blob;
   try {
     blob = await opts.make();
-  } catch {
+  } catch (err) {
+    console.error("[share] couldn't make the picture", err);
     if (state === inv) el.loading.textContent = "Couldn't make the picture. Try again.";
     return;
   }
