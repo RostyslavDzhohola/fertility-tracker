@@ -132,3 +132,10 @@ countries from the queue) in its PR, so the whole list is covered over time. A l
 > }
 > ```
 > `figure` and `unFigure` may be null.
+
+## Batches so far
+
+| Date | Places | Merged | Dropped |
+| --- | --- | --- | --- |
+| 29 Oct 2026 | Ukraine, United States, United Kingdom (from [DATA-CROSS-CHECK.md](DATA-CROSS-CHECK.md)) | 6 | 0 |
+| 29 Oct 2026 | Nigeria, DR Congo, Ethiopia, Sudan, Uganda, Angola, Cameroon, Somalia; India, Pakistan, Afghanistan, Iraq, Yemen, Syria, Myanmar, Uzbekistan; China, Indonesia, Iran, Egypt, Russia, Lebanon, Venezuela, Bangladesh | 54 (29 corrected by the verifier: unsourced causes removed, refugee counts set as context rather than net migration) | 2 (Iran's population and births: the statistics and registration sites were down, and news reports are not a source) |

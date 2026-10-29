@@ -1152,7 +1152,8 @@ export function sureSummary(rec, conf, now) {
   if (bd.level === conf.level && conf.level !== "good") reasons.push(bd.level === "poor" ? "most births and deaths aren't registered" : partly);
   if (conf.level === "good" && bd.level === "good") reasons.push("almost all births and deaths are registered");
   if (t.downgraded && t.level === conf.level) reasons.push("its newest official figure differs from the UN's by more than 5%");
-  return `${lead}: ${reasons.join(", and ") || countWhy}.`;
+  const list = reasons.length > 2 ? `${reasons.slice(0, -1).join(", ")} and ${reasons.at(-1)}` : reasons.join(", and ");
+  return `${lead}: ${list || countWhy}.`;
 }
 
 const gapPctWords = (g) => `${Math.abs(g) < 10 ? Math.abs(g).toFixed(1).replace(/\.0$/, "") : Math.round(Math.abs(g))}%`;

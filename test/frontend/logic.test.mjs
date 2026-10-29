@@ -513,6 +513,10 @@ test("how sure: one summary sentence names the weakest part", () => {
   );
   assert.equal(L.sureSummary(ukr, conf({ level: "fair", today: { level: "good", lastCount: 2022 }, birthsDeaths: { level: "fair" } }), 2026), "Ukraine's numbers are partly estimated: not all births and deaths are registered.");
   assert.equal(L.sureSummary(ukr, { level: null }, 2026), null);
+  assert.equal(
+    L.sureSummary(ukr, conf({ birthsDeaths: { level: "poor" }, today: { level: "poor", lastCount: 2007, downgraded: true } }), 2026),
+    "Ukraine's numbers are mostly estimated: its last census was in 2007, most births and deaths aren't registered and its newest official figure differs from the UN's by more than 5%.",
+  );
 });
 
 test("how sure: automatic comparisons with newer national figures, in words", () => {
