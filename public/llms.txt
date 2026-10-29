@@ -8,7 +8,7 @@ Sources: World Bank World Development Indicators (latest reported year: fertilit
 
 - [index.json](https://fertility-tracker-live.vercel.app/api/v1/index.json): manifest with exact source URLs, data vintages, endpoints, known data gaps, generatedAt and contentHash (changes only when numbers change)
 - [countries.json](https://fertility-tracker-live.vercel.app/api/v1/countries.json): one summary record per country + WLD: population, tfr, median age, 65+ share, latest births/deaths/net migration (absolute and per 1,000), immigrant/emigrant stock, UN 2050/2100 projection, generation ratio, risk {score, tier, rank, factors}
-- [countries/{ISO3}.json](https://fertility-tracker-live.vercel.app/api/v1/countries/KOR.json): everything for one country, including yearly series 1950-2100 (population, births, deaths, naturalChange, netMigration, populationChange, tfr, medianAge, share65), migrant stock history, top 10 origin and destination countries, full risk breakdown
+- [countries/{ISO3}.json](https://fertility-tracker-live.vercel.app/api/v1/countries/KOR.json): everything for one country, including yearly series 1950-2100 (population, births, deaths, naturalChange, netMigration, populationChange, tfr, medianAge, share65), migrant stock history, top 10 origin and destination countries, full risk breakdown, confidence (how sure the numbers are, and what the UN based them on), forecastRange (the UN's 80% and 95% ranges and Zero-migration path, 2024-2100) and crossChecks (newer national figures compared with the UN's)
 - [risk.json](https://fertility-tracker-live.vercel.app/api/v1/risk.json): countries ranked by population-decline risk (rank 1 = highest), component points, inputs, factors and the full methodology
 - [scenarios.json](https://fertility-tracker-live.vercel.app/api/v1/scenarios.json): population of every country + WLD each year: places[ISO3].estimate (UN estimates 1950-2023, index = year - estimateStartYear), then 2024-2100 under two UN scenarios: places[ISO3].medium ("UN forecast") and places[ISO3].constant ("If birth rates stay the same": fertility held at its 2023 level, mortality and migration as in the forecast); index = year - startYear
 - [countries.csv](https://fertility-tracker-live.vercel.app/api/v1/countries.csv): one row per country, nested fields flattened with underscores
@@ -27,6 +27,8 @@ Sources: World Bank World Development Indicators (latest reported year: fertilit
 - generations.ratio = tfr / 2.1: each ~30-year generation is this fraction of the previous one (100 people -> 100*ratio -> ...)
 - risk.score 0-100 = 35 x fertility gap (2.1 -> 0.8) + 15 x natural decline (+5 -> -7 per 1,000) + 10 x aging (65+ share 7 -> 30%, median age 25 -> 50) + 30 x UN-projected decline (2050: 0 -> -25%, weight 1; 2100: 0 -> -60%, weight 2) + 10 x migration not offsetting the decline; each part is a linear ramp clamped to 0..1
 - risk.tier: Critical >= 70, High >= 55, Elevated >= 40, Moderate >= 20, Low < 20. risk.rank: 1 = highest risk, null when not ranked (WLD, places under 100,000 people)
+- confidence: good | fair | poor, overall (countries.json) and per part (countries/{ISO3}.json: today = last census or register, birthsDeaths = registration complete or estimated, immigration = counted by birth country, citizenship or modelled, forecast = width of the UN's 95% range in 2050). Rules: index.json confidenceRules
+- crossChecks[]: {key (today, census, births, deaths, immigrants, net), kind (eurostat, unsd: automatic; researched: hand-checked), figure, unFigure, gapPct = (UN - other) / other x 100, verdict (matches within 2%, un-higher, un-lower, context), links}
 
 ## Example calls
 
@@ -35,6 +37,7 @@ Sources: World Bank World Development Indicators (latest reported year: fertilit
 - A country in 2070 under both scenarios: GET api/v1/scenarios.json -> .places.TWN.medium[2070 - .startYear] and .places.TWN.constant[2070 - .startYear]
 - A country in 1990: GET api/v1/scenarios.json -> .places.UKR.estimate[1990 - .estimateStartYear]
 - Where a country's emigrants live: GET api/v1/countries/UKR.json -> .migrationCorridors.topDestinations
+- How sure a country's numbers are: GET api/v1/countries/NGA.json -> .confidence, .crossChecks; the UN's 95% range in 2050: .confidence.forecast.at[0]
 - Spreadsheet: GET api/v1/countries.csv; all years: GET api/v1/timeseries.csv
 - Change detection: GET api/v1/index.json -> compare contentHash with your cached copy
 

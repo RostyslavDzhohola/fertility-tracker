@@ -10,6 +10,10 @@ import {
   round,
 } from "./model.mjs";
 import { assignRanks, riskFactors, riskInputs, RISK_MODEL, scoreRisk } from "./risk.mjs";
+import { buildConfidence, forecastRange } from "./confidence.mjs";
+
+/** No quality sources (tests, or a build without them): every confidence field comes out null. */
+export const NO_QUALITY = { wppSources: null, pvsr: null, curated: null, desaReassessed: null, desaTypes: null, eurostat: { population: null, foreignBorn: null } };
 
 // Entities without World Bank metadata borrow the WB region of a neighbour (keeps region labels consistent).
 const REGION_PROXY = {
@@ -119,12 +123,15 @@ export function scenarioPlaces(scenarios, codes, seriesOf = () => null) {
 }
 
 /**
- * Build everything. raw = { wpp, ims, wb: { countries, latest }, corridors: Map|null, scenarios?: see scenarioPlaces }.
+ * Build everything. raw = { wpp, ims, wb: { countries, latest }, corridors: Map|null, scenarios?: see scenarioPlaces,
+ * quality?: fetchConfidenceSources() output, year?: the build year (how old a census is) }.
  * Returns { records (summary, sorted by iso3), details: Map<iso3, detail>, ranking, unranked, latestEstimateYear,
  * scenarios }.
  */
 export function buildDataset(raw) {
   const { wpp, ims, wb, corridors } = raw;
+  const quality = raw.quality ?? NO_QUALITY;
+  const buildYear = raw.year ?? new Date().getUTCFullYear();
   const codes = [...wpp.population.entities.keys()].sort();
   const worldSeries = buildSeries("WLD", wpp);
   const estYear = lastEstimateYear(worldSeries);
@@ -208,6 +215,18 @@ export function buildDataset(raw) {
   for (const rec of records) {
     const d = details.get(rec.iso3);
     const corridor = corridors?.get(rec.iso3) ?? null;
+    const range = forecastRange(raw.scenarios?.ranges, rec.iso3, raw.scenarios?.startYear);
+    const { confidence, crossChecks } = buildConfidence({
+      rec,
+      series: d.series,
+      seriesOf: (c) => details.get(c)?.series ?? null,
+      range,
+      stock: rec.migrantStock,
+      sources: quality,
+      latestEstimateYear: estYear,
+      year: buildYear,
+    });
+    rec.confidence = confidence?.level ?? null;
     detailOut.set(rec.iso3, {
       ...detailRecord(rec),
       risk: {
@@ -221,6 +240,9 @@ export function buildDataset(raw) {
       series: d.series,
       migrantStockSeries: d.stock.series,
       migrationCorridors: corridor,
+      confidence,
+      forecastRange: range,
+      crossChecks,
     });
   }
 
@@ -235,9 +257,9 @@ export function buildDataset(raw) {
   };
 }
 
-/** Detail shape: everything, internal fields dropped. */
+/** Detail shape: everything, internal fields dropped (the confidence level is replaced by the full block). */
 export function detailRecord(rec) {
-  const { risk, ...rest } = rec;
+  const { risk, confidence, ...rest } = rec;
   return { ...rest, risk: { score: risk.score, tier: risk.tier, rank: risk.rank, factors: risk.factors } };
 }
 
@@ -292,5 +314,6 @@ export function summaryRecord(rec, maxFactors = SUMMARY_FACTORS) {
     },
     generations: rec.generations && { ratio: rec.generations.ratio, halvingYears: rec.generations.halvingYears },
     risk: { score: rec.risk.score, tier: rec.risk.tier, rank: rec.risk.rank, factors: rec.risk.factors.slice(0, maxFactors) },
+    confidence: rec.confidence ?? null,
   };
 }

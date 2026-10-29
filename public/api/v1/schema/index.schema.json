@@ -93,6 +93,10 @@
         "description": "Gap."
       }
     },
+    "confidenceRules": {
+      "type": "object",
+      "description": "How each confidence level is decided (levels, matchPct, downgradePct, and the rules per part)."
+    },
     "links": {
       "type": "object",
       "description": "Docs, methodology, OpenAPI, llms.txt, repo, feedback."

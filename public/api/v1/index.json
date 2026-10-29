@@ -3,8 +3,8 @@
   "description": "Fertility, births, deaths, net migration, migrant stocks, UN projections to 2100 (medium and constant-fertility scenarios) and a population-decline risk score for every country. Static files, no key, CORS open, refreshed weekly.",
   "apiVersion": "v1",
   "schemaVersion": "1.0.0",
-  "generatedAt": "2026-10-29T17:46:18Z",
-  "contentHash": "1fef420e75b1a834141f1b8a24c206ce7b6348b3d09d92e429da2d2e0b72b48e",
+  "generatedAt": "2026-10-29T23:30:20Z",
+  "contentHash": "298d7cdf66d082c79a276c8dda9779146a71d07c5623a7951963754ac8e247ca",
   "baseUrl": "https://fertility-tracker-live.vercel.app/api/v1/",
   "latestEstimateYear": 2023,
   "replacementTfr": 2.1,
@@ -66,7 +66,7 @@
         },
         {
           "id": "populationScenarios",
-          "title": "Total population by projection scenario: Medium and Constant fertility (scenarios.json)",
+          "title": "Total population by projection scenario: Medium and Constant fertility (scenarios.json); 80% and 95% prediction intervals and Zero migration (forecastRange in countries/{ISO3}.json)",
           "url": "https://population.un.org/wpp/assets/Excel%20Files/1_Indicator%20(Standard)/CSV_FILES/WPP2024_TotalPopulationBySex.csv.gz",
           "status": "ok",
           "columns": [
@@ -253,6 +253,92 @@
           "lastUpdated": "2026-10-08"
         }
       ]
+    },
+    {
+      "id": "QUALITY",
+      "name": "How sure is each number",
+      "publisher": "United Nations (Population Division, Statistics Division), Eurostat, national statistics offices",
+      "via": "The UN's own per-country documentation (PDFs extracted once into scripts/data/, with each file's SHA-256), the UN DESA migrant-stock workbook, the Eurostat API, and hand-checked notes (docs/CROSS-CHECK-PROCESS.md)",
+      "homepage": "https://github.com/RostyslavDzhohola/fertility-tracker/blob/main/docs/METHODOLOGY.md#how-sure-is-each-number",
+      "license": "UN: CC BY 3.0 IGO; Eurostat: CC BY 4.0",
+      "citation": "United Nations, DESA, Population Division (2024). World Population Prospects 2024: Data Sources; United Nations Statistics Division, Population and Vital Statistics Report; Eurostat",
+      "vintage": "2026-10-29",
+      "nextUpdate": null,
+      "coverage": "confidence, forecastRange and crossChecks in countries/{ISO3}.json; confidence (overall level) in countries.json",
+      "datasets": [
+        {
+          "id": "wppDataSources",
+          "title": "World Population Prospects 2024: Data Sources (what the UN based each place on)",
+          "url": "https://population.un.org/wpp/assets/Files/WPP2024_Data_Sources.pdf",
+          "status": "ok",
+          "lastUpdated": "2024-08",
+          "file": "scripts/data/wpp2024-data-sources.json",
+          "sha256": "a5ca8731476ec8b592fa99c86701d52deafdd9ebc8e476da82f7ba00ffff91ab",
+          "current": true
+        },
+        {
+          "id": "unsdPvsr",
+          "title": "Population and Vital Statistics Report, tables 2 and 3 (latest census, official estimate, registered births and deaths)",
+          "url": "https://unstats.un.org/unsd/demographic-social/products/vitstats/",
+          "status": "ok",
+          "lastUpdated": "2026-10-05",
+          "file": "scripts/data/unsd-pvsr.json",
+          "tables": {
+            "2": {
+              "url": "https://unstats.un.org/unsd/demographic-social/products/vitstats/seratab2.pdf",
+              "lastUpdated": "2026-10-05",
+              "sha256": "da007f1147916e70fb7225912ae3227041e02e62c5e03df914e4531eb989ca99"
+            },
+            "3": {
+              "url": "https://unstats.un.org/unsd/demographic-social/products/vitstats/seratab3.pdf",
+              "lastUpdated": "2026-10-05",
+              "sha256": "3360719d1687e2187cecd2e48b9431bbaa31e34a632684e3e6f57bcff4aa172d"
+            }
+          },
+          "current": true
+        },
+        {
+          "id": "crossChecks",
+          "title": "Hand-checked notes from national and UN agency sources",
+          "url": null,
+          "status": "ok",
+          "lastUpdated": "2026-10-29",
+          "file": "scripts/data/crosschecks.json"
+        },
+        {
+          "id": "desaReassessed",
+          "title": "International Migrant Stock 2024: Key facts and figures, footnote 3 (the 60 places fully reassessed for 2024)",
+          "url": "https://www.un.org/development/desa/pd/sites/www.un.org.development.desa.pd/files/undesa_pd_2025_intlmigstock_2024_key_facts_and_figures_advance-unedited.pdf",
+          "status": "ok",
+          "lastUpdated": null,
+          "file": "scripts/data/desa-2024-reassessed.json",
+          "sha256": "64602d441b549f3bbe24b9f3ea8d9a623969d0a68cdd9fad573285bd94cf95a1",
+          "current": true
+        },
+        {
+          "id": "desaDataType",
+          "title": "International Migrant Stock 2024, Table 1 'Data type' (how each place's migrants were counted)",
+          "url": "https://www.un.org/development/desa/pd/sites/www.un.org.development.desa.pd/files/undesa_pd_2024_ims_stock_by_sex_and_destination.xlsx",
+          "status": "ok",
+          "lastUpdated": null
+        },
+        {
+          "id": "eurostatPopulation",
+          "title": "Eurostat demo_gind: population on 1 January",
+          "url": "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/demo_gind?format=JSON&lang=EN&indic_de=JAN&sinceTimePeriod=2023",
+          "status": "ok",
+          "lastUpdated": "2026-10-27",
+          "page": "https://ec.europa.eu/eurostat/databrowser/view/demo_gind/default/table?lang=en"
+        },
+        {
+          "id": "eurostatForeignBorn",
+          "title": "Eurostat migr_pop3ctb: population on 1 January born abroad",
+          "url": "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/migr_pop3ctb?format=JSON&lang=EN&c_birth=FOR&age=TOTAL&sex=T&unit=NR&sinceTimePeriod=2023",
+          "status": "ok",
+          "lastUpdated": "2026-09-25",
+          "page": "https://ec.europa.eu/eurostat/databrowser/view/migr_pop3ctb/default/table?lang=en"
+        }
+      ]
     }
   ],
   "endpoints": [
@@ -274,7 +360,7 @@
       "path": "countries/{iso3}.json",
       "url": "https://fertility-tracker-live.vercel.app/api/v1/countries/{iso3}.json",
       "format": "json",
-      "description": "Full record for one country: series 1950-2100, demographic balance, migrant stocks and corridors, risk detail.",
+      "description": "Full record for one country: series 1950-2100, demographic balance, migrant stocks and corridors, risk detail, how sure each number is (confidence), the UN's forecast range and newer national figures (crossChecks).",
       "schema": "https://fertility-tracker-live.vercel.app/api/v1/schema/country.schema.json"
     },
     {
@@ -326,8 +412,41 @@
     "Migrant stocks are available for 1990-2020 every 5 years plus 2024; there is no annual series. migrantStock.emigrantsPct follows UN DESA / OWID: emigrants as % of the country's CURRENT RESIDENT population. livingAbroadPct is the share of everyone born in the country who lives abroad: emigrants / (residents - immigrants + emigrants).",
     "projection.change2050Pct / change2100Pct are relative to projection.basePopulation in projection.baseYear (UN WPP, latest estimate year), not to the headline population (often a newer World Bank figure).",
     "Taiwan and 20 small territories are not in the World Bank database: their figures come from UN sources only, their region is borrowed from a neighbour, and incomeGroup is null.",
-    "Places with fewer than 100,000 people are scored where possible but not ranked: small numbers make rates noisy."
+    "Places with fewer than 100,000 people are scored where possible but not ranked: small numbers make rates noisy.",
+    "confidence (countries/{ISO3}.json) says how sure each place's numbers are: when it was last counted, whether births and deaths are registered, how its migrants were counted, and how wide the UN's own forecast range is. Levels follow confidenceRules in index.json. crossChecks compare UN figures with newer national ones: within 2% they \"match\". Automatic checks cover Eurostat countries and what national offices report to the UN Statistics Division; hand-checked notes cover the places listed in scripts/data/crosschecks.json."
   ],
+  "confidenceRules": {
+    "levels": [
+      "good",
+      "fair",
+      "poor"
+    ],
+    "matchPct": 2,
+    "downgradePct": 5,
+    "today": {
+      "good": "Counted by a census in the last 10 years, or kept by a population register",
+      "fair": "Last census 11 to 15 years ago",
+      "poor": "Last census more than 15 years ago (the UN's own cutoff), or none",
+      "downgrade": "One step lower when a newer official population differs from the UN's by more than 5%"
+    },
+    "birthsDeaths": {
+      "good": "Births and deaths both registered and reported as virtually complete (at least 90%), for 2018 or later",
+      "fair": "Registered, but at least one of the two incomplete or out of date: the UN corrects them",
+      "poor": "No usable registration: the UN estimates births and deaths from surveys and models"
+    },
+    "immigration": {
+      "good": "Counted by country of birth (census or population register), and reassessed by the UN for 2024",
+      "fair": "Counted by citizenship (misses people who became citizens, counts children born there to foreign parents), or by country of birth but only carried forward from the UN's 2020 edition",
+      "poor": "No data (the UN modelled the number), or counted by citizenship and only carried forward from 2020"
+    },
+    "forecast": {
+      "good": "The UN's 95% range for 2050 is within 20% either side of its forecast",
+      "fair": "The 95% range for 2050 is 20% to 40% either side",
+      "poor": "The 95% range for 2050 is more than 40% either side",
+      "note": "By 2100 every range is wide: a typical place's 95% range runs from half to twice the forecast"
+    },
+    "overall": "The lower of the levels for today's population and for births and deaths"
+  },
   "links": {
     "docs": "https://fertility-tracker-live.vercel.app/api/",
     "llms": "https://fertility-tracker-live.vercel.app/llms.txt",

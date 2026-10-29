@@ -412,6 +412,29 @@ function compareScenarios(r, published, ref) {
     }
   }
   for (const code of ref?.update.keys() ?? []) if (!adjusted.has(code)) r.eq("scenarios.constant", { ...UN, description: "places revised by the interim update are listed in adjustments" }, code, "adjustments", "missing", "listed");
+  if (ref) compareRanges(r, published, ref);
+}
+
+// forecastRange in countries/{ISO3}.json: the UN's 80% and 95% bounds and Zero migration, from the same file. Places
+// revised by the interim update are rescaled like their other scenarios (revised medium / original medium).
+const RANGE_KEYS = ["lower80", "upper80", "lower95", "upper95", "zeroMigration"];
+function compareRanges(r, published, ref) {
+  const meta = (k) => ({ ...UN, description: `forecastRange.${k} vs WPP2024_TotalPopulationBySex (PopTotal x 1000)` });
+  for (const c of published.countries.countries) {
+    const fr = published.details.get(c.iso3)?.forecastRange;
+    const main = ref.main.get(c.iso3);
+    const upd = ref.update.get(c.iso3);
+    const has = main && RANGE_KEYS.some((k) => main[k]?.some((v) => v != null));
+    r.eq("forecastRange.coverage", { ...UN, description: "forecastRange present exactly where the UN publishes a range" }, c.iso3, "forecastRange", fr ? "present" : "missing", has ? "present" : "missing");
+    if (!fr || !main) continue;
+    for (const k of RANGE_KEYS) {
+      for (let i = 0; i < fr[k].length; i++) {
+        const want = main[k]?.[i] ?? null;
+        const expect = upd && want != null && main.medium[i] ? Math.round((want * upd.medium[i]) / main.medium[i]) : want;
+        r.num(`forecastRange.${k}`, meta(k), c.iso3, `${fr.startYear + i} ${k}`, fr[k][i], expect, 0.5);
+      }
+    }
+  }
 }
 
 // ---------- UN DESA migrant stock ----------

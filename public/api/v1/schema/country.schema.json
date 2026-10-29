@@ -31,6 +31,9 @@
     "series",
     "migrantStockSeries",
     "migrationCorridors",
+    "confidence",
+    "forecastRange",
+    "crossChecks",
     "links"
   ],
   "properties": {
@@ -1316,6 +1319,742 @@
         }
       },
       "additionalProperties": false
+    },
+    "confidence": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "How sure this place's numbers are (index.json confidenceRules; docs/METHODOLOGY.md). Null for WLD.",
+      "required": [
+        "level",
+        "today",
+        "birthsDeaths",
+        "immigration",
+        "forecast",
+        "unSources"
+      ],
+      "properties": {
+        "level": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "good, fair or poor (index.json confidenceRules); null when no source covers it.",
+          "enum": [
+            "good",
+            "fair",
+            "poor",
+            null
+          ]
+        },
+        "today": {
+          "type": "object",
+          "description": "Today's population: when the place was last counted.",
+          "required": [
+            "level",
+            "lastCount",
+            "unCensuses",
+            "unRegisters",
+            "register",
+            "unOfficialEstimatesThrough",
+            "latestCensus",
+            "downgraded"
+          ],
+          "properties": {
+            "level": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "good, fair or poor (index.json confidenceRules); null when no source covers it.",
+              "enum": [
+                "good",
+                "fair",
+                "poor",
+                null
+              ]
+            },
+            "lastCount": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "description": "Newest census or population-register year known (what the UN used, or a newer census reported to the UN Statistics Division)."
+            },
+            "unCensuses": {
+              "type": "array",
+              "description": "Census years the UN based its estimates on (WPP 2024 Data Sources).",
+              "items": {
+                "type": "integer",
+                "description": "Year."
+              }
+            },
+            "unRegisters": {
+              "type": "array",
+              "description": "Population-register years the UN used.",
+              "items": {
+                "type": "integer",
+                "description": "Year."
+              }
+            },
+            "register": {
+              "type": "boolean",
+              "description": "Kept by a population register (used in the last 10 years)."
+            },
+            "unOfficialEstimatesThrough": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "description": "The UN used the country's official population estimates up to this year."
+            },
+            "latestCensus": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "description": "Latest census reported to the UN Statistics Division.",
+              "required": [
+                "date",
+                "total",
+                "provisional"
+              ],
+              "properties": {
+                "date": {
+                  "type": "string",
+                  "description": "Census day (first day, for a census over several days)."
+                },
+                "total": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "description": "People counted."
+                },
+                "provisional": {
+                  "type": "boolean",
+                  "description": "Provisional result."
+                }
+              },
+              "additionalProperties": false
+            },
+            "downgraded": {
+              "type": "boolean",
+              "description": "Level lowered one step: a newer official population differs from the UN's by more than index.json confidenceRules.downgradePct."
+            }
+          },
+          "additionalProperties": false
+        },
+        "birthsDeaths": {
+          "type": "object",
+          "description": "Births and deaths: registered, or estimated.",
+          "required": [
+            "level",
+            "births",
+            "deaths",
+            "unRegisteredBirthsThrough",
+            "unRegisteredDeathsThrough",
+            "unBirthsAdjusted",
+            "unDeathsAdjusted"
+          ],
+          "properties": {
+            "level": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "good, fair or poor (index.json confidenceRules); null when no source covers it.",
+              "enum": [
+                "good",
+                "fair",
+                "poor",
+                null
+              ]
+            },
+            "births": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "description": "What the national office last reported to the UN Statistics Division (Population and Vital Statistics Report, table 3).",
+              "required": [
+                "year",
+                "code",
+                "byRegistration"
+              ],
+              "properties": {
+                "year": {
+                  "type": "integer",
+                  "description": "Year of the latest registered count."
+                },
+                "code": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "C = virtually complete (at least 90%), U = unreliable or incomplete, | = from other sources, null = not given."
+                },
+                "byRegistration": {
+                  "type": "boolean",
+                  "description": "True when tabulated by date of registration, not of occurrence."
+                }
+              },
+              "additionalProperties": false
+            },
+            "deaths": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "description": "What the national office last reported to the UN Statistics Division (Population and Vital Statistics Report, table 3).",
+              "required": [
+                "year",
+                "code",
+                "byRegistration"
+              ],
+              "properties": {
+                "year": {
+                  "type": "integer",
+                  "description": "Year of the latest registered count."
+                },
+                "code": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "C = virtually complete (at least 90%), U = unreliable or incomplete, | = from other sources, null = not given."
+                },
+                "byRegistration": {
+                  "type": "boolean",
+                  "description": "True when tabulated by date of registration, not of occurrence."
+                }
+              },
+              "additionalProperties": false
+            },
+            "unRegisteredBirthsThrough": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "description": "The UN used registered births up to this year."
+            },
+            "unRegisteredDeathsThrough": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "description": "The UN used registered deaths by age and sex up to this year."
+            },
+            "unBirthsAdjusted": {
+              "type": [
+                "boolean",
+                "null"
+              ],
+              "description": "The UN adjusted registered births for under-registration."
+            },
+            "unDeathsAdjusted": {
+              "type": [
+                "boolean",
+                "null"
+              ],
+              "description": "The UN adjusted registered deaths for under-registration at all ages."
+            }
+          },
+          "additionalProperties": false
+        },
+        "immigration": {
+          "type": "object",
+          "description": "How the people born abroad were counted (UN DESA International Migrant Stock 2024).",
+          "required": [
+            "level",
+            "dataType",
+            "refugeesAdded",
+            "reassessed2024",
+            "netMigrationBasis"
+          ],
+          "properties": {
+            "level": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "good, fair or poor (index.json confidenceRules); null when no source covers it.",
+              "enum": [
+                "good",
+                "fair",
+                "poor",
+                null
+              ]
+            },
+            "dataType": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "B = by country of birth, C = by citizenship, I = imputed (no data); combinations such as CB."
+            },
+            "refugeesAdded": {
+              "type": [
+                "boolean",
+                "null"
+              ],
+              "description": "UNHCR refugee figures were added."
+            },
+            "reassessed2024": {
+              "type": [
+                "boolean",
+                "null"
+              ],
+              "description": "One of the 60 places UN DESA fully reassessed for 2024; false = the 2024 figure extrapolates the 2020 edition."
+            },
+            "netMigrationBasis": {
+              "type": "array",
+              "description": "What the UN based net migration on: officialFlows, flowEstimates, destinationCensuses (people born here counted abroad), residual (population growth minus births plus deaths), unhcr, other.",
+              "items": {
+                "type": "string",
+                "description": "Basis."
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "forecast": {
+          "type": "object",
+          "description": "The UN's own uncertainty about the future.",
+          "required": [
+            "level",
+            "at"
+          ],
+          "properties": {
+            "level": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "good, fair or poor (index.json confidenceRules); null when no source covers it.",
+              "enum": [
+                "good",
+                "fair",
+                "poor",
+                null
+              ]
+            },
+            "at": {
+              "type": "array",
+              "description": "The forecast and its range in 2050 and 2100.",
+              "items": {
+                "type": "object",
+                "description": "The UN's forecast and its range in one year.",
+                "required": [
+                  "year",
+                  "medium",
+                  "lower80",
+                  "upper80",
+                  "lower95",
+                  "upper95",
+                  "zeroMigration"
+                ],
+                "properties": {
+                  "year": {
+                    "type": "integer",
+                    "description": "Year."
+                  },
+                  "medium": {
+                    "type": "integer",
+                    "description": "UN forecast (medium scenario), 1 July."
+                  },
+                  "lower80": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "description": "Lower bound of the UN's 80% prediction interval."
+                  },
+                  "upper80": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "description": "Upper bound of the 80% interval."
+                  },
+                  "lower95": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "description": "Lower bound of the 95% interval."
+                  },
+                  "upper95": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "description": "Upper bound of the 95% interval."
+                  },
+                  "zeroMigration": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "description": "UN Zero-migration scenario: nobody moves in or out from 2024."
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "unSources": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "description": "What the UN says it used for this place, quoted from World Population Prospects 2024: Data Sources.",
+          "required": [
+            "page",
+            "population",
+            "fertility",
+            "mortality",
+            "migration"
+          ],
+          "properties": {
+            "page": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "description": "Page in the document."
+            },
+            "population": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Population paragraph."
+            },
+            "fertility": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Fertility paragraph."
+            },
+            "mortality": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Overall mortality paragraph."
+            },
+            "migration": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Migration paragraph."
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "forecastRange": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "The UN's yearly forecast range and Zero-migration path (WPP 2024 TotalPopulationBySex). Null when the UN publishes none.",
+      "required": [
+        "startYear",
+        "lower80",
+        "upper80",
+        "lower95",
+        "upper95",
+        "zeroMigration"
+      ],
+      "properties": {
+        "startYear": {
+          "type": "integer",
+          "description": "First year (index 0)."
+        },
+        "lower80": {
+          "type": "array",
+          "description": "Lower 80 PI: people on 1 July, startYear..2100 (index = year - startYear).",
+          "items": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "People.",
+            "minimum": 0
+          }
+        },
+        "upper80": {
+          "type": "array",
+          "description": "Upper 80 PI: people on 1 July, startYear..2100 (index = year - startYear).",
+          "items": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "People.",
+            "minimum": 0
+          }
+        },
+        "lower95": {
+          "type": "array",
+          "description": "Lower 95 PI: people on 1 July, startYear..2100 (index = year - startYear).",
+          "items": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "People.",
+            "minimum": 0
+          }
+        },
+        "upper95": {
+          "type": "array",
+          "description": "Upper 95 PI: people on 1 July, startYear..2100 (index = year - startYear).",
+          "items": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "People.",
+            "minimum": 0
+          }
+        },
+        "zeroMigration": {
+          "type": "array",
+          "description": "Zero migration: people on 1 July, startYear..2100 (index = year - startYear).",
+          "items": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "People.",
+            "minimum": 0
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "crossChecks": {
+      "type": "array",
+      "description": "Newer or more direct figures compared with the UN's, automatic (Eurostat, UN Statistics Division) and hand-checked.",
+      "items": {
+        "type": "object",
+        "description": "What a newer or more direct source says about a UN figure.",
+        "required": [
+          "key",
+          "kind",
+          "figure",
+          "unFigure",
+          "gapPct",
+          "verdict",
+          "links"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "The UN figure checked.",
+            "enum": [
+              "today",
+              "census",
+              "births",
+              "deaths",
+              "immigrants",
+              "net"
+            ]
+          },
+          "kind": {
+            "type": "string",
+            "description": "eurostat / unsd: automatic, every build; researched: hand-checked (scripts/data/crosschecks.json).",
+            "enum": [
+              "eurostat",
+              "unsd",
+              "researched"
+            ]
+          },
+          "figure": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "A figure with what it counts and its date.",
+            "required": [
+              "value",
+              "what",
+              "date"
+            ],
+            "properties": {
+              "value": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "description": "The number."
+              },
+              "what": {
+                "type": "string",
+                "description": "What was counted."
+              },
+              "date": {
+                "type": "string",
+                "description": "YYYY, or YYYY-MM-DD."
+              },
+              "provisional": {
+                "type": "boolean",
+                "description": "Provisional."
+              },
+              "estimated": {
+                "type": "boolean",
+                "description": "Flagged as estimated by the publisher."
+              }
+            },
+            "additionalProperties": false
+          },
+          "unFigure": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "A figure with what it counts and its date.",
+            "required": [
+              "value",
+              "what",
+              "date"
+            ],
+            "properties": {
+              "value": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "description": "The number."
+              },
+              "what": {
+                "type": "string",
+                "description": "What was counted."
+              },
+              "date": {
+                "type": "string",
+                "description": "YYYY, or YYYY-MM-DD."
+              },
+              "forecast": {
+                "type": "boolean",
+                "description": "The UN figure for that date is its 2024 forecast, not an estimate."
+              }
+            },
+            "additionalProperties": false
+          },
+          "gapPct": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "(UN - other) / other x 100."
+          },
+          "verdict": {
+            "type": "string",
+            "description": "matches (within confidenceRules.matchPct), un-higher, un-lower, or context (no comparable number).",
+            "enum": [
+              "matches",
+              "un-higher",
+              "un-lower",
+              "context"
+            ]
+          },
+          "links": {
+            "type": "array",
+            "description": "Sources.",
+            "items": {
+              "type": "object",
+              "description": "A link to a source.",
+              "required": [
+                "label",
+                "href"
+              ],
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "description": "What it is."
+                },
+                "href": {
+                  "type": "string",
+                  "description": "URL."
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "text": {
+            "type": "string",
+            "description": "Researched notes only: what the source shows, in plain words."
+          },
+          "quotes": {
+            "type": "array",
+            "description": "Researched notes only: verbatim excerpts with the numbers.",
+            "items": {
+              "type": "object",
+              "description": "A quote.",
+              "required": [
+                "text",
+                "href"
+              ],
+              "properties": {
+                "text": {
+                  "type": "string",
+                  "description": "Verbatim."
+                },
+                "href": {
+                  "type": "string",
+                  "description": "Where it appears."
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "accessed": {
+            "type": "string",
+            "description": "Researched notes only: when it was checked (YYYY-MM-DD)."
+          },
+          "unUsedUpTo": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "census only: the newest census or register year the UN used."
+          },
+          "unAddsRefugees": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "description": "immigrants only: UN DESA added UNHCR refugee figures, which national registers may leave out."
+          },
+          "asOf": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Automatic checks: when the source last updated the figure (Eurostat dataset date, or the UN Statistics Division table's date)."
+          },
+          "notes": {
+            "type": "array",
+            "description": "Automatic checks: the national office's own footnotes to its figure (what area it covers, what it builds on), from the UN Statistics Division's tables.",
+            "items": {
+              "type": "string",
+              "description": "Footnote."
+            }
+          }
+        },
+        "additionalProperties": false
+      }
     },
     "links": {
       "type": "object",

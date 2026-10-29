@@ -210,6 +210,7 @@
         <p class="verdict" id="cv-verdict"></p>
         <div class="meter" id="cv-meter"></div>
         <p class="lede" id="cv-lede"></p>
+        <p class="sure-chip-wrap" id="cv-sure" hidden></p>
         <button type="button" class="btn btn-secondary cv-share" id="cv-share"><svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true" focusable="false"><path d="M10 12.5V3M6.4 6.4 10 2.8l3.6 3.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4.5 10.5v5a1.5 1.5 0 0 0 1.5 1.5h8a1.5 1.5 0 0 0 1.5-1.5v-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Share a picture</span></button>
       </header>
 
@@ -227,6 +228,7 @@
           <h2 class="blk-title" id="ch-title">People, 1950–2100</h2>
           <p class="blk-sentence" id="ch-sentence"></p>
           <div class="pop-chart" id="pop-chart"></div>
+          <p class="ch-range" id="ch-range" hidden></p>
         </section>
       </div>
 
@@ -237,6 +239,17 @@
           <div class="tile" id="why-born"></div>
           <div class="tile" id="why-move"></div>
         </div>
+      </section>
+
+      <section class="blk blk-sure" id="sure" aria-labelledby="sure-title" tabindex="-1" hidden>
+        <h2 class="blk-title" id="sure-title">How sure is this?</h2>
+        <p class="blk-sentence" id="sure-sentence"></p>
+        <ul class="sure-rows" id="sure-rows"></ul>
+        <div class="sure-checks-wrap" id="sure-checks-wrap" hidden>
+          <h3 class="sure-sub">Newer counts and other sources</h3>
+          <ul class="sure-checks" id="sure-checks"></ul>
+        </div>
+        <p class="sure-how" id="sure-how"></p>
       </section>
 
       <section class="blk blk-gens" aria-labelledby="gen-title">

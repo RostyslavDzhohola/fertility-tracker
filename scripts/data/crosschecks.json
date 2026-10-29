@@ -1,0 +1,122 @@
+{
+  "about": "Hand-checked notes: what newer or more direct primary sources say about a UN figure on the site. Each note names its sources, quotes the numbers it uses, and has the date it was checked. Process and rules: docs/CROSS-CHECK-PROCESS.md. Evidence for these entries: docs/DATA-CROSS-CHECK.md.",
+  "checked": "2026-10-29",
+  "places": {
+    "UKR": [
+      {
+        "key": "today",
+        "text": "The UN's forecast assumed two thirds of Ukraine's refugees would be home by 2026. Newer counts don't show that: 4.36 million Ukrainians were under temporary protection in the EU in August 2026, more than in December 2024 (4.19 million), and the UN refugee agency recorded about 350,000 refugee returns in 2024–2025.",
+        "figure": { "value": 4363955, "what": "Ukrainians under temporary protection in the EU", "date": "2026-08-31" },
+        "unFigure": null,
+        "verdict": "context",
+        "links": [
+          { "label": "UN assumption (table II.3.B, p. 49)", "href": "https://population.un.org/wpp/assets/Files/WPP2024_Methodology-Report_Final.pdf" },
+          { "label": "Eurostat: temporary protection", "href": "https://ec.europa.eu/eurostat/databrowser/view/migr_asytpsm/default/table?lang=en" },
+          { "label": "UNHCR: refugees from Ukraine", "href": "https://data.unhcr.org/en/documents/details/121051" },
+          { "label": "UNHCR: returns", "href": "https://api.unhcr.org/population/v1/population/?year=2025&coo=UKR" }
+        ],
+        "quotes": [
+          {
+            "text": "Recent statistical analysis for 35 countries with ongoing refugee crises by […] (2024) also validates the projection assumption that two thirds of refugees will return to their country of origin within 5 years.",
+            "href": "https://population.un.org/wpp/assets/Files/WPP2024_Methodology-Report_Final.pdf"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "net",
+        "text": "The light bars for 2024 and 2025 are the UN's assumed return of two thirds of refugees (+2.85 million). Newer counts don't show it: Ukrainians under temporary protection in the EU rose to 4.36 million by August 2026, and the UN refugee agency recorded about 350,000 refugee returns in 2024–2025.",
+        "figure": { "value": 348315, "what": "refugee returns to Ukraine recorded by UNHCR, 2024 and 2025 combined", "date": "2025" },
+        "unFigure": { "value": 2850000, "what": "UN net migration assumed for 2024 and 2025 combined", "date": "2025" },
+        "verdict": "un-higher",
+        "links": [
+          { "label": "UN assumption (table II.3.B, p. 49)", "href": "https://population.un.org/wpp/assets/Files/WPP2024_Methodology-Report_Final.pdf" },
+          { "label": "Eurostat: temporary protection", "href": "https://ec.europa.eu/eurostat/databrowser/view/migr_asytpsm/default/table?lang=en" },
+          { "label": "UNHCR: returns", "href": "https://api.unhcr.org/population/v1/population/?year=2025&coo=UKR" }
+        ],
+        "quotes": [],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "immigrants",
+        "text": "The UN didn't newly assess Ukraine for 2024: it carried forward its 2020 estimate. Ukraine's last census was in 2001, and the mix of birth countries matches it, scaled down.",
+        "figure": null,
+        "unFigure": null,
+        "verdict": "context",
+        "links": [
+          { "label": "UN key facts, p. 1", "href": "https://www.un.org/development/desa/pd/sites/www.un.org.development.desa.pd/files/undesa_pd_2025_intlmigstock_2024_key_facts_and_figures_advance-unedited.pdf" }
+        ],
+        "quotes": [
+          {
+            "text": "In the new edition of these data, a total of 60 countries and areas received a full reassessment of trends in the number of international migrants residing in the territory. For the remaining countries and areas, the estimates generated in 2024 reflect extrapolations of estimates published in the 2020 edition of the dataset.",
+            "href": "https://www.un.org/development/desa/pd/sites/www.un.org.development.desa.pd/files/undesa_pd_2025_intlmigstock_2024_key_facts_and_figures_advance-unedited.pdf"
+          }
+        ],
+        "accessed": "2026-10-29"
+      }
+    ],
+    "USA": [
+      {
+        "key": "net",
+        "text": "Newer US numbers are much lower than the UN's 2024 forecast (1.18 million for 2026): the Census Bureau counted 1.26 million for July 2024–June 2025 and expects about 321,000 for the year to July 2026; the Congressional Budget Office projects 570,000 for 2026.",
+        "figure": { "value": 321000, "what": "Census Bureau projection of net international migration, year to July 2026", "date": "2026-07-01" },
+        "unFigure": { "value": 1177848, "what": "UN net migration forecast for 2026", "date": "2026" },
+        "verdict": "un-higher",
+        "links": [
+          { "label": "Census Bureau, Jan 2026", "href": "https://www.census.gov/newsroom/press-releases/2026/population-growth-slows.html" },
+          { "label": "CBO, Jan 2026", "href": "https://www.cbo.gov/publication/61879" }
+        ],
+        "quotes": [
+          {
+            "text": "Between July 1, 2024, and June 30, 2025, net international migration was 1.3 million, a notable drop from 2.7 million the year before (a decline of 53.8%). If current trends continue, net international migration is projected to be approximately 321,000 by July 2026, representing another decline of nearly 1 million since July 1, 2025.",
+            "href": "https://www.census.gov/newsroom/press-releases/2026/population-growth-slows.html"
+          },
+          {
+            "text": "CBO now projects net immigration of 410,000 people (instead of 2.0 million) in 2025, 570,000 (instead of 1.6 million) in 2026, a total of 2.9 million (instead of 3.2 million) from 2028 to 2030, and 1.2 million (instead of 1.1 million) in 2035.",
+            "href": "https://www.cbo.gov/publication/61879"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "immigrants",
+        "text": "Checks out: the Census Bureau's 2024 count is 50.2 million, plus 2.0 million born in Puerto Rico and the US island areas, whom the UN counts as born abroad. Both include people without legal status.",
+        "figure": { "value": 52274689, "what": "Census Bureau 2024 foreign-born (50,234,858) plus people born in Puerto Rico (1,852,356) and the US island areas (187,475)", "date": "2024" },
+        "unFigure": { "value": 52375047, "what": "UN DESA estimate for mid-2024", "date": "2024-07-01" },
+        "verdict": "matches",
+        "links": [
+          { "label": "Census Bureau: the foreign-born", "href": "https://www.census.gov/topics/population/foreign-born/about.html" },
+          { "label": "Census Bureau ACS 2024, table B05002", "href": "https://api.census.gov/data/2024/acs/acs1/groups/B05002.json" }
+        ],
+        "quotes": [
+          {
+            "text": "anyone who is not a U.S. citizen at birth. This includes naturalized U.S. citizens, lawful permanent residents (immigrants), temporary migrants (such as foreign students), humanitarian migrants (such as refugees and asylees), and unauthorized migrants.",
+            "href": "https://www.census.gov/topics/population/foreign-born/about.html"
+          }
+        ],
+        "accessed": "2026-10-29"
+      }
+    ],
+    "GBR": [
+      {
+        "key": "immigrants",
+        "text": "The UK's statistics office counts more: 13.1 million people born outside the UK in June 2024 (18.9%).",
+        "figure": { "value": 13115000, "what": "people living in the UK born outside it, ONS estimate", "date": "2024-06-30" },
+        "unFigure": { "value": 11845479, "what": "UN DESA estimate for mid-2024", "date": "2024-07-01" },
+        "verdict": "un-lower",
+        "links": [
+          {
+            "label": "ONS, May 2026",
+            "href": "https://www.ons.gov.uk/peoplepopulationandcommunity/populationandmigration/internationalmigration/bulletins/longterminternationalmigrationprovisional/yearendingdecember2025"
+          },
+          {
+            "label": "ONS: population by country of birth",
+            "href": "https://www.ons.gov.uk/peoplepopulationandcommunity/populationandmigration/internationalmigration/datasets/populationoftheunitedkingdombycountryofbirthandnationality"
+          }
+        ],
+        "quotes": [],
+        "accessed": "2026-10-29"
+      }
+    ]
+  }
+}
