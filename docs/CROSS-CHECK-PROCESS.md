@@ -34,8 +34,10 @@ node scripts/checks/crosscheck-queue.mjs          # the next 8, with reasons
 node scripts/checks/crosscheck-queue.mjs --n 30
 ```
 
-The queue puts weak data and large automatic gaps first, bigger populations before smaller ones, and skips places
-whose notes are under 180 days old. Places under 100,000 people are left out (`--min-pop 0` includes them).
+The queue offers the places most at risk of shrinking, the ones readers care most about: risk tiers Critical and High
+by default (`--tiers Critical,High,Elevated` widens it, `--tiers all` takes every place). The highest risk score
+comes first; at equal risk, weak data and large automatic gaps, then bigger populations. It skips places whose notes
+are under 180 days old, and places under 100,000 people (`--min-pop 0` includes them).
 
 ### One batch
 
@@ -66,7 +68,8 @@ figure, since the UN figure will have moved.
 ### The weekly run
 
 The weekly maintenance agent ([weekly-agent-prompt.md](weekly-agent-prompt.md)) does one small batch each week (4
-countries from the queue) in its PR, so the whole list is covered over time. A larger batch can be run at any time.
+countries from the queue) in its PR, so the high-risk places stay fresh. When the queue is empty it does nothing. A
+larger batch, or a wider set of tiers, can be run at any time.
 
 ## Brief for researchers
 

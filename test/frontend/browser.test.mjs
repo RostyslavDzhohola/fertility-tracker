@@ -576,7 +576,7 @@ test("§9.8 Back and Forward move between pages; the year and scenario travel in
     await page.key("Enter", { text: "\r", vk: 13 });
     await page.waitFor(`location.pathname === "/country/JPN" && document.getElementById("cv-name").textContent === "Japan"`);
     assert.equal(await page.eval("document.activeElement.id"), "cv-name", "focus moves to the new title after a search");
-    assert.match(await page.eval("document.title"), /^Japan: .* · Fertility Tracker$/);
+    assert.match(await page.eval("document.title"), /^Japan population: .* · Fertility Tracker$/);
     assert.deepEqual(page.errors, []);
   } finally {
     await page.close();
@@ -1231,6 +1231,9 @@ test("every place has its own share page: a country link previews that country; 
   assert.match(html, /<link rel="canonical" href="https:\/\/fertility-tracker-live\.vercel\.app\/country\/TWN">/);
   assert.match(html, /<meta property="og:title" content="Taiwan: [^"]+ people by 2100, [^"]+ vs today">/);
   assert.equal((await fetch(`${base}/country/XXX`)).status, 404);
+  // Search engines find every page from robots.txt and the sitemap.
+  assert.match(await (await fetch(`${base}/robots.txt`)).text(), /^Sitemap: https:\/\/fertility-tracker-live\.vercel\.app\/sitemap\.xml$/m);
+  assert.match(await (await fetch(`${base}/sitemap.xml`)).text(), /<loc>https:\/\/fertility-tracker-live\.vercel\.app\/country\/TWN<\/loc>/);
   const kor = await fetch(`${base}/KOR`, { redirect: "manual" });
   assert.equal(kor.status, 307);
   assert.equal(kor.headers.get("location"), "/country/KOR");

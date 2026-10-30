@@ -999,9 +999,13 @@ export function snapshotPostText({ rec, year, today, scenario, ratio, lastEstima
 
 export const HOME_TITLE = "Fertility Tracker: every country's population, today to 2100";
 
+// Titles carry the words people search for ("Japan population"), then the verdict.
 export function documentTitle(page, rec = null, pct2100 = null) {
-  if (page === "country" && rec) return `${rec.iso3 === "WLD" ? "The world" : rec.name}: ${verdictShort(pct2100)} · Fertility Tracker`;
-  if (page === "rankings") return "Where populations will shrink most · Fertility Tracker";
+  if (page === "country" && rec) {
+    const who = `${rec.iso3 === "WLD" ? "World" : rec.name} population`;
+    return `${outlookOf(pct2100) ? `${who}: ${verdictShort(pct2100)}` : `${who}, 1950 to 2100`} · Fertility Tracker`;
+  }
+  if (page === "rankings") return "Countries ranked by population decline to 2100 · Fertility Tracker";
   return HOME_TITLE;
 }
 

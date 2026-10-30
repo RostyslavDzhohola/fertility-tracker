@@ -276,6 +276,17 @@ test("the cross-check queue puts weak data, big gaps and big places first, and s
   assert.equal(queueScore(place({ crossChecks: [{ kind: "researched", key: "today", accessed: "2026-01-01" }] }), { now }).fresh, false);
 });
 
+test("the cross-check queue offers the places most at risk of shrinking first, solid data or not", async () => {
+  const { byRisk } = await import("../scripts/checks/crosscheck-queue.mjs");
+  const rows = [
+    { iso3: "NGA", riskScore: 12, score: 20, population: 230e6 },
+    { iso3: "JPN", riskScore: 77, score: 0, population: 123e6 },
+    { iso3: "KOR", riskScore: 77, score: 3, population: 52e6 },
+    { iso3: "HKG", riskScore: 88, score: 0, population: 7e6 },
+  ];
+  assert.deepEqual([...rows].sort(byRisk).map((r) => r.iso3), ["HKG", "KOR", "JPN", "NGA"]);
+});
+
 test("merging hand-checked notes keeps only what the verifier passed, applies its fixes, and drops invalid notes", async () => {
   const { mergeCountry } = await import("../scripts/checks/merge-crosschecks.mjs");
   const check = (o) => ({ key: "today", text: "The office counted 10 people.", figure: { value: 10, what: "people", date: 2025 }, unFigure: { value: 11, what: "UN", field: "x", date: "2025" }, verdict: "un-higher", links: [{ label: "Office", href: "https://stat.example" }], quotes: [{ text: "10 people", href: "https://stat.example" }], confidence: "verified", ...o });

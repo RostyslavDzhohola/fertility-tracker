@@ -33,6 +33,9 @@ the last (1.14 ÷ 2.1 replacement), so 100 → 54 → 29 → 16 → 9.
 - Night mode that follows the system appearance
 - Link previews: every place has its own page and card, so a link to `/country/TWN` shows Taiwan's picture and
   numbers on X, Slack or iMessage (built at deploy by `scripts/pages/build-pages.mjs` and `scripts/og/render-cards.mjs`)
+- Search engines: each page has its own title and description ("Japan population: shrinking fast by 2100"), a
+  summary for crawlers that don't run JavaScript, and JSON-LD describing that place's data; `sitemap.xml` lists every
+  page and `robots.txt` points to it (both built at deploy with the pages)
 - Design: [docs/design/DESIGN-v3.md](docs/design/DESIGN-v3.md). Preview locally with `node scripts/serve.mjs` (port 8731)
 
 ## Data and refresh
