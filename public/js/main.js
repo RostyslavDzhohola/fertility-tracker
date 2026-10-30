@@ -128,6 +128,7 @@ function render({ first = false, nav = false, pop = false } = {}) {
     rankings.show();
   }
   if (page !== "country") setCanonical(page === "rankings" ? "rankings" : "");
+  setJsonLd(page === "country" ? (data.records.get(route.iso3) ?? null) : null);
   if (nav && prev !== null) {
     // A new page starts at the top; focus its title for keyboard and screen-reader users.
     window.scrollTo(0, 0);
@@ -142,6 +143,18 @@ function render({ first = false, nav = false, pop = false } = {}) {
 function setCanonical(path) {
   const link = document.querySelector('link[rel="canonical"]');
   if (link) setAttr(link, "href", `${L.SITE_URL}${path}`);
+}
+
+// The JSON-LD describes the page shown: a place's own Dataset, or the whole one on the globe and the rankings.
+let jsonLdRec; // undefined until the first route
+function setJsonLd(rec = jsonLdRec) {
+  if (rec === undefined) return;
+  jsonLdRec = rec;
+  const node = $("dataset-jsonld");
+  if (!node) return;
+  const dateModified = data.index?.generatedAt ?? data.generatedAt ?? null;
+  const d = rec ? L.placeDataset(rec, L.SITE_URL, { dateModified }) : { ...L.SITE_DATASET, ...(dateModified ? { dateModified } : {}) };
+  node.textContent = JSON.stringify(d);
 }
 
 // ------------------------------------------------------------------ top bar
@@ -216,7 +229,7 @@ function startPages() {
   fetchJson(`${API}index.json`)
     .then((idx) => {
       data.index = idx;
-      updateJsonLd(idx.generatedAt ?? data.generatedAt);
+      setJsonLd();
     })
     .catch(() => {});
   idle(() => {
@@ -227,16 +240,6 @@ function startPages() {
       .map((r) => r.iso3);
     for (const iso3 of top) loadDetail(iso3).catch(() => {});
   });
-}
-
-function updateJsonLd(date) {
-  const node = $("dataset-jsonld");
-  if (!node || !date) return;
-  try {
-    const d = JSON.parse(node.textContent);
-    d.dateModified = date;
-    node.textContent = JSON.stringify(d);
-  } catch {}
 }
 
 el.retry?.addEventListener("click", async () => {

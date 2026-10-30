@@ -118,7 +118,8 @@ If no item is a **fix** and the site passed step 2, skip to step 8.
 Work only in the step 2 worktree (`$W`, branch `weekly/$D`). One focused commit per fix, each message naming its issue (`(#12)`). Pair each fix
 with a test or a reproducible check that fails before the change and passes after it.
 
-Then hand-check the next 4 places from `node scripts/checks/crosscheck-queue.mjs --n 4`, following
+Then hand-check the next 4 places from `node scripts/checks/crosscheck-queue.mjs --n 4` (the places most at risk of
+shrinking whose notes are over 180 days old; if it lists none, skip this), following
 [CROSS-CHECK-PROCESS.md](CROSS-CHECK-PROCESS.md): research, verify every quote against its link, add the verified
 notes to `scripts/data/crosschecks.json`, rebuild. If `index.json` lists a `QUALITY` dataset with `"current": false`, a
 UN PDF has a new edition: rerun its script in `scripts/extract/` instead, and mark the item `needs-human` if the diff is

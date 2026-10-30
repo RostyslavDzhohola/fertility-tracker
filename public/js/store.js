@@ -139,16 +139,7 @@ export function outlookPct(iso3) {
 
 // Year of the largest population in a scenario's path from today on (today itself when it only falls).
 export function peakYear(iso3, scenario = state.scenario) {
-  const arr = data.scen?.places?.[iso3]?.[L.normScenario(scenario)];
-  if (!arr) return null;
-  let best = -1;
-  let year = null;
-  for (let i = Math.max(0, data.today - data.start); i < arr.length; i++)
-    if (arr[i] != null && arr[i] > best) {
-      best = arr[i];
-      year = data.start + i;
-    }
-  return year;
+  return L.peakYearOf(data.scen, iso3, data.today, scenario);
 }
 
 // The first slider, Play or scenario touch hands control to the user: the intro stops and the hints go away.

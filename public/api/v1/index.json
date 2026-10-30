@@ -3,8 +3,8 @@
   "description": "Fertility, births, deaths, net migration, migrant stocks, UN projections to 2100 (medium and constant-fertility scenarios) and a population-decline risk score for every country. Static files, no key, CORS open, refreshed weekly.",
   "apiVersion": "v1",
   "schemaVersion": "1.0.0",
-  "generatedAt": "2026-10-29T23:47:32Z",
-  "contentHash": "cba4b903bf9066ea1672ce92d089aa0f6e5bbe23afeaf4580d4b7d903f16130e",
+  "generatedAt": "2026-10-30T04:23:11Z",
+  "contentHash": "169e59361d808b9c456678dc2994c37061cc80375d1aa87d261edbfe547e89b3",
   "baseUrl": "https://fertility-tracker-live.vercel.app/api/v1/",
   "latestEstimateYear": 2023,
   "replacementTfr": 2.1,
@@ -262,7 +262,7 @@
       "homepage": "https://github.com/RostyslavDzhohola/fertility-tracker/blob/main/docs/METHODOLOGY.md#how-sure-is-each-number",
       "license": "UN: CC BY 3.0 IGO; Eurostat: CC BY 4.0",
       "citation": "United Nations, DESA, Population Division (2024). World Population Prospects 2024: Data Sources; United Nations Statistics Division, Population and Vital Statistics Report; Eurostat",
-      "vintage": "2026-10-29",
+      "vintage": "2026-10-30",
       "nextUpdate": null,
       "coverage": "confidence, forecastRange and crossChecks in countries/{ISO3}.json; confidence (overall level) in countries.json",
       "datasets": [
@@ -302,7 +302,7 @@
           "title": "Hand-checked notes from national and UN agency sources",
           "url": null,
           "status": "ok",
-          "lastUpdated": "2026-10-29",
+          "lastUpdated": "2026-10-30",
           "file": "scripts/data/crosschecks.json"
         },
         {

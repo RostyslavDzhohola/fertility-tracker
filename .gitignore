@@ -7,4 +7,6 @@ public/api/v1/status.json
 public/country/
 public/rankings/
 public/og/
+public/sitemap.xml
+public/robots.txt
 __pycache__/
