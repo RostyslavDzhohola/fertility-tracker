@@ -1255,6 +1255,40 @@ test("every place has its own share page: a country link previews that country; 
   }
 });
 
+test("the JSON-LD follows the page: a place's own Dataset, the whole one on the rankings, and back again", opts, async () => {
+  const page = await openPage({ path: "/country/JPN" });
+  const ld = `JSON.parse(document.getElementById("dataset-jsonld").textContent).url`;
+  try {
+    assert.equal(await page.eval(ld), "https://fertility-tracker-live.vercel.app/country/JPN");
+    await page.eval(`FT.navigate("/country/KOR"), 0`);
+    await page.waitFor(`document.getElementById("cv-name").textContent === "South Korea"`);
+    assert.equal(await page.eval(ld), "https://fertility-tracker-live.vercel.app/country/KOR");
+    assert.equal(await page.eval(`JSON.parse(document.getElementById("dataset-jsonld").textContent).distribution[0].contentUrl`), "https://fertility-tracker-live.vercel.app/api/v1/countries/KOR.json");
+    await page.eval(`FT.navigate("/rankings"), 0`);
+    await page.waitFor(`location.pathname === "/rankings" && !document.getElementById("view-rankings").hidden`);
+    assert.equal(await page.eval(ld), "https://fertility-tracker-live.vercel.app/");
+    await page.eval("history.back(), 0");
+    await page.waitFor(`location.pathname === "/country/KOR" && !document.getElementById("view-country").hidden`);
+    assert.equal(await page.eval(ld), "https://fertility-tracker-live.vercel.app/country/KOR");
+    assert.deepEqual(page.errors, []);
+  } finally {
+    await page.close();
+  }
+});
+
+test("a place's <noscript> says what the app says: Kosovo grows a little longer first", opts, async () => {
+  const html = await (await fetch(`${base}/country/XKX`)).text();
+  const said = html.match(/<noscript>[\s\S]*?<p>([^<]+)<\/p>/)[1];
+  const page = await openPage({ path: "/country/XKX" });
+  try {
+    await page.waitFor(`document.getElementById("cv-verdict").textContent.length > 0`);
+    const verdict = await page.eval(`document.getElementById("cv-verdict").textContent`);
+    assert.ok(said.startsWith(verdict), `noscript "${said}" vs app "${verdict}"`);
+  } finally {
+    await page.close();
+  }
+});
+
 test("Share right after load waits for the globe: the picture has the map, not a blank", opts, async () => {
   // Ready as soon as the data is in, before the globe's first frame (Terra round 3).
   const page = await openPage({ path: "/?year=2026", ready: `document.documentElement.classList.contains("ready") && !!window.FT` });

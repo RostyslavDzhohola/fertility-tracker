@@ -119,6 +119,21 @@ export function ratioVsToday(scen, iso3, year, scenario, today) {
   return v / base;
 }
 
+// The year a scenario's path is highest, from today on (null without a path).
+export function peakYearOf(scen, iso3, today, scenario = "medium") {
+  const arr = scen?.places?.[iso3]?.[normScenario(scenario)];
+  if (!arr) return null;
+  const start = scen.startYear;
+  let best = -1;
+  let year = null;
+  for (let i = Math.max(0, today - start); i < arr.length; i++)
+    if (arr[i] != null && arr[i] > best) {
+      best = arr[i];
+      year = start + i;
+    }
+  return year;
+}
+
 export function pctVsToday(scen, iso3, year, scenario, today) {
   const r = ratioVsToday(scen, iso3, year, scenario, today);
   return r == null ? null : (r - 1) * 100;
@@ -523,6 +538,85 @@ export function countryPath(iso3) {
 export function pageUrl(iso3, siteUrl = SITE_URL) {
   const base = siteUrl.endsWith("/") ? siteUrl : siteUrl + "/";
   return iso3 ? `${base}country/${iso3}` : base;
+}
+
+// ---------------------------------------------------------------- structured data (schema.org Dataset)
+
+// The whole dataset, as index.html's JSON-LD says it (a site test keeps the two the same).
+export const SITE_DATASET = {
+  "@context": "https://schema.org",
+  "@type": "Dataset",
+  "name": "Fertility Tracker: births per woman, population change and decline risk for every country",
+  "description": "Births per woman, births, deaths, net migration, immigrant and emigrant stocks, UN population forecasts to 2100 (medium and constant-fertility variants) and a 0-100 population-decline risk score for every country and territory. Static JSON and CSV, no key, refreshed weekly. Agent guide: https://fertility-tracker-live.vercel.app/llms.txt",
+  "url": "https://fertility-tracker-live.vercel.app/",
+  "sameAs": "https://github.com/RostyslavDzhohola/fertility-tracker",
+  "license": "https://creativecommons.org/licenses/by/4.0/",
+  "isAccessibleForFree": true,
+  "creator": {
+    "@type": "Organization",
+    "name": "Fertility Tracker",
+    "url": "https://github.com/RostyslavDzhohola/fertility-tracker"
+  },
+  "keywords": [
+    "fertility rate",
+    "births per woman",
+    "population decline",
+    "population forecast",
+    "net migration",
+    "UN World Population Prospects",
+    "World Bank"
+  ],
+  "temporalCoverage": "1950/2100",
+  "spatialCoverage": "World",
+  "distribution": [
+    {
+      "@type": "DataDownload",
+      "encodingFormat": "application/json",
+      "contentUrl": "https://fertility-tracker-live.vercel.app/api/v1/countries.json"
+    },
+    {
+      "@type": "DataDownload",
+      "encodingFormat": "application/json",
+      "contentUrl": "https://fertility-tracker-live.vercel.app/api/v1/scenarios.json"
+    },
+    {
+      "@type": "DataDownload",
+      "encodingFormat": "text/csv",
+      "contentUrl": "https://fertility-tracker-live.vercel.app/api/v1/countries.csv"
+    },
+    {
+      "@type": "DataDownload",
+      "encodingFormat": "text/csv",
+      "contentUrl": "https://fertility-tracker-live.vercel.app/api/v1/timeseries.csv"
+    }
+  ]
+};
+
+// One place's Dataset: its JSON file, part of the whole dataset. The share pages carry it (scripts/pages/build-pages.mjs)
+// and the app swaps it in on every route, so the JSON-LD always describes the page shown.
+export function placeDataset(rec, siteUrl = SITE_URL, { dateModified = null } = {}) {
+  const site = siteUrl.endsWith("/") ? siteUrl : siteUrl + "/";
+  const world = rec.iso3 === "WLD";
+  const where = world ? "the world" : theName(rec);
+  const keywords = world ? ["world population", "world fertility rate"] : [`${rec.name} population`, `${rec.name} fertility rate`, `${rec.name} birth rate`];
+  const { name, description, url } = SITE_DATASET;
+  return {
+    "@context": "https://schema.org",
+    "@type": "Dataset",
+    name: `${displayName(rec)}: population, births per woman and UN forecast to ${END_YEAR}`,
+    description: `People in ${where} each year from 1950 to ${END_YEAR} (UN World Population Prospects 2024: estimates to 2023, forecast after, with its 80% and 95% ranges), births per woman, births, deaths, net migration, people born abroad, a 0-100 population-decline risk score, and how sure each number is. Static JSON, no key, refreshed weekly.`,
+    url: pageUrl(rec.iso3, site),
+    license: SITE_DATASET.license,
+    isAccessibleForFree: true,
+    creator: SITE_DATASET.creator,
+    // A nested Dataset needs its own name, description and url (Google's Dataset rules).
+    isPartOf: { "@type": "Dataset", name, description, url },
+    keywords: [...keywords, ...SITE_DATASET.keywords],
+    temporalCoverage: `1950/${END_YEAR}`,
+    spatialCoverage: world ? "World" : { "@type": "Place", name: rec.name },
+    distribution: [{ "@type": "DataDownload", encodingFormat: "application/json", contentUrl: `${site}api/v1/countries/${rec.iso3}.json` }],
+    ...(dateModified ? { dateModified } : {}),
+  };
 }
 
 // ---------------------------------------------------------------- feedback links (DESIGN.md §7)

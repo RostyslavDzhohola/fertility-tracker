@@ -8,7 +8,7 @@ import { tmpdir } from "node:os";
 import { gzipSync } from "node:zlib";
 import vm from "node:vm";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const root = path.join(repo, "public");
@@ -87,6 +87,12 @@ test("head points people and agents at the data (root-absolute), with JSON-LD", 
   // Day and night follow the system (style.css has both palettes).
   assert.match(html, /<meta name="color-scheme" content="light dark">/);
   assert.match(pages["api/index.html"], /<link rel="service-desc" type="application\/json" href="\/api\/v1\/openapi\.json">/);
+});
+
+test("the home page's JSON-LD is logic.js SITE_DATASET, the whole dataset the place pages are part of", async () => {
+  const L = await import(pathToFileURL(path.join(root, "js/logic.js")).href);
+  const ld = JSON.parse(html.match(/<script type="application\/ld\+json" id="dataset-jsonld">([\s\S]*?)<\/script>/)[1]);
+  assert.deepEqual(ld, L.SITE_DATASET);
 });
 
 test("noscript links the CSVs, the API docs and llms.txt", () => {
@@ -269,7 +275,8 @@ test("share pages: each place's page is index.html with its own title, descripti
     assert.deepEqual(ld.spatialCoverage, { "@type": "Place", name: "Taiwan" });
     assert.equal(ld.distribution[0].contentUrl, "https://fertility-tracker-live.vercel.app/api/v1/countries/TWN.json");
     assert.equal(ld.isPartOf.url, "https://fertility-tracker-live.vercel.app/");
-    assert.ok(ld.description.length >= 50 && ld.description.length <= 5000, "Google's Dataset description length");
+    // Google's Dataset rules: a description of 50-5000 characters, on the nested Dataset too.
+    for (const d of [ld, ld.isPartOf]) assert.ok(d.name && d.description.length >= 50 && d.description.length <= 5000, d.name);
     assert.match(ld.dateModified, /^\d{4}-\d{2}-\d{2}T/);
     // Names with quotes or ampersands stay well-formed.
     const civ = await readFile(path.join(dir, "country/CIV/index.html"), "utf8");

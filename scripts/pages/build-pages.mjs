@@ -92,7 +92,8 @@ export function placeNoscript(L, rec, scen, { now = new Date(), rankedN = null }
   const ratio = L.ratioVsToday(scen, rec.iso3, L.END_YEAR, "medium", today);
   const small = L.isSmallPlace(rec);
   const parts = [`<h1>${esc(L.displayName(rec))}: population, births, deaths and moving, 1950 to ${L.END_YEAR}</h1>`];
-  const said = [L.verdict(rec, pct, today, { scenario: "medium", small }), small ? "" : L.hundredSentence(rec, ratio, "medium")];
+  const peakYear = L.peakYearOf(scen, rec.iso3, today, "medium");
+  const said = [L.verdict(rec, pct, today, { scenario: "medium", peakYear, small }), small ? "" : L.hundredSentence(rec, ratio, "medium")];
   const tfr = L.tfrReason(rec);
   if (tfr) said.push(`${tfr}.`);
   parts.push(`<p>${esc(said.filter(Boolean).join(" "))}</p>`);
@@ -132,28 +133,9 @@ export function rankingsNoscript(L, countries, scen, { now = new Date() } = {}) 
   );
 }
 
-// A place's own Dataset (its JSON file), part of the whole dataset the home page describes. Exported for tests.
-export function placeJsonLd(L, rec, site, base, { dateModified = null } = {}) {
-  const who = L.displayName(rec);
-  const where = rec.iso3 === "WLD" ? "the world" : L.theName(rec);
-  const keywords = rec.iso3 === "WLD" ? ["world population", "world fertility rate"] : [`${rec.name} population`, `${rec.name} fertility rate`, `${rec.name} birth rate`];
-  const dataset = {
-    "@context": "https://schema.org",
-    "@type": "Dataset",
-    name: `${who}: population, births per woman and UN forecast to ${L.END_YEAR}`,
-    description: `People in ${where} each year from 1950 to ${L.END_YEAR} (UN World Population Prospects 2024: estimates to 2023, forecast after, with its 80% and 95% ranges), births per woman, births, deaths, net migration, people born abroad, a 0-100 population-decline risk score, and how sure each number is. Static JSON, no key, refreshed weekly.`,
-    url: L.pageUrl(rec.iso3, site),
-    license: base.license,
-    isAccessibleForFree: true,
-    creator: base.creator,
-    isPartOf: { "@type": "Dataset", name: base.name, url: base.url },
-    keywords: [...keywords, ...(base.keywords ?? [])],
-    temporalCoverage: `1950/${L.END_YEAR}`,
-    spatialCoverage: rec.iso3 === "WLD" ? "World" : { "@type": "Place", name: rec.name },
-    distribution: [{ "@type": "DataDownload", encodingFormat: "application/json", contentUrl: `${site}api/v1/countries/${rec.iso3}.json` }],
-    ...(dateModified ? { dateModified } : {}),
-  };
-  return JSON.stringify(dataset, null, 2).replace(/</g, "\\u003c");
+// A place's JSON-LD (logic.js placeDataset, which the app also uses), safe inside <script>.
+function placeJsonLd(L, rec, site, { dateModified = null } = {}) {
+  return JSON.stringify(L.placeDataset(rec, site, { dateModified }), null, 2).replace(/</g, "\\u003c");
 }
 
 // Every page, for search engines. Exported for tests.
@@ -241,7 +223,6 @@ export async function buildPages({ dir = publicDir, quiet = false } = {}) {
   const site0 = feedback?.site?.url || L.SITE_URL;
   const site = site0.endsWith("/") ? site0 : `${site0}/`;
 
-  const base = JSON.parse(template.match(/<script type="application\/ld\+json" id="dataset-jsonld">([\s\S]*?)<\/script>/)?.[1] ?? "{}");
   const dateModified = countries.generatedAt ?? null;
   const rankedN = countries.countries.filter((r) => Number.isInteger(r.risk?.rank)).length;
 
@@ -253,7 +234,7 @@ export async function buildPages({ dir = publicDir, quiet = false } = {}) {
     const meta = {
       ...placeMeta(L, rec, scen, site),
       noscript: placeNoscript(L, rec, scen, { rankedN }),
-      jsonLd: placeJsonLd(L, rec, site, base, { dateModified }),
+      jsonLd: placeJsonLd(L, rec, site, { dateModified }),
     };
     const out = path.join(dir, "country", rec.iso3, "index.html");
     await mkdir(path.dirname(out), { recursive: true });
