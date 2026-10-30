@@ -116,8 +116,8 @@ Everything in the summary, plus:
   2024-2100 (the UN's 80% and 95% prediction intervals and its Zero-migration scenario).
 - `crossChecks`: newer or more direct figures next to the UN's. Each has `key` (`today`, `census`, `births`, `deaths`,
   `immigrants`, `net`), `kind` (`eurostat`, `unsd`: automatic; `researched`: hand-checked), `figure` and `unFigure`
-  `{value, what, date}`, `gapPct` ((UN − other) ÷ other × 100), `verdict` (`matches` within 2%, `un-higher`,
-  `un-lower`, `context`) and `links`. Automatic ones add `asOf` and the national office's `notes`; hand-checked ones
+  `{value, what, date}`, `gapPct` ((UN − other) ÷ |other| × 100: negative when the UN's number is lower, losses
+  included), `verdict` (`matches` within 2%, `un-higher`, `un-lower`, `context`) and `links`. Automatic ones add `asOf` and the national office's `notes`; hand-checked ones
   add `text`, `quotes` and `accessed`.
 - `links`: `self`, `countries`, `risk`, `docs`, `site` (the country's page on the live tracker,
   `https://fertility-tracker-live.vercel.app/country/{ISO3}`).

@@ -1,6 +1,6 @@
 {
   "about": "Hand-checked notes: what newer or more direct primary sources say about a UN figure on the site. Each note names its sources, quotes the numbers it uses, and has the date it was checked. Process and rules: docs/CROSS-CHECK-PROCESS.md. Evidence for these entries: docs/DATA-CROSS-CHECK.md.",
-  "checked": "2026-10-29",
+  "checked": "2026-10-30",
   "places": {
     "AFG": [
       {
@@ -134,6 +134,156 @@
         "accessed": "2026-10-29"
       }
     ],
+    "ALB": [
+      {
+        "key": "today",
+        "text": "Albania's September 2023 census counted 2,402,113 residents, and INSTAT estimates 2,335,930 on 1 January 2026. The UN's figure for that date is 2,761,000, 18% higher. The UN's estimates do not use the 2023 census; they rest on the 2011 one.",
+        "figure": {
+          "value": 2335930,
+          "what": "INSTAT population of Albania on 1 January 2026, carried forward from the 2023 census",
+          "date": "2026-01-01"
+        },
+        "unFigure": {
+          "value": 2761267,
+          "what": "UN population for 1 January 2026: average of the 1 July 2025 and 1 July 2026 forecasts (2,771,508 and 2,751,025)",
+          "date": ""
+        },
+        "verdict": "un-higher",
+        "links": [
+          {
+            "label": "INSTAT, Population of Albania, 1 January 2026, released 2 June 2026",
+            "href": "https://www.instat.gov.al/media/cc0kwohw/popullsia-1-janar-2026.pdf"
+          },
+          {
+            "label": "INSTAT, Population and Housing Census 2023: main results (Censi i Popullsisë dhe Banesave 2023)",
+            "href": "https://www.instat.gov.al/media/13626/cens-2023-census-botim.pdf"
+          },
+          {
+            "label": "UN DESA Population Division, World Population Prospects 2024: Data Sources",
+            "href": "https://population.un.org/wpp/assets/Files/WPP2024_Data_Sources.pdf"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "Popullsia e Shqipërisë më 1 Janar 2026 rezulton 2.335.930 banorë, duke pësuar rënie me 1,16 %, krahasuar me 1 Janar 2025.",
+            "href": "https://www.instat.gov.al/media/cc0kwohw/popullsia-1-janar-2026.pdf"
+          },
+          {
+            "text": "Popullsia banuese në Republikën e Shqipërisë më 18 Shtator 2023 rezultoi 2.402.113, me rënie prej 420 mijë persona, krahasuar me Censin e 2011.",
+            "href": "https://www.instat.gov.al/media/13626/cens-2023-census-botim.pdf"
+          },
+          {
+            "text": "the population by age and sex of the (a) 1950, 1955, 1960, 1969, 1979, 1989, 2001, 2011 censuses",
+            "href": "https://population.un.org/wpp/assets/Files/WPP2024_Data_Sources.pdf"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "births",
+        "text": "INSTAT registered 22,541 births in 2025. The UN's forecast for 2025 is 27,433, 22% higher.",
+        "figure": {
+          "value": 22541,
+          "what": "INSTAT live births of Albanian residents, 2025",
+          "date": "2025"
+        },
+        "unFigure": {
+          "value": 27433,
+          "what": "UN births, 2025 (forecast)",
+          "date": ""
+        },
+        "verdict": "un-higher",
+        "links": [
+          {
+            "label": "INSTAT, Population of Albania, 1 January 2026, released 2 June 2026",
+            "href": "https://www.instat.gov.al/media/cc0kwohw/popullsia-1-janar-2026.pdf"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "Treguesit demografikë 1 Janar 2025 1 Janar 2026",
+            "href": "https://www.instat.gov.al/media/cc0kwohw/popullsia-1-janar-2026.pdf"
+          },
+          {
+            "text": "Lindje 23.310 22.541",
+            "href": "https://www.instat.gov.al/media/cc0kwohw/popullsia-1-janar-2026.pdf"
+          },
+          {
+            "text": "Shtesës natyrore, që për vitin 2025 ishte pozitive me +1.147 lindje më shumë se vdekje",
+            "href": "https://www.instat.gov.al/media/cc0kwohw/popullsia-1-janar-2026.pdf"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "net",
+        "text": "INSTAT estimates that 28,531 more people left Albania than arrived in 2025. The UN's forecast for 2025 is a net loss of 24,230, 15% smaller.",
+        "figure": {
+          "value": -28531,
+          "what": "INSTAT net migration, 2025 (estimated from surveys, as Albania has no population register)",
+          "date": "2025"
+        },
+        "unFigure": {
+          "value": -24230,
+          "what": "UN net migration, 2025 (forecast)",
+          "date": ""
+        },
+        "verdict": "un-higher",
+        "links": [
+          {
+            "label": "INSTAT, Population of Albania, 1 January 2026, released 2 June 2026",
+            "href": "https://www.instat.gov.al/media/cc0kwohw/popullsia-1-janar-2026.pdf"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "Migracioni neto, i cili mbeti negativ me -28.531.",
+            "href": "https://www.instat.gov.al/media/cc0kwohw/popullsia-1-janar-2026.pdf"
+          },
+          {
+            "text": "*Bazuar në të dhënat më të mira proxy të mundshme nga vrojtimet statistikore.",
+            "href": "https://www.instat.gov.al/media/cc0kwohw/popullsia-1-janar-2026.pdf"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "immigrants",
+        "text": "The 2023 census counted 40,803 residents born abroad, 1.7% of the population, about half of them born in Greece. UN DESA's figure for mid-2024 is 46,377, 14% higher.",
+        "figure": {
+          "value": 40803,
+          "what": "Residents born in another country, 2023 census",
+          "date": "2023-09-18"
+        },
+        "unFigure": {
+          "value": 46377,
+          "what": "UN DESA people born abroad living in Albania, mid-2024",
+          "date": ""
+        },
+        "verdict": "un-higher",
+        "links": [
+          {
+            "label": "INSTAT, Population and Housing Census 2023: main results (Censi i Popullsisë dhe Banesave 2023)",
+            "href": "https://www.instat.gov.al/media/13626/cens-2023-census-botim.pdf"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "Tab. 10 Popullsia banuese sipas grupmoshës, vendlindjes dhe gjinisë Resident population by age group, country of birth and sex",
+            "href": "https://www.instat.gov.al/media/13626/cens-2023-census-botim.pdf"
+          },
+          {
+            "text": "Gjithsej | Total 2 402 113 1 190 448 1 211 665 2 361 310 1 169 221 1 192 089 40 803 21 227 19 576",
+            "href": "https://www.instat.gov.al/media/13626/cens-2023-census-botim.pdf"
+          },
+          {
+            "text": "Sipas Censit të vitit 2023, 98,3 përqind e popullsisë në Shqipëri janë vendas, dhe 1,7 përqind janë individë të lindur jashtë vendit. Mes popullsisë të lindur jashtë, afërsisht gjysma e tyre (46,2 përqind) kanë lindur në Greqi",
+            "href": "https://www.instat.gov.al/media/13626/cens-2023-census-botim.pdf"
+          }
+        ],
+        "accessed": "2026-10-29"
+      }
+    ],
     "BGD": [
       {
         "key": "today",
@@ -203,6 +353,288 @@
           {
             "text": "In the census, a total of 27,842 population have been reported as foreigner, of which 21,208 are recorded as male and 6,634 as female.",
             "href": "https://objectstorage.ap-dcc-gazipur-1.oraclecloud15.com/n/axvjbnqprylg/b/V2Ministry/o/office-bbs/2024/12/9ce5bd160bb14a1ab1eabe886adddb9a.pdf"
+          }
+        ],
+        "accessed": "2026-10-29"
+      }
+    ],
+    "BGR": [
+      {
+        "key": "today",
+        "text": "Bulgaria's statistics institute (NSI) counted 6,423,207 people on 31 December 2025. The UN's figure for that date is 6,691,000, 4% higher.",
+        "figure": {
+          "value": 6423207,
+          "what": "NSI population of Bulgaria on 31 December 2025, final data",
+          "date": "2025-12-31"
+        },
+        "unFigure": {
+          "value": 6691110,
+          "what": "UN population for 1 January 2026: average of the 1 July 2025 and 1 July 2026 forecasts (6,714,560 and 6,667,659)",
+          "date": ""
+        },
+        "verdict": "un-higher",
+        "links": [
+          {
+            "label": "National Statistical Institute of Bulgaria (NSI), Population and Demographic processes - 2025 - final data, 29 April 2026",
+            "href": "https://www.nsi.bg/en/press-release/population-and-demographic-processes-9002"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "As of December 31, 2025, the population of Bulgaria was 6 423 207 persons. Compared to 2024, the country’s population had decreased by 14 153 persons, or by 0.22%.",
+            "href": "https://www.nsi.bg/en/press-release/population-and-demographic-processes-9002"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "births",
+        "text": "NSI registered 50,241 live births in 2025. The UN's forecast for 2025 is 60,380, 20% higher.",
+        "figure": {
+          "value": 50241,
+          "what": "NSI live births, 2025",
+          "date": "2025"
+        },
+        "unFigure": {
+          "value": 60380,
+          "what": "UN births, 2025 (forecast)",
+          "date": ""
+        },
+        "verdict": "un-higher",
+        "links": [
+          {
+            "label": "National Statistical Institute of Bulgaria (NSI), Population and Demographic processes - 2025 - final data, 29 April 2026",
+            "href": "https://www.nsi.bg/en/press-release/population-and-demographic-processes-9002"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "There were 50 496 children born in 2025, of which 50 241 (99.5%) - live-born. The number of live births decreased by 3 187 children, or 6.0% compared to the previous year.",
+            "href": "https://www.nsi.bg/en/press-release/population-and-demographic-processes-9002"
+          },
+          {
+            "text": "The number of live-born males (25 763) was 1 285 higher compared to the live-born females (24 478)",
+            "href": "https://www.nsi.bg/en/press-release/population-and-demographic-processes-9002"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "net",
+        "text": "NSI recorded 44,640 people moving to Bulgaria in 2025 and 9,555 leaving, a net gain of 35,085. The UN's forecast for 2025 is a net loss of 2,961.",
+        "figure": {
+          "value": 35085,
+          "what": "NSI net international migration (immigrants minus emigrants), 2025",
+          "date": "2025"
+        },
+        "unFigure": {
+          "value": -2961,
+          "what": "UN net migration, 2025 (forecast)",
+          "date": ""
+        },
+        "verdict": "un-lower",
+        "links": [
+          {
+            "label": "National Statistical Institute of Bulgaria (NSI), Population and Demographic processes - 2025 - final data, 29 April 2026",
+            "href": "https://www.nsi.bg/en/press-release/population-and-demographic-processes-9002"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "There were 44 640 persons who changed their address abroad to an address in Bulgaria in 2025.",
+            "href": "https://www.nsi.bg/en/press-release/population-and-demographic-processes-9002"
+          },
+          {
+            "text": "9 555 persons changed their current address in Bulgaria to an address abroad in 2025",
+            "href": "https://www.nsi.bg/en/press-release/population-and-demographic-processes-9002"
+          },
+          {
+            "text": "The net migration growth in 2025 was positive - plus 35 085 persons - the difference between the number of immigrants and the number of emigrants.",
+            "href": "https://www.nsi.bg/en/press-release/population-and-demographic-processes-9002"
+          }
+        ],
+        "accessed": "2026-10-29"
+      }
+    ],
+    "BIH": [
+      {
+        "key": "today",
+        "text": "The statistics agency's figure for 1 January 2026, sent to Eurostat, is 3,396,100. It is worked out from the 2013 census and shows no net migration or other adjustment in 2025. The UN's figure for that date is 3,127,000, 8% lower.",
+        "figure": {
+          "value": 3396100,
+          "what": "Official population of Bosnia and Herzegovina on 1 January 2026, provisional (published in thousands: 3396.1)",
+          "date": "2026-01-01"
+        },
+        "unFigure": {
+          "value": 3127169,
+          "what": "UN population for 1 January 2026: average of the 1 July 2025 and 1 July 2026 forecasts (3,140,095 and 3,114,242)",
+          "date": ""
+        },
+        "verdict": "un-lower",
+        "links": [
+          {
+            "label": "Eurostat, Population and population change statistics, Table 1: Demographic balance, 2025 (xlsx), data extracted 6 July 2026",
+            "href": "https://ec.europa.eu/eurostat/statistics-explained/images/c/c6/Population_change_statistics_YB2025_VERSION_6.xlsx"
+          },
+          {
+            "label": "Agency for Statistics of Bosnia and Herzegovina (BHAS), Demography 2024, Thematic Bulletin 02, Sarajevo 2025",
+            "href": "https://bhas.gov.ba/data/Publikacije/Bilteni/2025/DEM_00_2024_TB_1_HR.pdf"
+          },
+          {
+            "label": "UN DESA Population Division, World Population Prospects 2024: Data Sources",
+            "href": "https://population.un.org/wpp/assets/Files/WPP2024_Data_Sources.pdf"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "Table 1: Demographic balance, 2025 (thousands) | Population, 1 January 2025 | Live births | Deaths | Natural change | Net migration and statistical adjustment | Total change between 1 January 2025 and 2026 | Population, 1 January 2026",
+            "href": "https://ec.europa.eu/eurostat/statistics-explained/images/c/c6/Population_change_statistics_YB2025_VERSION_6.xlsx"
+          },
+          {
+            "text": "Bosnia and Herzegovina (³) | 3407.2 | 26.1 | 37.2 | -11 | 0 | -11 | 3396.1",
+            "href": "https://ec.europa.eu/eurostat/statistics-explained/images/c/c6/Population_change_statistics_YB2025_VERSION_6.xlsx"
+          },
+          {
+            "text": "3) Izračunato u odnosu na Popis stanovništva iz 2013. godine 3) Calculated on the basis of the Census 2013",
+            "href": "https://bhas.gov.ba/data/Publikacije/Bilteni/2025/DEM_00_2024_TB_1_HR.pdf"
+          },
+          {
+            "text": "the population by age and sex of the (a) 1948, 1953, 1961, 1971, 1981, 1991, 2013 censuses",
+            "href": "https://population.un.org/wpp/assets/Files/WPP2024_Data_Sources.pdf"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "deaths",
+        "text": "The statistics agency registered 36,423 deaths in 2024. The UN's figure for 2024 is 42,786, 17% higher.",
+        "figure": {
+          "value": 36423,
+          "what": "Registered deaths in Bosnia and Herzegovina, 2024",
+          "date": "2024"
+        },
+        "unFigure": {
+          "value": 42786,
+          "what": "UN deaths, 2024 (forecast)",
+          "date": ""
+        },
+        "verdict": "un-higher",
+        "links": [
+          {
+            "label": "Agency for Statistics of Bosnia and Herzegovina (BHAS), Demography 2024, Thematic Bulletin 02, Sarajevo 2025",
+            "href": "https://bhas.gov.ba/data/Publikacije/Bilteni/2025/DEM_00_2024_TB_1_HR.pdf"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "20243) 3 412 26 037 13 448 74 36 423 18 519 20243) 134 74 -10 386 16 213 2 913",
+            "href": "https://bhas.gov.ba/data/Publikacije/Bilteni/2025/DEM_00_2024_TB_1_HR.pdf"
+          },
+          {
+            "text": "Year Total population (mid-year estimate),000 Births Deaths Year Deaths Natural increase Marital statistics Live births Stillbirths Total Infants Total Males Total Males Total Males Marriages Divorces",
+            "href": "https://bhas.gov.ba/data/Publikacije/Bilteni/2025/DEM_00_2024_TB_1_HR.pdf"
+          }
+        ],
+        "accessed": "2026-10-29"
+      }
+    ],
+    "BLR": [
+      {
+        "key": "today",
+        "text": "Belarus's statistics office (Belstat) puts the population at 9,056,100 on 1 January 2026. The UN's figure for that date is 8,967,000, 1% lower. The two match.",
+        "figure": {
+          "value": 9056100,
+          "what": "Belstat population of Belarus on 1 January 2026",
+          "date": "2026-01-01"
+        },
+        "unFigure": {
+          "value": 8967311,
+          "what": "UN population for 1 January 2026: average of the 1 July 2025 and 1 July 2026 forecasts (8,997,603 and 8,937,018)",
+          "date": ""
+        },
+        "verdict": "matches",
+        "links": [
+          {
+            "label": "Belstat (National Statistical Committee of Belarus), Belarus in Figures 2026 (Беларусь в цифрах, 2026)",
+            "href": "https://www.belstat.gov.by/upload/iblock/66c/9w6xi4zqn1lqebv04kh6lyw7q65pz7vi.pdf"
+          },
+          {
+            "label": "Belstat, Population page",
+            "href": "https://www.belstat.gov.by/ofitsialnaya-statistika/solialnaya-sfera/naselenie-i-migratsiya/naselenie/"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "Население на 01.01.2026 9 056,1 тыс. человек",
+            "href": "https://www.belstat.gov.by/upload/iblock/66c/9w6xi4zqn1lqebv04kh6lyw7q65pz7vi.pdf"
+          },
+          {
+            "text": "Численность населения Республики Беларусь (на 1 января 2026 г.) 9 056,1 тыс. человек",
+            "href": "https://www.belstat.gov.by/ofitsialnaya-statistika/solialnaya-sfera/naselenie-i-migratsiya/naselenie/"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "net",
+        "text": "Belstat recorded 46,897 people moving to Belarus in 2025 and 37,824 leaving, a net gain of 9,073. The UN's forecast for 2025 has a small net loss of 3,020 instead.",
+        "figure": {
+          "value": 9073,
+          "what": "Belstat net international migration (arrivals minus departures), 2025",
+          "date": "2025"
+        },
+        "unFigure": {
+          "value": -3020,
+          "what": "UN net migration, 2025 (forecast)",
+          "date": ""
+        },
+        "verdict": "un-lower",
+        "links": [
+          {
+            "label": "Belstat (National Statistical Committee of Belarus), Belarus in Figures 2026 (Беларусь в цифрах, 2026)",
+            "href": "https://www.belstat.gov.by/upload/iblock/66c/9w6xi4zqn1lqebv04kh6lyw7q65pz7vi.pdf"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "МЕЖДУНАРОДНАЯ МИГРАЦИЯ (человек) 2024 2025 Прибыло в Республику Беларусь 42 250 46 897",
+            "href": "https://www.belstat.gov.by/upload/iblock/66c/9w6xi4zqn1lqebv04kh6lyw7q65pz7vi.pdf"
+          },
+          {
+            "text": "Выбыло из Республики Беларусь 32 762 37 824",
+            "href": "https://www.belstat.gov.by/upload/iblock/66c/9w6xi4zqn1lqebv04kh6lyw7q65pz7vi.pdf"
+          },
+          {
+            "text": "Сальдо миграции 9 488 9 073",
+            "href": "https://www.belstat.gov.by/upload/iblock/66c/9w6xi4zqn1lqebv04kh6lyw7q65pz7vi.pdf"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "births",
+        "text": "Belstat registered 54,300 births in 2025. The UN's forecast for 2025 is 62,332 births, 15% higher.",
+        "figure": {
+          "value": 54300,
+          "what": "Belstat registered live births, 2025 (published in thousands: 54.3)",
+          "date": "2025"
+        },
+        "unFigure": {
+          "value": 62332,
+          "what": "UN births, 2025 (forecast)",
+          "date": ""
+        },
+        "verdict": "un-higher",
+        "links": [
+          {
+            "label": "Belstat (National Statistical Committee of Belarus), Belarus in Figures 2026 (Беларусь в цифрах, 2026)",
+            "href": "https://www.belstat.gov.by/upload/iblock/66c/9w6xi4zqn1lqebv04kh6lyw7q65pz7vi.pdf"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "ЕСТЕСТВЕННОЕ ДВИЖЕНИЕ НАСЕЛЕНИЯ 2024 2025 Всего, тысяч человек Число родившихся 58,9 54,3",
+            "href": "https://www.belstat.gov.by/upload/iblock/66c/9w6xi4zqn1lqebv04kh6lyw7q65pz7vi.pdf"
           }
         ],
         "accessed": "2026-10-29"
@@ -478,6 +910,246 @@
         "accessed": "2026-10-29"
       }
     ],
+    "CUB": [
+      {
+        "key": "today",
+        "text": "Cuba's statistics office (ONEI) put the population at 9,591,301 in mid-2025 and 9,434,593 at the end of 2025, counting people who lived in Cuba at least 180 of the past 365 days. The UN's figure for 1 July 2025, 10.94 million, is 14% higher.",
+        "figure": {
+          "value": 9591301,
+          "what": "average population, 30 June 2025 (ONEI)",
+          "date": "2025-06-30"
+        },
+        "unFigure": {
+          "value": 10937204,
+          "what": "UN population, 1 July 2025",
+          "date": ""
+        },
+        "verdict": "un-higher",
+        "links": [
+          {
+            "label": "ONEI (CEPDE), Indicadores Demográficos de Cuba y sus Territorios 2025, July 2026 (copy hosted by the Havana provincial government)",
+            "href": "https://www.lahabana.gob.cu/upload/pdf/6a6d2c2308212001896954.pdf"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "Cuba 9 748 007 68 064 136 214 674 -245 264 9 434 593 9 591 301 7,1 14,2 9,9",
+            "href": "https://www.lahabana.gob.cu/upload/pdf/6a6d2c2308212001896954.pdf"
+          },
+          {
+            "text": "Población efectiva: Se refiere a la población que en un año calendario nació en el país, así como aquella que acumuló 180 días o más de residencia en el mismo en los últimos 365 días y no ha fallecido.",
+            "href": "https://www.lahabana.gob.cu/upload/pdf/6a6d2c2308212001896954.pdf"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "net",
+        "text": "ONEI recorded 317,320 people leaving Cuba in 2025 and 72,056 arriving, a net loss of 245,264. The UN expects a net loss of only 22,244 in 2025, about 11 times smaller.",
+        "figure": {
+          "value": -245264,
+          "what": "net migration abroad, 2025 (ONEI)",
+          "date": "2025"
+        },
+        "unFigure": {
+          "value": -22244,
+          "what": "UN net migration, 2025",
+          "date": ""
+        },
+        "verdict": "un-higher",
+        "links": [
+          {
+            "label": "ONEI (CEPDE), Indicadores Demográficos de Cuba y sus Territorios 2025, July 2026",
+            "href": "https://www.lahabana.gob.cu/upload/pdf/6a6d2c2308212001896954.pdf"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "Cuba 9 748 007 68 064 136 214 49 555 49 555 72 056 317 320 9 434 593",
+            "href": "https://www.lahabana.gob.cu/upload/pdf/6a6d2c2308212001896954.pdf"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "births",
+        "text": "ONEI recorded 68,064 births in Cuba in 2025. The UN expects 93,499 births in 2025, 37% more.",
+        "figure": {
+          "value": 68064,
+          "what": "births, 2025 (ONEI)",
+          "date": "2025"
+        },
+        "unFigure": {
+          "value": 93499,
+          "what": "UN births, 2025",
+          "date": ""
+        },
+        "verdict": "un-higher",
+        "links": [
+          {
+            "label": "ONEI (CEPDE), Indicadores Demográficos de Cuba y sus Territorios 2025, July 2026",
+            "href": "https://www.lahabana.gob.cu/upload/pdf/6a6d2c2308212001896954.pdf"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "Cuba 9 748 007 68 064 136 214 674 -245 264 9 434 593 9 591 301 7,1 14,2 9,9",
+            "href": "https://www.lahabana.gob.cu/upload/pdf/6a6d2c2308212001896954.pdf"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "deaths",
+        "text": "ONEI recorded 136,214 deaths in Cuba in 2025. The UN expects 114,797 deaths in 2025, 16% fewer.",
+        "figure": {
+          "value": 136214,
+          "what": "deaths, 2025 (ONEI)",
+          "date": "2025"
+        },
+        "unFigure": {
+          "value": 114797,
+          "what": "UN deaths, 2025",
+          "date": ""
+        },
+        "verdict": "un-lower",
+        "links": [
+          {
+            "label": "ONEI (CEPDE), Indicadores Demográficos de Cuba y sus Territorios 2025, July 2026",
+            "href": "https://www.lahabana.gob.cu/upload/pdf/6a6d2c2308212001896954.pdf"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "Cuba 9 748 007 68 064 136 214 674 -245 264 9 434 593 9 591 301 7,1 14,2 9,9",
+            "href": "https://www.lahabana.gob.cu/upload/pdf/6a6d2c2308212001896954.pdf"
+          }
+        ],
+        "accessed": "2026-10-29"
+      }
+    ],
+    "CZE": [
+      {
+        "key": "today",
+        "text": "The Czech Statistical Office counted 10,903,655 residents on 30 June 2026 (preliminary). The UN's figure for 1 July 2026, 10.53 million, is 3.4% lower. Since 2022 the office has counted people with temporary protection who usually live in Czechia as residents.",
+        "figure": {
+          "value": 10903655,
+          "what": "population of Czechia, preliminary",
+          "date": "2026-06-30"
+        },
+        "unFigure": {
+          "value": 10527781,
+          "what": "UN forecast for 1 July 2026",
+          "date": ""
+        },
+        "verdict": "un-lower",
+        "links": [
+          {
+            "label": "Czech Statistical Office, Základní údaje (key population figures)",
+            "href": "https://csu.gov.cz/zakladni-udaje"
+          },
+          {
+            "label": "Czech Statistical Office, Pohyb obyvatelstva – 1. pololetí 2026, 11 Sep 2026",
+            "href": "https://csu.gov.cz/rychle-informace/pohyb-obyvatelstva-1-pololeti-2026"
+          },
+          {
+            "label": "Czech Statistical Office, Pohyb obyvatelstva – rok 2025",
+            "href": "https://csu.gov.cz/rychle-informace/pohyb-obyvatelstva-rok-2025"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "Datum zveřejnění: 11. 09. 2026 30.06.2026 10 903 655",
+            "href": "https://csu.gov.cz/zakladni-udaje"
+          },
+          {
+            "text": "Během prvního pololetí letošního roku se počet obyvatel Česka o 12,2 tisíce snížil na necelých 10,904 milionu.",
+            "href": "https://csu.gov.cz/rychle-informace/pohyb-obyvatelstva-1-pololeti-2026"
+          },
+          {
+            "text": "Od roku 2022 jsou do obyvatelstva zahrnovány osoby s udělenou dočasnou ochranou v České republice s obvyklým pobytem v ČR.",
+            "href": "https://csu.gov.cz/rychle-informace/pohyb-obyvatelstva-rok-2025"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "net",
+        "text": "The Czech Statistical Office recorded 110.6 thousand people moving to Czechia in 2025 and 68.6 thousand leaving, a net gain of 42.0 thousand. The first half of 2026 brought a further gain of 8.9 thousand. The UN expects a net loss of 112,188 people for 2025.",
+        "figure": {
+          "value": 42000,
+          "what": "net migration (arrivals from abroad minus departures abroad), rounded to thousands by the source",
+          "date": "2025"
+        },
+        "unFigure": {
+          "value": -112188,
+          "what": "UN forecast net migration for 2025",
+          "date": ""
+        },
+        "verdict": "un-lower",
+        "links": [
+          {
+            "label": "Czech Statistical Office, Pohyb obyvatelstva – rok 2025",
+            "href": "https://csu.gov.cz/rychle-informace/pohyb-obyvatelstva-rok-2025"
+          },
+          {
+            "label": "Czech Statistical Office, Pohyb obyvatelstva – 1. pololetí 2026, 11 Sep 2026",
+            "href": "https://csu.gov.cz/rychle-informace/pohyb-obyvatelstva-1-pololeti-2026"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "Opačným směrem, z Česka do zahraničí, se v roce 2025 stěhovalo 68,6 tisíce obyvatel, meziročně o 16,4 tisíce méně. Saldo zahraničního stěhování dosáhlo 42,0 tisíce a oproti roku 2024 vzrostlo o 5,2 tisíce.",
+            "href": "https://csu.gov.cz/rychle-informace/pohyb-obyvatelstva-rok-2025"
+          },
+          {
+            "text": "Ze zahraničí do Česka se v průběhu roku 2025 přistěhovalo 110,6 tisíce osob.",
+            "href": "https://csu.gov.cz/rychle-informace/pohyb-obyvatelstva-rok-2025"
+          },
+          {
+            "text": "Zahraničním stěhováním získalo Česko 8,9 tisíce obyvatel, když přistěhovalých z ciziny bylo evidováno 53,9 tisíce a vystěhovalých 45,0 tisíce.",
+            "href": "https://csu.gov.cz/rychle-informace/pohyb-obyvatelstva-1-pololeti-2026"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "immigrants",
+        "text": "Eurostat counted 398,360 people from Ukraine under temporary protection in Czechia at the end of August 2026, up from 388,625 at the end of 2024. The UN shows Czechia losing 198,357 people through migration in 2024 and 2025 combined; the protection count did not fall.",
+        "figure": {
+          "value": 398360,
+          "what": "people who fled Ukraine and were under temporary protection in Czechia at the end of the month",
+          "date": "2026-08-31"
+        },
+        "unFigure": {
+          "value": -198357,
+          "what": "UN net migration for 2024 (−86,169) and 2025 (−112,188) added together, both forecasts",
+          "date": ""
+        },
+        "verdict": "context",
+        "links": [
+          {
+            "label": "Eurostat, Temporary protection for persons fleeing Ukraine – monthly statistics (data extracted 5 Oct 2026)",
+            "href": "https://ec.europa.eu/eurostat/statistics-explained/index.php?title=Temporary_protection_for_persons_fleeing_Ukraine_-_monthly_statistics"
+          },
+          {
+            "label": "Eurostat news, 4.3 million under temporary protection in December 2024, 10 Feb 2025",
+            "href": "https://ec.europa.eu/eurostat/en/web/products-eurostat-news/w/ddn-20250210-1"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "At the end of August 2026, the EU countries hosting the highest number of beneficiaries of temporary protection from Ukraine were Germany (1 294 555 people; 29.2% of the EU total), Poland (939 395; 21.2%), and Czechia (398 360; 9.0%).",
+            "href": "https://ec.europa.eu/eurostat/statistics-explained/index.php?title=Temporary_protection_for_persons_fleeing_Ukraine_-_monthly_statistics"
+          },
+          {
+            "text": "The EU countries hosting the highest number of beneficiaries of temporary protection from Ukraine were Germany (1 161 450 people; 27.3% of the EU total), Poland (991 630; 23.3%) and Czechia (388 625; 9.1%).",
+            "href": "https://ec.europa.eu/eurostat/en/web/products-eurostat-news/w/ddn-20250210-1"
+          }
+        ],
+        "accessed": "2026-10-29"
+      }
+    ],
     "EGY": [
       {
         "key": "today",
@@ -567,6 +1239,114 @@
           {
             "text": "Returns to Sudan from neighbouring countries since 2024 reached 1.12 million, with 61,055 people recorded entering Sudan from Egypt in June alone.",
             "href": "https://data.unhcr.org/en/documents/download/123533"
+          }
+        ],
+        "accessed": "2026-10-29"
+      }
+    ],
+    "ESP": [
+      {
+        "key": "today",
+        "text": "Spain's statistics office (INE) counted 49,801,559 residents on 1 July 2026 (provisional), the highest on record and 444,205 more than a year earlier. The UN's figure for the same date, 47.85 million, is 3.9% lower.",
+        "figure": {
+          "value": 49801559,
+          "what": "resident population, provisional",
+          "date": "2026-07-01"
+        },
+        "unFigure": {
+          "value": 47850793,
+          "what": "UN forecast for 1 July 2026",
+          "date": ""
+        },
+        "verdict": "un-lower",
+        "links": [
+          {
+            "label": "INE, Estadística Continua de Población (ECP), 1 de julio de 2026, datos provisionales (PDF), 6 Aug 2026",
+            "href": "https://www.ine.es/dyngs/Prensa/ECP2T26.pdf"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "La población residente en España aumentó en 104.178 personas durante el segundo trimestre del año y se situó en 49.801.559 habitantes a 1 de julio de 2026. Es el valor máximo de la serie histórica.",
+            "href": "https://www.ine.es/dyngs/Prensa/ECP2T26.pdf"
+          },
+          {
+            "text": "En términos anuales, el crecimiento poblacional estimado fue de 444.205 personas.",
+            "href": "https://www.ine.es/dyngs/Prensa/ECP2T26.pdf"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "net",
+        "text": "INE recorded 1,288,562 people moving to Spain in 2024 and 662,294 leaving, a net gain of 626,268. Over 2022–2024 the net gain was 1,995,569. The UN has a net gain of 111,674 for 2024 and 530,552 over the three years.",
+        "figure": {
+          "value": 626268,
+          "what": "net migration with other countries",
+          "date": "2024"
+        },
+        "unFigure": {
+          "value": 111674,
+          "what": "UN forecast net migration for 2024",
+          "date": ""
+        },
+        "verdict": "un-lower",
+        "links": [
+          {
+            "label": "INE, Estadística de Migraciones y Cambios de Residencia (EMCR), Año 2024 (PDF), 11 Dec 2025",
+            "href": "https://ine.es/dyngs/Prensa/EMCR2024.pdf"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "Inmigración exterior 1.288.562 1.250.991 1.258.894 887.960\nEmigración exterior 662.294 608.695 531.889 696.866\nSaldo migratorio exterior 626.268 642.296 727.005 191.094",
+            "href": "https://ine.es/dyngs/Prensa/EMCR2024.pdf"
+          },
+          {
+            "text": "El saldo migratorio de España con el exterior fue positivo en 626.268 personas en 2024, lo que supuso 16.028 menos que en 2023.",
+            "href": "https://ine.es/dyngs/Prensa/EMCR2024.pdf"
+          }
+        ],
+        "accessed": "2026-10-29"
+      }
+    ],
+    "EST": [
+      {
+        "key": "net",
+        "text": "Statistics Estonia recorded 15,212 people moving to Estonia in 2025 and 18,014 leaving, a net loss of 2,802, the first in more than ten years. The UN expects a loss of 13,350. Over 2023–2025 Statistics Estonia recorded a net gain of 12,428; the UN shows a net loss of 15,375.",
+        "figure": {
+          "value": -2802,
+          "what": "net migration, revised data covering registered and unregistered moves",
+          "date": "2025"
+        },
+        "unFigure": {
+          "value": -13350,
+          "what": "UN forecast net migration for 2025",
+          "date": ""
+        },
+        "verdict": "un-lower",
+        "links": [
+          {
+            "label": "Statistics Estonia, 1,360,745 people: Estonia's population declined for the second year in a row, Apr 2026",
+            "href": "https://stat.ee/en/news/1360745-people-estonias-population-declined-second-year-row"
+          },
+          {
+            "label": "Statistics Estonia, RVR03 Migration by sex, age group and type of migration",
+            "href": "https://andmed.stat.ee/en/stat/rahvastik__rahvastikusundmused__ranne/RVR03"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "According to revised data (covering both registered and unregistered migration), 15,212 people immigrated to Estonia and 18,014 people emigrated in 2025.",
+            "href": "https://stat.ee/en/news/1360745-people-estonias-population-declined-second-year-row"
+          },
+          {
+            "text": "However, in 2025, net migration turned negative after more than ten years, as emigration from Estonia exceeded immigration by 2,802,",
+            "href": "https://stat.ee/en/news/1360745-people-estonias-population-declined-second-year-row"
+          },
+          {
+            "text": "2023 8,803 13,856 -5,053 2024 -4,692 1,374 -6,066 2025 -9,250 -2,802 -6,448",
+            "href": "https://stat.ee/en/news/1360745-people-estonias-population-declined-second-year-row"
           }
         ],
         "accessed": "2026-10-29"
@@ -668,6 +1448,212 @@
           }
         ],
         "quotes": [],
+        "accessed": "2026-10-29"
+      }
+    ],
+    "GRC": [
+      {
+        "key": "net",
+        "text": "Greece's statistics office (ELSTAT) estimates 132,149 people moved to Greece in 2024 and 78,014 left, a net gain of 54,135. For 2022–2024 its net gain is 88,188. The UN shows a net loss of 122,772 for 2024 and 336,199 over the three years.",
+        "figure": {
+          "value": 54135,
+          "what": "net migration, including people under international or temporary protection",
+          "date": "2024"
+        },
+        "unFigure": {
+          "value": -122772,
+          "what": "UN forecast net migration for 2024",
+          "date": ""
+        },
+        "verdict": "un-lower",
+        "links": [
+          {
+            "label": "ELSTAT, Data on Estimated Population (1.1.2025) - Migration Flows (2024) and revised data 2011-2024 (PDF), 18 Dec 2025",
+            "href": "https://www.statistics.gr/documents/20181/d8439ad7-d043-2235-f4b4-8466c3c9cd56"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "Net migration during 2024 (54,135 persons) corresponds to the difference between  132,149 immigrants and 78,014 emigrants.",
+            "href": "https://www.statistics.gr/documents/20181/d8439ad7-d043-2235-f4b4-8466c3c9cd56"
+          },
+          {
+            "text": "2022 95,374 91,137 4,237 10,461,627",
+            "href": "https://www.statistics.gr/documents/20181/d8439ad7-d043-2235-f4b4-8466c3c9cd56"
+          },
+          {
+            "text": "2023 116,591 86,775 29,816 10,401,868",
+            "href": "https://www.statistics.gr/documents/20181/d8439ad7-d043-2235-f4b4-8466c3c9cd56"
+          },
+          {
+            "text": "It should be noted that immigration data also include persons living in the Country under international or temporary protection.",
+            "href": "https://www.statistics.gr/documents/20181/d8439ad7-d043-2235-f4b4-8466c3c9cd56"
+          }
+        ],
+        "accessed": "2026-10-29"
+      }
+    ],
+    "HKG": [
+      {
+        "key": "today",
+        "text": "Hong Kong's Census and Statistics Department put the population at 7,518,300 in mid-2026 (provisional), up 19,400 in a year. The UN's figure for 1 July 2026, 7.38 million, is 1.9% lower, so they match.",
+        "figure": {
+          "value": 7518300,
+          "what": "Hong Kong population, provisional estimate",
+          "date": "2026-07-01"
+        },
+        "unFigure": {
+          "value": 7378602,
+          "what": "UN population, 1 July 2026",
+          "date": ""
+        },
+        "verdict": "matches",
+        "links": [
+          {
+            "label": "HKSAR Government, Mid-year population for 2026, 18 Aug 2026",
+            "href": "https://www.info.gov.hk/gia/general/202608/18/P2026081800255.htm"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "the provisional estimate of the Hong Kong population was 7 518 300 at mid-2026, representing an increase of 19 400 or 0.3% from 7 498 900 at mid-2025.",
+            "href": "https://www.info.gov.hk/gia/general/202608/18/P2026081800255.htm"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "births",
+        "text": "Hong Kong counted 31,100 births in 2025 in its population estimate (provisional), and 29,700 from mid-2025 to mid-2026. The UN expects 38,963 births in 2025, 25% more.",
+        "figure": {
+          "value": 31100,
+          "what": "births counted in the population estimate, end-2024 to end-2025",
+          "date": "2025"
+        },
+        "unFigure": {
+          "value": 38963,
+          "what": "UN births, 2025",
+          "date": ""
+        },
+        "verdict": "un-higher",
+        "links": [
+          {
+            "label": "HKSAR Government, Year-end Population for 2025, 12 Feb 2026",
+            "href": "https://www.info.gov.hk/gia/general/202602/12/P2026021200283.htm"
+          },
+          {
+            "label": "HKSAR Government, Mid-year population for 2026, 18 Aug 2026",
+            "href": "https://www.info.gov.hk/gia/general/202608/18/P2026081800255.htm"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "Over the same period, a natural decrease (i.e. deaths surpassing births) of 18 900 was recorded, with 31 100 births and 50 000 deaths.",
+            "href": "https://www.info.gov.hk/gia/general/202602/12/P2026021200283.htm"
+          },
+          {
+            "text": "Over the same period, a natural decrease (i.e. deaths surpassing births) of 20 400 was recorded, with 29 700 births and 50 100 deaths.",
+            "href": "https://www.info.gov.hk/gia/general/202608/18/P2026081800255.htm"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "deaths",
+        "text": "Hong Kong counted 50,000 deaths in 2025 (provisional). The UN expects 58,163 deaths in 2025, 16% more.",
+        "figure": {
+          "value": 50000,
+          "what": "deaths counted in the population estimate, end-2024 to end-2025",
+          "date": "2025"
+        },
+        "unFigure": {
+          "value": 58163,
+          "what": "UN deaths, 2025",
+          "date": ""
+        },
+        "verdict": "un-higher",
+        "links": [
+          {
+            "label": "HKSAR Government, Year-end Population for 2025, 12 Feb 2026",
+            "href": "https://www.info.gov.hk/gia/general/202602/12/P2026021200283.htm"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "Over the same period, a natural decrease (i.e. deaths surpassing births) of 18 900 was recorded, with 31 100 births and 50 000 deaths.",
+            "href": "https://www.info.gov.hk/gia/general/202602/12/P2026021200283.htm"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "net",
+        "text": "Hong Kong recorded a net inflow of 29,100 residents in 2025, and 39,800 from mid-2025 to mid-2026. The UN expects a net gain of 17,863 in 2025, about 39% less, and a net loss of 12,576 in 2026.",
+        "figure": {
+          "value": 29100,
+          "what": "net inflow of Hong Kong residents, end-2024 to end-2025",
+          "date": "2025"
+        },
+        "unFigure": {
+          "value": 17863,
+          "what": "UN net migration, 2025",
+          "date": ""
+        },
+        "verdict": "un-lower",
+        "links": [
+          {
+            "label": "HKSAR Government, Year-end Population for 2025, 12 Feb 2026",
+            "href": "https://www.info.gov.hk/gia/general/202602/12/P2026021200283.htm"
+          },
+          {
+            "label": "HKSAR Government, Mid-year population for 2026, 18 Aug 2026",
+            "href": "https://www.info.gov.hk/gia/general/202608/18/P2026081800255.htm"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "A net inflow of 29 100 Hong Kong residents (i.e. inflow more than outflow) was recorded during the period from end-2024 to end-2025.",
+            "href": "https://www.info.gov.hk/gia/general/202602/12/P2026021200283.htm"
+          },
+          {
+            "text": "A net inflow of 39 800 Hong Kong residents (i.e. inflow more than outflow) was recorded during the period from mid-2025 to mid-2026.",
+            "href": "https://www.info.gov.hk/gia/general/202608/18/P2026081800255.htm"
+          }
+        ],
+        "accessed": "2026-10-29"
+      }
+    ],
+    "HRV": [
+      {
+        "key": "net",
+        "text": "Croatia's statistics bureau (DZS) recorded 56,665 people moving to Croatia in 2025 and 37,485 leaving, a net gain of 19,180. Over 2022–2025 the net gain was 92,437. The UN shows a net loss of 3,481 for 2025 and a gain of only 13,216 over the four years.",
+        "figure": {
+          "value": 19180,
+          "what": "net migration with other countries",
+          "date": "2025"
+        },
+        "unFigure": {
+          "value": -3481,
+          "what": "UN forecast net migration for 2025",
+          "date": ""
+        },
+        "verdict": "un-lower",
+        "links": [
+          {
+            "label": "Croatian Bureau of Statistics, STAN-2026-2-1 Migracija stanovništva Republike Hrvatske u 2025.",
+            "href": "https://podaci.dzs.hr/2026/hr/121583"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "U 2025. u Republiku Hrvatsku iz inozemstva se doselilo 56 665 osoba, a u inozemstvo se odselilo 37 485 osoba. Saldo migracije stanovništva Republike Hrvatske s inozemstvom bio je pozitivan i iznosio je 19 180 .",
+            "href": "https://podaci.dzs.hr/2026/hr/121583"
+          },
+          {
+            "text": "2022. 57 972 46 287 11 685 2023. 69 396 39 218 30 178 2024. 70 391 38 997 31 394 2025. 56 665 37 485 19 180",
+            "href": "https://podaci.dzs.hr/2026/hr/121583"
+          }
+        ],
         "accessed": "2026-10-29"
       }
     ],
@@ -939,6 +1925,248 @@
         "accessed": "2026-10-29"
       }
     ],
+    "ITA": [
+      {
+        "key": "today",
+        "text": "Italy's statistics office (ISTAT) counted 58,943,673 residents on 30 June 2026 (first provisional data), 845 fewer than at the start of the year. The UN's figure for 1 July 2026, 58.93 million, is 0.03% lower, so they match.",
+        "figure": {
+          "value": 58943673,
+          "what": "resident population, first provisional data from the population register",
+          "date": "2026-06-30"
+        },
+        "unFigure": {
+          "value": 58926166,
+          "what": "UN forecast for 1 July 2026",
+          "date": ""
+        },
+        "verdict": "matches",
+        "links": [
+          {
+            "label": "ISTAT, Bilancio demografico mensile – giugno 2026, 11 Sep 2026",
+            "href": "https://www.istat.it/sistema-informativo-6/bilancio-demografico-mensile-giugno-2026/"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "Al 30 giugno 2026, secondo i primi dati provvisori, la popolazione residente in Italia ammonta a 58.943.673 unità, in diminuzione di sole 845 unità rispetto all’inizio dell’anno (-0,01 per mille abitanti).",
+            "href": "https://www.istat.it/sistema-informativo-6/bilancio-demografico-mensile-giugno-2026/"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "net",
+        "text": "ISTAT recorded 440,000 arrivals from abroad in 2025 and 144,000 departures, a net gain of about 296,000; Italian citizens alone had a net loss of 53,000. The UN expects a net gain of 75,448 for 2025, about a quarter of ISTAT's figure.",
+        "figure": {
+          "value": 296000,
+          "what": "net migration with other countries (provisional, rounded to thousands by the source)",
+          "date": "2025"
+        },
+        "unFigure": {
+          "value": 75448,
+          "what": "UN forecast net migration for 2025",
+          "date": ""
+        },
+        "verdict": "un-lower",
+        "links": [
+          {
+            "label": "ISTAT, Indicatori demografici – Anno 2025 (PDF), Mar 2026",
+            "href": "https://www.istat.it/wp-content/uploads/2026/03/Report_Indicatori-demografici_Anno-2025.pdf"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "Le immigrazioni dall’estero sono 440mila, le emigrazioni per l’estero 144mila.",
+            "href": "https://www.istat.it/wp-content/uploads/2026/03/Report_Indicatori-demografici_Anno-2025.pdf"
+          },
+          {
+            "text": "Il saldo migratorio complessivo con l’estero, pari a circa +296mila unità, è il risultato di due dinamiche opposte: da un lato, il guadagno dovuto alle immigrazioni di cittadini stranieri (+348mila), dall’altro la perdita di cittadini italiani (-53mila)",
+            "href": "https://www.istat.it/wp-content/uploads/2026/03/Report_Indicatori-demografici_Anno-2025.pdf"
+          }
+        ],
+        "accessed": "2026-10-29"
+      }
+    ],
+    "JPN": [
+      {
+        "key": "today",
+        "text": "Japan's 2025 census (final results, Statistics Bureau, Sept 2026) counted 122,972,528 people on 1 October 2025. The UN's figure for 1 July 2025, 123.10 million, is 0.1% higher, so they match.",
+        "figure": {
+          "value": 122972528,
+          "what": "census population",
+          "date": "2025-10-01"
+        },
+        "unFigure": {
+          "value": 123103479,
+          "what": "UN population, 1 July 2025",
+          "date": ""
+        },
+        "verdict": "matches",
+        "links": [
+          {
+            "label": "Statistics Bureau of Japan, 2025 Census basic tabulation, summary of results, Sept 2026",
+            "href": "https://www.stat.go.jp/data/kokusei/2025/kekka/pdf/outline_01.pdf"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "2025 年（ ７ 年） 122,972,528 59,772,092 63,200,436 -3,173,571 -2.5 -0.51 94.6",
+            "href": "https://www.stat.go.jp/data/kokusei/2025/kekka/pdf/outline_01.pdf"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "immigrants",
+        "text": "Japan's October 2025 census counted 3,840,039 foreign nationals, up 40% since 2020. The UN's mid-2024 figure for Japan also counts foreign citizens, not birthplace. At 3.41 million it is 11% lower, and 15 months older, in a count that has been growing fast.",
+        "figure": {
+          "value": 3840039,
+          "what": "foreign nationals counted in the census",
+          "date": "2025-10-01"
+        },
+        "unFigure": {
+          "value": 3409529,
+          "what": "UN DESA people born abroad, mid-2024",
+          "date": ""
+        },
+        "verdict": "un-lower",
+        "links": [
+          {
+            "label": "Statistics Bureau of Japan, 2025 Census basic tabulation, summary of results, Sept 2026",
+            "href": "https://www.stat.go.jp/data/kokusei/2025/kekka/pdf/outline_01.pdf"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "総人口（１億 2297 万３千人）のうち日本人人口は１億 1913 万２千人（総人口の 96.9％） 、外国人人口は 384 万人（3.1％）となっている。",
+            "href": "https://www.stat.go.jp/data/kokusei/2025/kekka/pdf/outline_01.pdf"
+          },
+          {
+            "text": "2025 年 （　　７年） 122,972,528 119,131,935 3,840,039 554 -3,173,571 -4,266,973 1,093,525 -2.5 -3.5 39.8",
+            "href": "https://www.stat.go.jp/data/kokusei/2025/kekka/pdf/outline_01.pdf"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "births",
+        "text": "Japan registered 671,270 births to Japanese nationals in 2025, the fewest since records began in 1899 (Ministry of Health, final figures). The UN expects 748,163 births in 2025, 11% more. Japan's count leaves out babies of foreign parents.",
+        "figure": {
+          "value": 671270,
+          "what": "births to Japanese nationals in Japan, 2025 (final)",
+          "date": "2025"
+        },
+        "unFigure": {
+          "value": 748163,
+          "what": "UN births, 2025",
+          "date": ""
+        },
+        "verdict": "un-higher",
+        "links": [
+          {
+            "label": "Ministry of Health, Labour and Welfare, 2025 vital statistics (final), summary",
+            "href": "https://www.mhlw.go.jp/toukei/saikin/hw/jinkou/kakutei25/dl/05_gaikyouR07.pdf"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "出生数は 67 万 1270 人で、前年の 68 万 6173 人より 1 万 4903 人減少し、明治 32(1899)年の人口動態調査開始以来最少となった。",
+            "href": "https://www.mhlw.go.jp/toukei/saikin/hw/jinkou/kakutei25/dl/05_gaikyouR07.pdf"
+          },
+          {
+            "text": "集計客体：日本における日本人",
+            "href": "https://www.mhlw.go.jp/toukei/saikin/hw/jinkou/kakutei25/dl/05_gaikyouR07.pdf"
+          }
+        ],
+        "accessed": "2026-10-29"
+      }
+    ],
+    "KOR": [
+      {
+        "key": "today",
+        "text": "South Korea's register-based census counted 51.82 million people living in the country on 1 November 2025, Koreans and foreigners together (Ministry of Data and Statistics, July 2026). The UN's figure for 1 July 2025, 51.67 million, is 0.3% lower, so they match.",
+        "figure": {
+          "value": 51820000,
+          "what": "total population, Koreans and foreigners, register-based census (rounded)",
+          "date": "2025-11-01"
+        },
+        "unFigure": {
+          "value": 51667029,
+          "what": "UN population, 1 July 2025",
+          "date": ""
+        },
+        "verdict": "matches",
+        "links": [
+          {
+            "label": "Ministry of Data and Statistics, 2025 Population and Housing Census (register-based) results, 28 Jul 2026",
+            "href": "https://mods.go.kr/board.es?mid=a10301010000&bid=203&list_no=446219&act=view&mainXml=Y"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "2025년 총인구는 5,182만 명, 전년 대비 0.02%(1만 명) 증가",
+            "href": "https://mods.go.kr/board.es?mid=a10301010000&bid=203&list_no=446219&act=view&mainXml=Y"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "immigrants",
+        "text": "South Korea's census counts foreign nationals; the UN counts people born abroad, so the two aren't directly comparable. The November 2025 census counted 2.11 million foreigners living in the country, up 3.2% in a year. The UN's mid-2024 figure is 1.81 million.",
+        "figure": {
+          "value": 2110000,
+          "what": "foreign nationals living in Korea, register-based census (rounded)",
+          "date": "2025-11-01"
+        },
+        "unFigure": {
+          "value": 1811507,
+          "what": "UN DESA people born abroad, mid-2024",
+          "date": ""
+        },
+        "verdict": "context",
+        "links": [
+          {
+            "label": "Korea.kr policy briefing, 2025 Population and Housing Census results (register-based), 28 Jul 2026",
+            "href": "https://www.korea.kr/briefing/policyBriefingView.do?newsId=156772432"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "내국인은 4,971만 명으로 총 인구의 95.9%이며 전년대비 0.1%, 약 5만 명 감소했고, 외국인은 211만 명으로 전년대비 3.2%, 약 7만 명 증가했습니다.",
+            "href": "https://www.korea.kr/briefing/policyBriefingView.do?newsId=156772432"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "births",
+        "text": "South Korea registered 254,300 births in 2025, 6.7% more than in 2024 (Ministry of Data and Statistics, 2025 birth statistics). The UN expects 245,858 births in 2025, 3.3% fewer.",
+        "figure": {
+          "value": 254300,
+          "what": "births, 2025 (final)",
+          "date": "2025"
+        },
+        "unFigure": {
+          "value": 245858,
+          "what": "UN births, 2025",
+          "date": ""
+        },
+        "verdict": "un-lower",
+        "links": [
+          {
+            "label": "Ministry of Data and Statistics, 2025 Birth Statistics, 26 Aug 2026",
+            "href": "https://mods.go.kr/board.es?mid=a10301010000&bid=204&act=view&list_no=446625"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "출생아 수는 25만 4천 3백 명으로 전년대비 1만 6천 명(6.7%) 증가",
+            "href": "https://mods.go.kr/board.es?mid=a10301010000&bid=204&act=view&list_no=446625"
+          }
+        ],
+        "accessed": "2026-10-29"
+      }
+    ],
     "LBN": [
       {
         "key": "net",
@@ -1004,6 +2232,428 @@
           {
             "text": "The population of Lebanon for mid-2018 was estimated at around 4.842 million people, excluding people living in non-residential units, such as army barracks, refugee camps and adjacent gatherings, and informal settlements. Eighty per cent of residents are Lebanese and 20 per cent are citizens of other countries.",
             "href": "https://data.unhcr.org/en/documents/download/73718"
+          }
+        ],
+        "accessed": "2026-10-29"
+      }
+    ],
+    "LTU": [
+      {
+        "key": "today",
+        "text": "Lithuania's State Data Agency counted 2,886,179 residents at the start of July 2026, almost the same as in January. The UN's figure for 1 July 2026, 2.80 million, is 3.1% lower.",
+        "figure": {
+          "value": 2886179,
+          "what": "resident population at the beginning of the month",
+          "date": "2026-07-01"
+        },
+        "unFigure": {
+          "value": 2797338,
+          "what": "UN forecast for 1 July 2026",
+          "date": ""
+        },
+        "verdict": "un-lower",
+        "links": [
+          {
+            "label": "State Data Agency (Statistics Lithuania), S3R168 Resident population at the beginning of the month (data API, updated 7 Oct 2026)",
+            "href": "https://osp-rs.stat.gov.lt/rest_xml/data/S3R168_M3010101_1"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "<g:Value id=\"LAIKOTARPIS\" value=\"2026M07\"></g:Value></g:ObsKey><g:ObsValue value=\"2886179\">",
+            "href": "https://osp-rs.stat.gov.lt/rest_xml/data/S3R168_M3010101_1"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "net",
+        "text": "The State Data Agency recorded 47,639 people moving to Lithuania in 2025 and 30,862 leaving, a net gain of 16,777. Over 2023–2025 the net gain was 84,911. The UN shows a net loss of 24,618 for 2025 and a gain of only 22,934 over the three years.",
+        "figure": {
+          "value": 16777,
+          "what": "net international migration",
+          "date": "2025"
+        },
+        "unFigure": {
+          "value": -24618,
+          "what": "UN forecast net migration for 2025",
+          "date": ""
+        },
+        "verdict": "un-lower",
+        "links": [
+          {
+            "label": "State Data Agency, S3R363 Net international migration (data API, updated 2 Jun 2026)",
+            "href": "https://osp-rs.stat.gov.lt/rest_xml/data/S3R363_M3020102_1"
+          },
+          {
+            "label": "State Data Agency, S3R198 Immigrants (data API)",
+            "href": "https://osp-rs.stat.gov.lt/rest_xml/data/S3R198_M3020102_1"
+          },
+          {
+            "label": "State Data Agency, S3R106 Emigrants (data API)",
+            "href": "https://osp-rs.stat.gov.lt/rest_xml/data/S3R106_M3020102_1"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "<g:Value id=\"LAIKOTARPIS\" value=\"2025\"></g:Value></g:ObsKey><g:ObsValue value=\"16777\">",
+            "href": "https://osp-rs.stat.gov.lt/rest_xml/data/S3R363_M3020102_1"
+          },
+          {
+            "text": "<g:Value id=\"LAIKOTARPIS\" value=\"2023\"></g:Value></g:ObsKey><g:ObsValue value=\"44994\">",
+            "href": "https://osp-rs.stat.gov.lt/rest_xml/data/S3R363_M3020102_1"
+          },
+          {
+            "text": "<g:Value id=\"LAIKOTARPIS\" value=\"2024\"></g:Value></g:ObsKey><g:ObsValue value=\"23140\">",
+            "href": "https://osp-rs.stat.gov.lt/rest_xml/data/S3R363_M3020102_1"
+          },
+          {
+            "text": "<g:Value id=\"LAIKOTARPIS\" value=\"2025\"></g:Value></g:ObsKey><g:ObsValue value=\"47639\">",
+            "href": "https://osp-rs.stat.gov.lt/rest_xml/data/S3R198_M3020102_1"
+          },
+          {
+            "text": "<g:Value id=\"LAIKOTARPIS\" value=\"2025\"></g:Value></g:ObsKey><g:ObsValue value=\"30862\">",
+            "href": "https://osp-rs.stat.gov.lt/rest_xml/data/S3R106_M3020102_1"
+          }
+        ],
+        "accessed": "2026-10-29"
+      }
+    ],
+    "LVA": [
+      {
+        "key": "today",
+        "text": "Latvia's Central Statistical Bureau counted 1,832.1 thousand residents at the start of July 2026. The UN's figure for 1 July 2026, 1,835,935, is 0.2% higher, so they match.",
+        "figure": {
+          "value": 1832100,
+          "what": "population at the beginning of the month (published in thousands)",
+          "date": "2026-07-01"
+        },
+        "unFigure": {
+          "value": 1835935,
+          "what": "UN forecast for 1 July 2026",
+          "date": ""
+        },
+        "verdict": "matches",
+        "links": [
+          {
+            "label": "Central Statistical Bureau of Latvia, IRS010m Population and key vital statistics (monthly), updated 14 Oct 2026",
+            "href": "https://data.stat.gov.lv/pxweb/en/OSP_PUB/START__POP__IR__IRS/IRS010m/"
+          }
+        ],
+        "quotes": [
+          {
+            "text": ",\"2026M01\",\"2026M07\",\"2026M09\"\n,1845.1,1832.1,1829.8",
+            "href": "https://data.stat.gov.lv/api/v1/en/OSP_PUB/START/POP/IR/IRS/IRS010m"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "net",
+        "text": "Latvia's Central Statistical Bureau recorded 13,826 people moving to Latvia in 2025 and 15,117 leaving, a net loss of 1,291. The UN expects a larger loss, 7,330. Over 2023–2025 the bureau's losses add up to 8,650, while the UN shows a loss of only 1,589.",
+        "figure": {
+          "value": -1291,
+          "what": "long-term international net migration",
+          "date": "2025"
+        },
+        "unFigure": {
+          "value": -7330,
+          "what": "UN forecast net migration for 2025",
+          "date": ""
+        },
+        "verdict": "un-lower",
+        "links": [
+          {
+            "label": "Central Statistical Bureau of Latvia, IBE010 Long-term international migration by country group, updated 2 Jun 2026",
+            "href": "https://data.stat.gov.lv/pxweb/en/OSP_PUB/START__POP__IB__IBE/IBE010/"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "\"Indicator\",\"Group of countries\",\"2022\",\"2023\",\"2024\",\"2025\"\n\"Immigration\",\"Total\",38708,15629,14701,13826\n\"Emigration\",\"Total\",16680,18752,18937,15117\n\"Net migration\",\"Total\",22028,-3123,-4236,-1291",
+            "href": "https://data.stat.gov.lv/api/v1/en/OSP_PUB/START/POP/IB/IBE/IBE010"
+          }
+        ],
+        "accessed": "2026-10-29"
+      }
+    ],
+    "MAC": [
+      {
+        "key": "today",
+        "text": "Macao's Statistics and Census Service (DSEC) counted 686,500 people at the end of June 2026, 600 more than a year earlier. The UN's figure for 1 July 2026, 723,188, is 5.3% higher.",
+        "figure": {
+          "value": 686500,
+          "what": "total population, end of June 2026",
+          "date": "2026-06-30"
+        },
+        "unFigure": {
+          "value": 723188,
+          "what": "UN population, 1 July 2026",
+          "date": ""
+        },
+        "verdict": "un-higher",
+        "links": [
+          {
+            "label": "DSEC, Demographic Statistics 2nd Quarter 2026, Aug 2026",
+            "href": "https://www.dsec.gov.mo/getAttachment/07ed4096-97a3-49a4-86e1-a10b5c909cea/E_DEM_FR_2026_Q2.aspx"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "The total population of the Macao Special Administrative Region totalled 686,500 at the end of the first half of 2026, an increase of 600 year-on-year.",
+            "href": "https://www.dsec.gov.mo/getAttachment/07ed4096-97a3-49a4-86e1-a10b5c909cea/E_DEM_FR_2026_Q2.aspx"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "births",
+        "text": "Macao recorded 2,870 live births in 2025 and 1,340 in the first half of 2026 (DSEC). The UN expects 4,531 births in 2025, 58% more.",
+        "figure": {
+          "value": 2870,
+          "what": "live births, 2025",
+          "date": "2025"
+        },
+        "unFigure": {
+          "value": 4531,
+          "what": "UN births, 2025",
+          "date": ""
+        },
+        "verdict": "un-higher",
+        "links": [
+          {
+            "label": "DSEC, Demographic Statistics 4th Quarter 2025",
+            "href": "https://www.dsec.gov.mo/getAttachment/7ac12a4d-aa03-40fc-9301-105d8231af7b/E_DEM_FR_2025_Q4.aspx"
+          },
+          {
+            "label": "DSEC, Demographic Statistics 2nd Quarter 2026, Aug 2026",
+            "href": "https://www.dsec.gov.mo/getAttachment/07ed4096-97a3-49a4-86e1-a10b5c909cea/E_DEM_FR_2026_Q2.aspx"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "In 2025, live births and mortality totalled 2,870 and 2,424 respectively.",
+            "href": "https://www.dsec.gov.mo/getAttachment/7ac12a4d-aa03-40fc-9301-105d8231af7b/E_DEM_FR_2025_Q4.aspx"
+          },
+          {
+            "text": "In the first half year, live births and mortality totalled 1,340 and 1,329 respectively.",
+            "href": "https://www.dsec.gov.mo/getAttachment/07ed4096-97a3-49a4-86e1-a10b5c909cea/E_DEM_FR_2026_Q2.aspx"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "deaths",
+        "text": "Macao recorded 2,424 deaths in 2025 (DSEC). The UN expects 3,502 deaths in 2025, 44% more.",
+        "figure": {
+          "value": 2424,
+          "what": "deaths, 2025",
+          "date": "2025"
+        },
+        "unFigure": {
+          "value": 3502,
+          "what": "UN deaths, 2025",
+          "date": ""
+        },
+        "verdict": "un-higher",
+        "links": [
+          {
+            "label": "DSEC, Demographic Statistics 4th Quarter 2025",
+            "href": "https://www.dsec.gov.mo/getAttachment/7ac12a4d-aa03-40fc-9301-105d8231af7b/E_DEM_FR_2025_Q4.aspx"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "In 2025, live births and mortality totalled 2,870 and 2,424 respectively.",
+            "href": "https://www.dsec.gov.mo/getAttachment/7ac12a4d-aa03-40fc-9301-105d8231af7b/E_DEM_FR_2025_Q4.aspx"
+          }
+        ],
+        "accessed": "2026-10-29"
+      }
+    ],
+    "MDA": [
+      {
+        "key": "today",
+        "text": "Moldova's 2024 census put the population at 2,409,200 on 8 April 2024. It did not cover the left bank of the Dniester or Bender. The UN's mid-2024 figure, 3,035,000, includes that area and is 26% higher, so the two are not like-for-like.",
+        "figure": {
+          "value": 2409207,
+          "what": "Usual residents counted by the 2024 census (adjusted for people missed), excluding the left bank of the Dniester and Bender",
+          "date": "2024-04-08"
+        },
+        "unFigure": {
+          "value": 3034961,
+          "what": "UN population on 1 July 2024 (forecast), including Transnistria",
+          "date": ""
+        },
+        "verdict": "context",
+        "links": [
+          {
+            "label": "National Bureau of Statistics of Moldova, Final results of the 2024 Census: geographic distribution of the population, 15 July 2025",
+            "href": "https://statistica.gov.md/index.php/ro/rezultatele-finale-ale-recensamantului-populatiei-si-locuintelor-2024-distributi-10121_61877.html"
+          },
+          {
+            "label": "UN DESA Population Division, World Population Prospects 2024: Data Sources",
+            "href": "https://population.un.org/wpp/assets/Files/WPP2024_Data_Sources.pdf"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "la data de referință a recensământului (8 aprilie 2024) a constituit 2 409,2 mii persoane",
+            "href": "https://statistica.gov.md/index.php/ro/rezultatele-finale-ale-recensamantului-populatiei-si-locuintelor-2024-distributi-10121_61877.html"
+          },
+          {
+            "text": "2 417 685 2 323 093 86 114 2 409 207 2 804 801 2 595 771 2 789 205",
+            "href": "https://statistica.gov.md/index.php/ro/rezultatele-finale-ale-recensamantului-populatiei-si-locuintelor-2024-distributi-10121_61877.html"
+          },
+          {
+            "text": "În 157 de localități ale țării, care nu se află sub controlul de facto al autorităților constituționale ale Republicii Moldova, nu a fost posibilă desfășurarea recensământului. Acestea sunt localitățile din cadrul unităților administrativ-teritoriale din stânga Nistrului, municipiului Bender",
+            "href": "https://statistica.gov.md/index.php/ro/rezultatele-finale-ale-recensamantului-populatiei-si-locuintelor-2024-distributi-10121_61877.html"
+          },
+          {
+            "text": "Note: Estimates based on the statistical concept of usual resident population. Population for 2004 and 2014 censuses adjusted to include Transnistria.",
+            "href": "https://population.un.org/wpp/assets/Files/WPP2024_Data_Sources.pdf"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "net",
+        "text": "Moldova's statistics office estimates, from border crossings, that 17,600 more residents left than arrived in 2024. That covers only the area it surveys. The UN's 2024 figure for all of Moldova is a net loss of 27,088.",
+        "figure": {
+          "value": -17600,
+          "what": "Net international migration of usual residents, 2024, excluding the left bank of the Dniester (published as -17.6 thousand)",
+          "date": "2024"
+        },
+        "unFigure": {
+          "value": -27088,
+          "what": "UN net migration, 2024 (forecast), all of Moldova",
+          "date": ""
+        },
+        "verdict": "context",
+        "links": [
+          {
+            "label": "National Bureau of Statistics of Moldova, Demographic situation in 2025",
+            "href": "https://statistica.gov.md/index.php/ro/situatia-demografica-in-anul-2025-9696_62504.html"
+          },
+          {
+            "label": "National Bureau of Statistics of Moldova, Population with usual residence recalculated for 2024 and 2025 on the basis of the 2024 Census",
+            "href": "https://statistica.gov.md/ro/a-fost-recalculat-numarul-populatiei-cu-resedinta-obisnuita-pentru-12_62325.html"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "Migrația netă 6,7 a populației cu reședința obișnuită, în anul 2024, a urmat tendința de descreștere din ultimii ani, înregistrând o valoare negativă de (-17,6) mii persoane.",
+            "href": "https://statistica.gov.md/index.php/ro/situatia-demografica-in-anul-2025-9696_62504.html"
+          },
+          {
+            "text": "soldul migrației internaționale de facto în baza informației despre traversările frontierei de stat de către persoanelor fizice",
+            "href": "https://statistica.gov.md/ro/a-fost-recalculat-numarul-populatiei-cu-resedinta-obisnuita-pentru-12_62325.html"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "immigrants",
+        "text": "The 2024 census counted 106,700 residents born abroad, 4.4% of the population, leaving out the left bank of the Dniester and Bender. UN DESA's figure for mid-2024 is 188,207, of whom 143,623 were born in Ukraine. The two may cover different areas, so this is not like-for-like.",
+        "figure": {
+          "value": 106700,
+          "what": "Usual residents born in another country, 2024 census, excluding the left bank of the Dniester",
+          "date": "2024-04-08"
+        },
+        "unFigure": {
+          "value": 188207,
+          "what": "UN DESA people born abroad living in Moldova, mid-2024",
+          "date": ""
+        },
+        "verdict": "context",
+        "links": [
+          {
+            "label": "National Bureau of Statistics of Moldova, Final results of the 2024 Census: migration characteristics, 25 August 2025",
+            "href": "https://statistica.gov.md/index.php/ro/rezultatele-finale-ale-recensamantului-populatiei-si-locuintelor-2024-caracteris-10121_61958.html"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "Din total populație cu reședință obișnuită estimată la recensământul din 2024, 106,7 mii persoane (sau 4,4%) erau născute în alte țări",
+            "href": "https://statistica.gov.md/index.php/ro/rezultatele-finale-ale-recensamantului-populatiei-si-locuintelor-2024-caracteris-10121_61958.html"
+          }
+        ],
+        "accessed": "2026-10-29"
+      }
+    ],
+    "MKD": [
+      {
+        "key": "today",
+        "text": "North Macedonia's statistics office estimates 1,819,074 people on 31 December 2025, based on the 2021 census. The UN's figure for that date is 1,808,927, 0.6% lower. The two match.",
+        "figure": {
+          "value": 1819074,
+          "what": "State Statistical Office population estimate, 31 December 2025",
+          "date": "2025-12-31"
+        },
+        "unFigure": {
+          "value": 1808927,
+          "what": "UN population for 1 January 2026: average of the 1 July 2025 and 1 July 2026 forecasts (1,813,791 and 1,804,063)",
+          "date": ""
+        },
+        "verdict": "matches",
+        "links": [
+          {
+            "label": "State Statistical Office of North Macedonia, North Macedonia in Figures 2026 (Северна Македонија во бројки, 2026)",
+            "href": "https://www.stat.mk/media/dlojorye/makedonija-vo-brojki-2026-mk-web.pdf"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "Според последната проценка на населението (состојба на 31.12.2025 година), во Република Северна Македонија има 1 819 074 жители",
+            "href": "https://www.stat.mk/media/dlojorye/makedonija-vo-brojki-2026-mk-web.pdf"
+          },
+          {
+            "text": "*Ревидирани податоци според Пописот на населението 2021",
+            "href": "https://www.stat.mk/media/dlojorye/makedonija-vo-brojki-2026-mk-web.pdf"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "net",
+        "text": "Official figures sent to Eurostat show a net gain of about 900 people from migration and statistical adjustment in 2025. The UN's forecast for 2025 is a net loss of 5,645. The 2021 census counted 260,606 non-residents: citizens abroad for over 12 months and foreigners staying under 12 months.",
+        "figure": {
+          "value": 900,
+          "what": "Net migration and statistical adjustment, 2025 (published in thousands: 0.9)",
+          "date": "2025"
+        },
+        "unFigure": {
+          "value": -5645,
+          "what": "UN net migration, 2025 (forecast)",
+          "date": ""
+        },
+        "verdict": "un-lower",
+        "links": [
+          {
+            "label": "Eurostat, Population and population change statistics, Table 1: Demographic balance, 2025 (xlsx), data extracted 6 July 2026",
+            "href": "https://ec.europa.eu/eurostat/statistics-explained/images/c/c6/Population_change_statistics_YB2025_VERSION_6.xlsx"
+          },
+          {
+            "label": "State Statistical Office, Census of Population, Households and Dwellings 2021 – first dataset, 30 March 2022",
+            "href": "https://www.stat.gov.mk/PrikaziSoopstenie.aspx?rbrtxt=146"
+          },
+          {
+            "label": "State Statistical Office of North Macedonia, North Macedonia in Figures 2026 (Северна Македонија во бројки, 2026)",
+            "href": "https://www.stat.mk/media/dlojorye/makedonija-vo-brojki-2026-mk-web.pdf"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "Table 1: Demographic balance, 2025 (thousands) | Population, 1 January 2025 | Live births | Deaths | Natural change | Net migration and statistical adjustment | Total change between 1 January 2025 and 2026 | Population, 1 January 2026",
+            "href": "https://ec.europa.eu/eurostat/statistics-explained/images/c/c6/Population_change_statistics_YB2025_VERSION_6.xlsx"
+          },
+          {
+            "text": "North Macedonia | 1822.6 | 15.9 | 20.3 | -4.4 | 0.9 | -3.5 | 1819.1",
+            "href": "https://ec.europa.eu/eurostat/statistics-explained/images/c/c6/Population_change_statistics_YB2025_VERSION_6.xlsx"
+          },
+          {
+            "text": "Вкупното нерезидентно население во кое спаѓаат државјаните на Република Северна Македонија отсутни во странство повеќе од 12 месеци и странците времено присутни во Република Северна Македонија помалку од 12 месеци, изнесува 260 606 лица опфатени со Пописот.",
+            "href": "https://www.stat.gov.mk/PrikaziSoopstenie.aspx?rbrtxt=146"
           }
         ],
         "accessed": "2026-10-29"
@@ -1238,6 +2888,316 @@
           {
             "text": "Total Returns to Afghanistan in 2026 by country JSON .CSV Country of origin Source Data date Population Pakistan IOM, UNHCR 24 Oct 2026 52.8% 721,700",
             "href": "https://data.unhcr.org/en/situations/afghanistan"
+          }
+        ],
+        "accessed": "2026-10-29"
+      }
+    ],
+    "POL": [
+      {
+        "key": "today",
+        "text": "Poland's statistics office (GUS) counted 37.24 million residents on 30 June 2026. The UN's figure for 1 July 2026, 37.84 million, is 1.6% higher, so they match. GUS's total includes permanent residents who are temporarily abroad, however long, and leaves out people who came from abroad for a temporary stay.",
+        "figure": {
+          "value": 37243000,
+          "what": "population of Poland at the end of June 2026, by Poland's own definition (permanent residents, including those temporarily abroad)",
+          "date": "2026-06-30"
+        },
+        "unFigure": {
+          "value": 37843188,
+          "what": "UN forecast for 1 July 2026",
+          "date": ""
+        },
+        "verdict": "matches",
+        "links": [
+          {
+            "label": "GUS, Ludność. Stan i struktura oraz ruch naturalny w przekroju terytorialnym w 2026 r. Stan w dniu 30 czerwca (PDF), 15 Oct 2026",
+            "href": "https://stat.gov.pl/download/gfx/portalinformacyjny/pl/defaultaktualnosci/5468/6/41/1/ludnosc._stan_i_struktura_vi2026.pdf"
+          },
+          {
+            "label": "GUS, publication page",
+            "href": "https://stat.gov.pl/obszary-tematyczne/ludnosc/ludnosc/ludnosc-stan-i-struktura-oraz-ruch-naturalny-w-przekroju-terytorialnym-w-2026-r-stan-w-dniu-30-czerwca,6,41.html"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "At the end of June, 2026 the population of Poland amounted to 37243 thousand people.",
+            "href": "https://stat.gov.pl/download/gfx/portalinformacyjny/pl/defaultaktualnosci/5468/6/41/1/ludnosc._stan_i_struktura_vi2026.pdf"
+          },
+          {
+            "text": "Informacje o liczbie i strukturze ludności prezentowane w tej publikacji opracowano według krajowej definicji zamieszkania. Oznacza to, że bilans nie obejmuje osób przybyłych z zagranicy na pobyt czasowy (bez względu na okres ich czasowego przebywania), natomiast ujmuje stałych mieszkańców Polski przebywających czasowo za granicą (bez względu na okres ich nieobecności).",
+            "href": "https://stat.gov.pl/download/gfx/portalinformacyjny/pl/defaultaktualnosci/5468/6/41/1/ludnosc._stan_i_struktura_vi2026.pdf"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "immigrants",
+        "text": "Eurostat counted 939,395 people from Ukraine under temporary protection in Poland at the end of August 2026, down from 991,630 at the end of 2024. The UN shows Poland losing 568,882 people through migration in 2024 and 2025 combined, a much bigger drop than the protection count shows.",
+        "figure": {
+          "value": 939395,
+          "what": "people who fled Ukraine and were under temporary protection in Poland at the end of the month",
+          "date": "2026-08-31"
+        },
+        "unFigure": {
+          "value": -568882,
+          "what": "UN net migration for 2024 (−238,062) and 2025 (−330,820) added together, both forecasts",
+          "date": ""
+        },
+        "verdict": "context",
+        "links": [
+          {
+            "label": "Eurostat, Temporary protection for persons fleeing Ukraine – monthly statistics (data extracted 5 Oct 2026)",
+            "href": "https://ec.europa.eu/eurostat/statistics-explained/index.php?title=Temporary_protection_for_persons_fleeing_Ukraine_-_monthly_statistics"
+          },
+          {
+            "label": "Eurostat news, 4.3 million under temporary protection in December 2024, 10 Feb 2025",
+            "href": "https://ec.europa.eu/eurostat/en/web/products-eurostat-news/w/ddn-20250210-1"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "At the end of August 2026, the EU countries hosting the highest number of beneficiaries of temporary protection from Ukraine were Germany (1 294 555 people; 29.2% of the EU total), Poland (939 395; 21.2%), and Czechia (398 360; 9.0%).",
+            "href": "https://ec.europa.eu/eurostat/statistics-explained/index.php?title=Temporary_protection_for_persons_fleeing_Ukraine_-_monthly_statistics"
+          },
+          {
+            "text": "The EU countries hosting the highest number of beneficiaries of temporary protection from Ukraine were Germany (1 161 450 people; 27.3% of the EU total), Poland (991 630; 23.3%) and Czechia (388 625; 9.1%).",
+            "href": "https://ec.europa.eu/eurostat/en/web/products-eurostat-news/w/ddn-20250210-1"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "net",
+        "text": "GUS estimates that about 1.51 million Polish citizens had been living abroad for 12 months or more at the end of 2025 (a forecast value), about 21,000 fewer than a year earlier. The UN counts 4.57 million people born in Poland living abroad in mid-2024. It counts by place of birth, so it also includes people who left long ago.",
+        "figure": {
+          "value": 1513000,
+          "what": "Polish citizens living abroad temporarily for 12 months or more, end of year (GUS forecast value for 2025)",
+          "date": "2025-12-31"
+        },
+        "unFigure": {
+          "value": 4572613,
+          "what": "UN DESA: people born in Poland living in other countries, mid-2024",
+          "date": ""
+        },
+        "verdict": "context",
+        "links": [
+          {
+            "label": "GUS, Informacja o rozmiarach i kierunkach czasowej emigracji z Polski w latach 2020-2025 (PDF), 12 Aug 2026",
+            "href": "https://stat.gov.pl/download/gfx/portalinformacyjny/pl/defaultaktualnosci/5471/18/4/1/informacja_o_rozmiarach_i_kierunkach_czasowej_emigracji_z_polski_w_latach_2020-2025.pdf"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "Szacuje się, że w końcu 2025 r. poza granicami Polski przebywało czasowo ok. 1 513 tys. oby-wateli Polski, tj. o blisko 21 tys. mniej niż w 2024 r.",
+            "href": "https://stat.gov.pl/download/gfx/portalinformacyjny/pl/defaultaktualnosci/5471/18/4/1/informacja_o_rozmiarach_i_kierunkach_czasowej_emigracji_z_polski_w_latach_2020-2025.pdf"
+          },
+          {
+            "text": "Dla 2025 r. przedstawione wyniki są wartościami prognozowanymi.",
+            "href": "https://stat.gov.pl/download/gfx/portalinformacyjny/pl/defaultaktualnosci/5471/18/4/1/informacja_o_rozmiarach_i_kierunkach_czasowej_emigracji_z_polski_w_latach_2020-2025.pdf"
+          }
+        ],
+        "accessed": "2026-10-29"
+      }
+    ],
+    "PRI": [
+      {
+        "key": "today",
+        "text": "The US Census Bureau estimated Puerto Rico's population at 3,184,835 on 1 July 2025, down about 18,000 in a year and 97,000 since 2020 (reported by the Puerto Rico Institute of Statistics). The UN's figure for the same date, 3.24 million, is 1.6% higher, so they match.",
+        "figure": {
+          "value": 3184835,
+          "what": "resident population, Census Bureau estimate (Vintage 2025)",
+          "date": "2025-07-01"
+        },
+        "unFigure": {
+          "value": 3235289,
+          "what": "UN population, 1 July 2025",
+          "date": ""
+        },
+        "verdict": "matches",
+        "links": [
+          {
+            "label": "Puerto Rico Institute of Statistics, New annual estimate of the resident population as of 2025, 12 Feb 2026",
+            "href": "https://www.estadisticas.pr.gov/en-us/blogposts/nuevo-estimado-anual-de-la-poblacion-residente-al-2025"
+          },
+          {
+            "label": "US Census Bureau, U.S. Population Growth Slows..., 27 Jan 2026",
+            "href": "https://www.census.gov/newsroom/press-releases/2026/population-growth-slows.html"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "In summary, the total population of Puerto Rico was estimated at 3,184,835 as of July 1, 2025. This represented a reduction of around 18,000 people compared to the previous year 2024 and of about 97,000 fewer people than in 2020.",
+            "href": "https://www.estadisticas.pr.gov/en-us/blogposts/nuevo-estimado-anual-de-la-poblacion-residente-al-2025"
+          },
+          {
+            "text": "Puerto Rico’s population declined by 17,686 to 3.2 million between July 2024 and July 2025, a drop of 0.6% from the prior year.",
+            "href": "https://www.census.gov/newsroom/press-releases/2026/population-growth-slows.html"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "births",
+        "text": "The Census Bureau counted 17,950 births and 32,857 deaths in Puerto Rico from July 2024 to June 2025. The UN expects 19,087 births in 2025, 6% more, and 34,745 deaths, also 6% more.",
+        "figure": {
+          "value": 17950,
+          "what": "births, 1 July 2024 to 30 June 2025",
+          "date": "2025"
+        },
+        "unFigure": {
+          "value": 19087,
+          "what": "UN births, 2025",
+          "date": ""
+        },
+        "verdict": "un-higher",
+        "links": [
+          {
+            "label": "US Census Bureau, U.S. Population Growth Slows..., 27 Jan 2026",
+            "href": "https://www.census.gov/newsroom/press-releases/2026/population-growth-slows.html"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "The main driver of Puerto Rico’s population change was negative natural change, with deaths (32,857) nearly twice as high as the number of births (17,950) between July 1, 2024, and June 30, 2025, a trend that has been consistent since 2020.",
+            "href": "https://www.census.gov/newsroom/press-releases/2026/population-growth-slows.html"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "net",
+        "text": "The Census Bureau estimated that 2,779 more people left Puerto Rico than arrived between July 2024 and June 2025, after a net gain of 14,425 the year before. The UN expects a net gain of 5,495 in 2025 (and 11,561 in 2024).",
+        "figure": {
+          "value": -2779,
+          "what": "net migration, 1 July 2024 to 30 June 2025",
+          "date": "2025"
+        },
+        "unFigure": {
+          "value": 5495,
+          "what": "UN net migration, 2025",
+          "date": ""
+        },
+        "verdict": "un-higher",
+        "links": [
+          {
+            "label": "US Census Bureau, U.S. Population Growth Slows..., 27 Jan 2026",
+            "href": "https://www.census.gov/newsroom/press-releases/2026/population-growth-slows.html"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "The island also experienced a negative net migration of 2,779; this reversed the positive net migration (14,425) from the prior year.",
+            "href": "https://www.census.gov/newsroom/press-releases/2026/population-growth-slows.html"
+          }
+        ],
+        "accessed": "2026-10-29"
+      }
+    ],
+    "ROU": [
+      {
+        "key": "today",
+        "text": "Romania's official population on 1 January 2026, as published by Eurostat, is 19,041,300. The UN's figure for that date is 18,855,000, 1% lower. The two match.",
+        "figure": {
+          "value": 19041300,
+          "what": "Usual resident population of Romania on 1 January 2026, provisional (published in thousands: 19041.3)",
+          "date": "2026-01-01"
+        },
+        "unFigure": {
+          "value": 18854628,
+          "what": "UN population for 1 January 2026: average of the 1 July 2025 and 1 July 2026 forecasts (18,908,650 and 18,800,605)",
+          "date": ""
+        },
+        "verdict": "matches",
+        "links": [
+          {
+            "label": "Eurostat, Population and population change statistics, Table 1: Demographic balance, 2025 (xlsx), data extracted 6 July 2026",
+            "href": "https://ec.europa.eu/eurostat/statistics-explained/images/c/c6/Population_change_statistics_YB2025_VERSION_6.xlsx"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "Table 1: Demographic balance, 2025 (thousands) | Population, 1 January 2025 | Live births | Deaths | Natural change | Net migration and statistical adjustment | Total change between 1 January 2025 and 2026 | Population, 1 January 2026",
+            "href": "https://ec.europa.eu/eurostat/statistics-explained/images/c/c6/Population_change_statistics_YB2025_VERSION_6.xlsx"
+          },
+          {
+            "text": "Romania (³) | 19043.2 | 134.2 | 238.3 | -104.1 | 102.2 | -1.8 | 19041.3",
+            "href": "https://ec.europa.eu/eurostat/statistics-explained/images/c/c6/Population_change_statistics_YB2025_VERSION_6.xlsx"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "births",
+        "text": "Romania registered 134,200 births in 2025, according to Eurostat. The UN's forecast for 2025 is 178,474, 33% higher.",
+        "figure": {
+          "value": 134200,
+          "what": "Live births in Romania, 2025, provisional (published in thousands: 134.2)",
+          "date": "2025"
+        },
+        "unFigure": {
+          "value": 178474,
+          "what": "UN births, 2025 (forecast)",
+          "date": ""
+        },
+        "verdict": "un-higher",
+        "links": [
+          {
+            "label": "Eurostat, Population and population change statistics, Table 1: Demographic balance, 2025 (xlsx), data extracted 6 July 2026",
+            "href": "https://ec.europa.eu/eurostat/statistics-explained/images/c/c6/Population_change_statistics_YB2025_VERSION_6.xlsx"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "Table 1: Demographic balance, 2025 (thousands) | Population, 1 January 2025 | Live births | Deaths | Natural change | Net migration and statistical adjustment | Total change between 1 January 2025 and 2026 | Population, 1 January 2026",
+            "href": "https://ec.europa.eu/eurostat/statistics-explained/images/c/c6/Population_change_statistics_YB2025_VERSION_6.xlsx"
+          },
+          {
+            "text": "Romania (³) | 19043.2 | 134.2 | 238.3 | -104.1 | 102.2 | -1.8 | 19041.3",
+            "href": "https://ec.europa.eu/eurostat/statistics-explained/images/c/c6/Population_change_statistics_YB2025_VERSION_6.xlsx"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "net",
+        "text": "Eurostat's figures show Romania gained about 102,200 people through migration (plus a statistical adjustment) in 2025, after gains in 2023 and 2024 too. The UN's forecast for 2025 is a net loss of 29,041.",
+        "figure": {
+          "value": 102200,
+          "what": "Net migration and statistical adjustment, Romania, 2025, provisional (published in thousands: 102.2)",
+          "date": "2025"
+        },
+        "unFigure": {
+          "value": -29041,
+          "what": "UN net migration, 2025 (forecast)",
+          "date": ""
+        },
+        "verdict": "un-lower",
+        "links": [
+          {
+            "label": "Eurostat, Population and population change statistics, Table 1: Demographic balance, 2025 (xlsx), data extracted 6 July 2026",
+            "href": "https://ec.europa.eu/eurostat/statistics-explained/images/c/c6/Population_change_statistics_YB2025_VERSION_6.xlsx"
+          },
+          {
+            "label": "Eurostat Statistics Explained, Population and population change statistics, data extracted 6 July 2026",
+            "href": "https://ec.europa.eu/eurostat/statistics-explained/index.php?title=Population_and_population_change_statistics"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "Table 1: Demographic balance, 2025 (thousands) | Population, 1 January 2025 | Live births | Deaths | Natural change | Net migration and statistical adjustment | Total change between 1 January 2025 and 2026 | Population, 1 January 2026",
+            "href": "https://ec.europa.eu/eurostat/statistics-explained/images/c/c6/Population_change_statistics_YB2025_VERSION_6.xlsx"
+          },
+          {
+            "text": "Romania (³) | 19043.2 | 134.2 | 238.3 | -104.1 | 102.2 | -1.8 | 19041.3",
+            "href": "https://ec.europa.eu/eurostat/statistics-explained/images/c/c6/Population_change_statistics_YB2025_VERSION_6.xlsx"
+          },
+          {
+            "text": "Table 2: Crude rates of population change, 2023-25 (per 1 000 persons) ... Romania (²) | 0.6 | -1.3 | -0.1 | -4.4 | -5.3 | -5.5 | 5.1 | 4 | 5.4",
+            "href": "https://ec.europa.eu/eurostat/statistics-explained/images/c/c6/Population_change_statistics_YB2025_VERSION_6.xlsx"
+          },
+          {
+            "text": "All EU countries except Estonia and Latvia had positive rates of net migration in 2025",
+            "href": "https://ec.europa.eu/eurostat/statistics-explained/index.php?title=Population_and_population_change_statistics"
           }
         ],
         "accessed": "2026-10-29"
@@ -1493,6 +3453,104 @@
         "accessed": "2026-10-29"
       }
     ],
+    "SRB": [
+      {
+        "key": "today",
+        "text": "Serbia's statistics office estimates an average of 6,549,901 people in 2025, worked out from the 2022 census. The UN's mid-2025 figure is 6,689,039, 2.1% higher.",
+        "figure": {
+          "value": 6549901,
+          "what": "Statistical Office of Serbia estimated average population in 2025 (mid-year estimate), excluding Kosovo",
+          "date": "2025"
+        },
+        "unFigure": {
+          "value": 6689039,
+          "what": "UN population on 1 July 2025 (forecast)",
+          "date": ""
+        },
+        "verdict": "un-higher",
+        "links": [
+          {
+            "label": "Statistical Office of the Republic of Serbia, Population estimates page and release 'Procenjen broj stanovnika, 2025', 1 July 2026",
+            "href": "https://www.stat.gov.rs/sr-Latn/oblasti/stanovnistvo/procene-stanovnistva"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "Procenjen broj stanovnika u Republici Srbiji u 2025. godini je 6 549 901 (procene su zasnovane na rezultatima Popisa stanovništva, domaćinstava i stanova 2022. godine i rezultatima godišnje statistike prirodnog kretanja i unutrašnjih migracija stanovništva).",
+            "href": "https://www.stat.gov.rs/sr-Latn/oblasti/stanovnistvo/procene-stanovnistva"
+          },
+          {
+            "text": "Osim procenama stanovništva sredinom godine, koje predstavljaju prosečan procenjen broj stanovnika u toj godini",
+            "href": "https://www.stat.gov.rs/sr-Latn/oblasti/stanovnistvo/procene-stanovnistva"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "immigrants",
+        "text": "Serbia's 2022 census counted 683,054 residents born abroad, most of them in other former Yugoslav republics. UN DESA's figure for mid-2024 is 712,550, 4% higher.",
+        "figure": {
+          "value": 683054,
+          "what": "Residents born outside Serbia, 2022 census (born in former Yugoslav republics before or after independence, plus other countries)",
+          "date": "2022-09-30"
+        },
+        "unFigure": {
+          "value": 712550,
+          "what": "UN DESA people born abroad living in Serbia, mid-2024",
+          "date": ""
+        },
+        "verdict": "un-higher",
+        "links": [
+          {
+            "label": "Statistical Office of Serbia, 2022 Census, Book 7: Migrations, Table 4 (PDF page 254)",
+            "href": "https://publikacije.stat.gov.rs/G2023/PdfE/G20234010.pdf"
+          },
+          {
+            "label": "Statistical Office of Serbia, Migrations (2022 Census release), 29 September 2023",
+            "href": "https://www.stat.gov.rs/en-us/vesti/20230929-migracije/"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "Table 4. Population by the place of birth and citizenship, by areas",
+            "href": "https://publikacije.stat.gov.rs/G2023/PdfE/G20234010.pdf"
+          },
+          {
+            "text": "РЕПУБЛИКА СРБИЈА 6647003 5963696 569206 31189 82659 253 REPUBLIC OF SERBIA",
+            "href": "https://publikacije.stat.gov.rs/G2023/PdfE/G20234010.pdf"
+          },
+          {
+            "text": "The results of the 2022 Census indicate that 90% of the population was born on the territory of the Republic of Serbia. About 10% was born abroad, of which 88% on the territory of some of the former SFRY republics, and 12% abroad.",
+            "href": "https://www.stat.gov.rs/en-us/vesti/20230929-migracije/"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "net",
+        "text": "Serbia's 2025 population estimate is built from the 2022 census, births, deaths and moves within the country; the release names no figure for moves abroad. So there is no official number here to set against the UN's forecast of a net loss of 13,086 people in 2025.",
+        "figure": null,
+        "unFigure": {
+          "value": -13086,
+          "what": "UN net migration, 2025 (forecast)",
+          "date": ""
+        },
+        "verdict": "context",
+        "links": [
+          {
+            "label": "Statistical Office of the Republic of Serbia, Population estimates",
+            "href": "https://www.stat.gov.rs/sr-Latn/oblasti/stanovnistvo/procene-stanovnistva"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "procene su zasnovane na rezultatima Popisa stanovništva, domaćinstava i stanova 2022. godine i rezultatima godišnje statistike prirodnog kretanja i unutrašnjih migracija stanovništva",
+            "href": "https://www.stat.gov.rs/sr-Latn/oblasti/stanovnistvo/procene-stanovnistva"
+          }
+        ],
+        "accessed": "2026-10-29"
+      }
+    ],
     "SYR": [
       {
         "key": "net",
@@ -1530,6 +3588,102 @@
           {
             "text": "*The figures include registered and unregistered Syrians, as well as individuals in transit. It is subject to future adjustment, and should not be considered Final",
             "href": "https://data.unhcr.org/en/documents/download/124686"
+          }
+        ],
+        "accessed": "2026-10-29"
+      }
+    ],
+    "THA": [
+      {
+        "key": "today",
+        "text": "Thailand's Central Registration Office counted 65,809,011 people in the civil register on 31 December 2025, including 988,303 who are not Thai nationals. The UN's figure for 1 January 2026, 71.59 million, is 8.8% higher.",
+        "figure": {
+          "value": 65809011,
+          "what": "people in the civil register (Thai and non-Thai)",
+          "date": "2025-12-31"
+        },
+        "unFigure": {
+          "value": 71589739,
+          "what": "UN population, 1 January 2026 (average of 1 July 2025 and 1 July 2026)",
+          "date": ""
+        },
+        "verdict": "un-higher",
+        "links": [
+          {
+            "label": "Central Registration Office (Department of Provincial Administration), Announcement: population of the Kingdom as of 31 December 2025, 23 Mar 2026",
+            "href": "https://stat.bora.dopa.go.th/stat/pk/pk_68.pdf"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "ทั่วประเทศ ๓๑,๕๒๓,๔๐๕ ๓๓,๒๙๗,๓๐๓ ๖๔,๘๒๐,๗๐๘ ๕๒๑,๖๘๓ ๔๖๖,๖๒๐ ๙๘๘,๓๐๓ ๖๕,๘๐๙,๐๑๑",
+            "href": "https://stat.bora.dopa.go.th/stat/pk/pk_68.pdf"
+          }
+        ],
+        "accessed": "2026-10-29"
+      }
+    ],
+    "TWN": [
+      {
+        "key": "today",
+        "text": "Taiwan's household register counted 23,299,132 people at the end of 2025 and 23,213,251 at the end of September 2026 (Ministry of the Interior). The UN's figure for 1 January 2026, 23.06 million, is 1.0% lower, so they match.",
+        "figure": {
+          "value": 23299132,
+          "what": "people in the household register, end of December 2025",
+          "date": "2025-12-31"
+        },
+        "unFigure": {
+          "value": 23062042,
+          "what": "UN population, 1 January 2026 (average of 1 July 2025 and 1 July 2026)",
+          "date": ""
+        },
+        "verdict": "matches",
+        "links": [
+          {
+            "label": "Ministry of the Interior, Monthly Bulletin of Interior Statistics, table 1.1 (updated 8 Oct 2026)",
+            "href": "https://statis.moi.gov.tw/micst/report/321010.ods"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "一一四年 2025 | 36,197.3371 | 368 | 7,752 | 143,463 | 9,851,532 | 23,299,132",
+            "href": "https://statis.moi.gov.tw/micst/report/321010.ods"
+          },
+          {
+            "text": "九　月 Sept. | 36,197.3414 | 368 | 7,781 | 143,598 | 9,938,700 | 23,213,251",
+            "href": "https://statis.moi.gov.tw/micst/report/321010.ods"
+          }
+        ],
+        "accessed": "2026-10-29"
+      },
+      {
+        "key": "births",
+        "text": "Taiwan's household register recorded 107,812 births in 2025 and 69,446 in January to September 2026 (Ministry of the Interior). The UN expects 125,322 births in 2025, 16% more.",
+        "figure": {
+          "value": 107812,
+          "what": "births registered in 2025",
+          "date": "2025"
+        },
+        "unFigure": {
+          "value": 125322,
+          "what": "UN births, 2025",
+          "date": ""
+        },
+        "verdict": "un-higher",
+        "links": [
+          {
+            "label": "Ministry of the Interior, Monthly Bulletin of Interior Statistics, table 1.2 (updated 14 Oct 2026)",
+            "href": "https://statis.moi.gov.tw/micst/report/321020.ods"
+          }
+        ],
+        "quotes": [
+          {
+            "text": "一一四年 2025 | 107,812 | 4.62 | 55,797 | 52,015 | 200,268 | 8.58",
+            "href": "https://statis.moi.gov.tw/micst/report/321020.ods"
+          },
+          {
+            "text": "一一五年 2026 | 69,446 | 2.99 | 36,018 | 33,428 | 148,810 | 6.40",
+            "href": "https://statis.moi.gov.tw/micst/report/321020.ods"
           }
         ],
         "accessed": "2026-10-29"

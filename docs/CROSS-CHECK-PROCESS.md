@@ -91,7 +91,8 @@ larger batch, or a wider set of tiers, can be run at any time.
 >   on 1 July.
 > - A national figure for 1 January compares with the average of the UN's 1 July figures for that year and the year
 >   before.
-> - Gap % = (UN − other) ÷ other × 100. Within ±2% the verdict is `matches`.
+> - Gap % = (UN − other) ÷ |other| × 100, so a negative gap means the UN's number is lower, for losses too
+>   (`un-lower`: −7,330 against −1,291). Within ±2% the verdict is `matches`.
 >
 > **What to look for** (the 2-4 checks that matter most, not everything):
 > 1. `today`: the newest official population, from a census result or the statistics office's estimate.
@@ -142,3 +143,4 @@ larger batch, or a wider set of tiers, can be run at any time.
 | --- | --- | --- | --- |
 | 29 Oct 2026 | Ukraine, United States, United Kingdom (from [DATA-CROSS-CHECK.md](DATA-CROSS-CHECK.md)) | 6 | 0 |
 | 29 Oct 2026 | Nigeria, DR Congo, Ethiopia, Sudan, Uganda, Angola, Cameroon, Somalia; India, Pakistan, Afghanistan, Iraq, Yemen, Syria, Myanmar, Uzbekistan; China, Indonesia, Iran, Egypt, Russia, Lebanon, Venezuela, Bangladesh | 54 (29 corrected by the verifier: unsourced causes removed, refugee counts set as context rather than net migration) | 2 (Iran's population and births: the statistics and registration sites were down, and news reports are not a source) |
+| 29 Oct 2026 | The 25 unchecked places in risk tiers Critical and High: Hong Kong, Taiwan, Puerto Rico, Belarus, Japan, Poland, South Korea, Bosnia and Herzegovina, Lithuania, Latvia, Greece, Romania, Italy, North Macedonia, Bulgaria, Croatia, Macao, Albania, Cuba, Serbia, Moldova, Estonia, Czechia, Thailand, Spain | 63 (20 corrected by the verifier: claims the quotes didn't hold removed, Japan's foreign residents compared as citizens like the UN's, Eurostat's net migration named as including statistical adjustment) | 1 (Thailand's 2025 births: only news reports, the official table is a JavaScript app with no archived copy) |

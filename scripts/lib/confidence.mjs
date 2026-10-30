@@ -98,7 +98,8 @@ export const LEVEL_RULES = {
 
 const worse = (...ls) => ls.filter(Boolean).reduce((a, b) => (LEVELS.indexOf(b) > LEVELS.indexOf(a) ? b : a), null);
 const lower = (l) => (l == null ? null : LEVELS[Math.min(LEVELS.length - 1, LEVELS.indexOf(l) + 1)]);
-export const gapPct = (un, other) => (un == null || !other ? null : round(((un - other) / other) * 100, 1));
+// Over the other figure's size, so a negative gap always means the UN's number is lower, losses included.
+export const gapPct = (un, other) => (un == null || !other ? null : round(((un - other) / Math.abs(other)) * 100, 1));
 export const verdictOf = (gap) => (gap == null ? "context" : Math.abs(gap) <= MATCH_PCT ? "matches" : gap > 0 ? "un-higher" : "un-lower");
 
 // ---------------------------------------------------------------- inputs
