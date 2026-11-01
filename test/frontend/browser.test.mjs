@@ -48,6 +48,12 @@ function send(method, params = {}, sessionId) {
 // The app is up: data loaded, pages created, and (on the globe page) the globe has drawn.
 const APP_READY = `document.documentElement.classList.contains("ready") && !!window.FT && (document.getElementById("view-globe").hidden || FT.home.globe.ready)`;
 
+// Pins what a no-argument `new Date()` returns (todayYear reads it), so tests with today's year in a sentence don't age.
+const pinToday = (iso) => (s) =>
+  s("Page.addScriptToEvaluateOnNewDocument", {
+    source: `(() => { const RealDate = Date; const now = new RealDate(${JSON.stringify(iso)}).getTime(); globalThis.Date = class extends RealDate { constructor(...a) { if (a.length) super(...a); else super(now); } }; })();`,
+  });
+
 async function openPage({ width = 1440, height = 900, mobile = false, path: urlPath = "/?year=2100", ready = APP_READY, setup, reducedMotion = false, dark = false }) {
   const { targetId } = await send("Target.createTarget", { url: "about:blank" });
   const { sessionId } = await send("Target.attachToTarget", { targetId, flatten: true });
@@ -1504,7 +1510,8 @@ test("a shared picture's legend follows its scale: trend for the globe, the 2100
 });
 
 test("Post on X at the bottom of a country page shares the picture, and Ukraine's chart says what newer counts show", opts, async () => {
-  const page = await openPage({ path: "/country/UKR?year=2026" });
+  // The sentence's years run up to today's, so pin today to 2026 or it changes every January.
+  const page = await openPage({ path: "/country/UKR?year=2026", setup: pinToday("2026-06-01T00:00:00Z") });
   try {
     await page.waitFor(`!!document.getElementById("x-btn") && !!FT.data.details.get("UKR")?.data`, 5000);
     assert.match(await page.eval(`document.querySelector(".xcheck-wrap").textContent`), /two thirds of Ukraine's refugees/);
