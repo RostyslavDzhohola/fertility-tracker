@@ -20,6 +20,12 @@ the last (1.14 ÷ 2.1 replacement), so 100 → 54 → 29 → 16 → 9.
   whether it was counted or forecast, the publisher's file and the same number in the API. Where newer or independent
   counts differ a lot (Ukraine's assumed refugee return, US net migration, UK born abroad), the page says so with links:
   [docs/DATA-CROSS-CHECK.md](docs/DATA-CROSS-CHECK.md)
+- How sure is this: every country page grades its numbers (solid, partly estimated, mostly estimated) on four
+  things: when it was last counted, whether births and deaths are registered, how people born abroad were counted,
+  and how wide the UN's own forecast range is (also shaded on the chart). It lists newer national figures next to
+  the UN's: Eurostat and the UN Statistics Division automatically for every country, plus hand-checked notes. Sources
+  and rules: [docs/METHODOLOGY.md](docs/METHODOLOGY.md#how-sure-is-each-number); keeping it current:
+  [docs/CROSS-CHECK-PROCESS.md](docs/CROSS-CHECK-PROCESS.md)
 - Rankings (`/rankings`): where populations shrink most by 2100, highest risk, fewest babies per woman
 - Share a picture: a 1600×900 image of the globe as you left it (or a country's chart) with its numbers, for X
   (copied for pasting into the post; phones use the share sheet), or to copy or download. "Post on X" on a country
@@ -41,6 +47,10 @@ the last (1.14 ÷ 2.1 replacement), so 100 → 54 → 29 → 16 → 9.
   2100 for the medium and constant-fertility variants
 - **UN DESA International Migrant Stock 2024** (via Our World in Data): immigrant stock (people living in a country who
   were born elsewhere), emigrant stock (people born there who live abroad) and the top origin and destination countries
+
+For how sure each number is, it also reads the UN's own per-country documentation (what each estimate rests on,
+extracted from the UN's PDFs into `scripts/data/`), the UN Statistics Division's latest census, estimate and
+registration tables, Eurostat's population and people born abroad, and the UN's 80% and 95% forecast ranges.
 
 For each country it computes the demographic balance (population change = births − deaths + net migration, in
 absolute numbers and per 1,000 people), the UN outlook to 2050 and 2100, the "100 people" generation ratio, and a

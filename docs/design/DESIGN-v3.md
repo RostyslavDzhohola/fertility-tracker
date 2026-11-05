@@ -320,7 +320,29 @@ What changed, and why (the user's words in quotes):
   on the country page is a button (dotted underline, an "i") that opens a card: what it counts, the year, counted or
   forecast, the publisher's file, and the same number in our API (field named). Migration rows open their source, with
   a link to the other country's page, instead of navigating away. Where newer or independent counts differ a lot, an
-  "Other sources" note says so with links (`crosscheck.js`; evidence in [DATA-CROSS-CHECK.md](../DATA-CROSS-CHECK.md)).
+  "Other sources" note says so with links (hand-checked `crossChecks`, from `scripts/data/crosschecks.json` since round 5;
+  evidence in [DATA-CROSS-CHECK.md](../DATA-CROSS-CHECK.md)).
 - **Post on X shares the picture.** "It shares the link instead of … the screenshot." The country page's bottom button
   opens the same picture dialog as "Share a picture" (copy the picture, open the post; phones share the file).
 - **Email is a plain mail link.** "Just pop up the mail tool, and that's it." The Gmail / Outlook / copy chooser is gone.
+
+## Round 5 (user review, 29 October 2026): how sure is this?
+
+"This data breakdown, we need for every single country because I know none of it is accurate, and they do censuses
+very slowly … we need to disclose … all of the confidence in the data, prediction models … for all of the countries."
+
+- **A "How sure is this?" section on every country page**, between "Why it's happening" and "Generations". One
+  sentence says how solid the numbers are and the main reason ("Ukraine's numbers are mostly estimated: its last
+  census was in 2001"). Four cards, each with a colored dot (teal good, amber fair, red poor) and a word that opens its
+  source card: Last head count, Births and deaths, People born abroad, The forecast. The head-count and births cards
+  quote the UN's own sentence on what it used.
+- **A chip under the headline** ("Mostly estimated: how sure is this?") jumps to the section.
+- **The chart shades the UN's own range** around its forecast: darker 80%, lighter 95%, clipped to the plot (the scale
+  follows the lines). It fades out with "If birth rates stay the same", which has no range. A line under the chart
+  names it and opens its card (2050 and 2100 ranges, and the population if nobody moved in or out).
+- **"Newer counts and other sources"** lists every comparison with a newer national figure: a badge (Matches, UN
+  higher, UN lower, Context), the sentence, the national office's own footnote ("Their note: Data refer to government
+  controlled areas"), links, and where and when it comes from.
+- **Grading rules are public** (METHODOLOGY "How sure is each number", `index.json` `confidenceRules`). Levels use the
+  UN's own 15-year cutoff for an old census. The footer line says the colors, risk score and 100 people are our own
+  math on these numbers.

@@ -96,6 +96,108 @@ const riskCore = {
   factors: arr("Plain-English reasons, most important first.", T("string", "Factor.")),
 };
 
+const LEVEL = T(nul("string"), "good, fair or poor (index.json confidenceRules); null when no source covers it.", { enum: ["good", "fair", "poor", null] });
+const strN = (d, extra) => T(nul("string"), d, extra);
+const link = obj("A link to a source.", { label: T("string", "What it is."), href: T("string", "URL.") });
+const figure = objN("A figure with what it counts and its date.", {
+  value: T(nul("number"), "The number."),
+  what: T("string", "What was counted."),
+  date: T("string", "YYYY, or YYYY-MM-DD."),
+});
+const registration = objN("What the national office last reported to the UN Statistics Division (Population and Vital Statistics Report, table 3).", {
+  year: int("Year of the latest registered count."),
+  code: strN("C = virtually complete (at least 90%), U = unreliable or incomplete, | = from other sources, null = not given."),
+  byRegistration: T("boolean", "True when tabulated by date of registration, not of occurrence."),
+});
+const rangePoint = obj("The UN's forecast and its range in one year.", {
+  year: int("Year."),
+  medium: int("UN forecast (medium scenario), 1 July."),
+  lower80: intN("Lower bound of the UN's 80% prediction interval."),
+  upper80: intN("Upper bound of the 80% interval."),
+  lower95: intN("Lower bound of the 95% interval."),
+  upper95: intN("Upper bound of the 95% interval."),
+  zeroMigration: intN("UN Zero-migration scenario: nobody moves in or out from 2024."),
+});
+const confidence = objN("How sure this place's numbers are (index.json confidenceRules; docs/METHODOLOGY.md). Null for WLD.", {
+  level: LEVEL,
+  today: obj("Today's population: when the place was last counted.", {
+    level: LEVEL,
+    lastCount: intN("Newest census or population-register year known (what the UN used, or a newer census reported to the UN Statistics Division)."),
+    unCensuses: arr("Census years the UN based its estimates on (WPP 2024 Data Sources).", T("integer", "Year.")),
+    unRegisters: arr("Population-register years the UN used.", T("integer", "Year.")),
+    register: T("boolean", "Kept by a population register (used in the last 10 years)."),
+    keptCurrent: T("boolean", "Last census over 10 years old, but kept current: births and deaths fully registered and the country's own figure from the last two years within 2% of the UN's."),
+    unOfficialEstimatesThrough: intN("The UN used the country's official population estimates up to this year."),
+    latestCensus: objN("Latest census reported to the UN Statistics Division.", {
+      date: T("string", "Census day (first day, for a census over several days)."),
+      total: intN("People counted."),
+      provisional: T("boolean", "Provisional result."),
+      partial: T("boolean", "The total includes many people the census could not reach, estimated instead (its footnote says so): not used as a head count."),
+    }),
+    downgraded: T("boolean", "Level lowered one step: a newer official population differs from the UN's by more than index.json confidenceRules.downgradePct."),
+  }),
+  birthsDeaths: obj("Births and deaths: registered, or estimated.", {
+    level: LEVEL,
+    births: registration,
+    deaths: registration,
+    unRegisteredBirthsThrough: intN("The UN used registered births up to this year."),
+    unRegisteredDeathsThrough: intN("The UN used registered deaths by age and sex up to this year."),
+    unBirthsAdjusted: T(nul("boolean"), "The UN adjusted registered births for under-registration."),
+    unDeathsAdjusted: T(nul("boolean"), "The UN adjusted registered deaths for under-registration at all ages."),
+  }),
+  immigration: obj("How the people born abroad were counted (UN DESA International Migrant Stock 2024).", {
+    level: LEVEL,
+    dataType: strN("B = by country of birth, C = by citizenship, I = imputed (no data); combinations such as CB."),
+    refugeesAdded: T(nul("boolean"), "UNHCR refugee figures were added."),
+    reassessed2024: T(nul("boolean"), "One of the 60 places UN DESA fully reassessed for 2024; false = the 2024 figure extrapolates the 2020 edition."),
+    netMigrationBasis: arr(
+      "What the UN based net migration on: officialFlows, flowEstimates, destinationCensuses (people born here counted abroad), residual (population growth minus births plus deaths), unhcr, other.",
+      T("string", "Basis."),
+    ),
+  }),
+  forecast: obj("The UN's own uncertainty about the future.", {
+    level: LEVEL,
+    adjusted: T("boolean", "The range was rescaled by us to the UN's interim update (forecastRange.adjusted)."),
+    at: arr("The forecast and its range in 2050 and 2100.", rangePoint),
+  }),
+  unSources: objN("What the UN says it used for this place, quoted from World Population Prospects 2024: Data Sources.", {
+    page: intN("Page in the document."),
+    population: strN("Population paragraph."),
+    fertility: strN("Fertility paragraph."),
+    mortality: strN("Overall mortality paragraph."),
+    migration: strN("Migration paragraph."),
+  }),
+});
+const crossCheck = obj("What a newer or more direct source says about a UN figure.", {
+  key: T("string", "The UN figure checked.", { enum: ["today", "census", "births", "deaths", "immigrants", "net"] }),
+  kind: T("string", "eurostat / unsd: automatic, every build; researched: hand-checked (scripts/data/crosschecks.json).", { enum: ["eurostat", "unsd", "researched"] }),
+  figure: { ...figure, properties: { ...figure.properties, provisional: T("boolean", "Provisional."), estimated: T("boolean", "Flagged as estimated by the publisher.") }, required: ["value", "what", "date"] },
+  unFigure: { ...figure, properties: { ...figure.properties, forecast: T("boolean", "The UN figure for that date is its 2024 forecast, not an estimate.") }, required: ["value", "what", "date"] },
+  gapPct: numN("(UN - other) / other x 100."),
+  verdict: T("string", "matches (within confidenceRules.matchPct), un-higher, un-lower, or context (no comparable number).", { enum: ["matches", "un-higher", "un-lower", "context"] }),
+  links: arr("Sources.", link),
+}, { required: ["key", "kind", "figure", "unFigure", "gapPct", "verdict", "links"], additionalProperties: true });
+crossCheck.properties.text = T("string", "Researched notes only: what the source shows, in plain words.");
+crossCheck.properties.quotes = arr("Researched notes only: verbatim excerpts with the numbers.", obj("A quote.", { text: T("string", "Verbatim."), href: T("string", "Where it appears.") }));
+crossCheck.properties.accessed = T("string", "Researched notes only: when it was checked (YYYY-MM-DD).");
+crossCheck.properties.unUsedUpTo = intN("census only: the newest census or register year the UN used.");
+crossCheck.properties.partial = T("boolean", "census only: its total includes many people it could not reach, estimated instead.");
+crossCheck.properties.unAddsRefugees = T(nul("boolean"), "immigrants only: UN DESA added UNHCR refugee figures, which national registers may leave out.");
+crossCheck.properties.asOf = T(nul("string"), "Automatic checks: when the source last updated the figure (Eurostat dataset date, or the UN Statistics Division table's date).");
+crossCheck.properties.coverageDiffers = T("boolean", "Automatic checks: the national figure covers a different area or group (its footnote says so), so it is not graded higher or lower.");
+crossCheck.properties.notes = arr("Automatic checks: the national office's own footnotes to its figure (what area it covers, what it builds on), from the UN Statistics Division's tables.", T("string", "Footnote."));
+crossCheck.additionalProperties = false;
+const rangeArray = (d) => arr(`${d}: people on 1 July, startYear..2100 (index = year - startYear).`, T(nul("integer"), "People.", { minimum: 0 }), { minItems: 77, maxItems: 77 });
+const forecastRange = objN("The UN's yearly forecast range and Zero-migration path (WPP 2024 TotalPopulationBySex). Null when the UN publishes none.", {
+  startYear: int("First year (index 0)."),
+  adjusted: T("boolean", "True for places the UN's interim update revised (Togo): their bounds are the UN's, rescaled by us to the revised forecast, not the UN's own."),
+  lower80: rangeArray("Lower 80 PI"),
+  upper80: rangeArray("Upper 80 PI"),
+  lower95: rangeArray("Lower 95 PI"),
+  upper95: rangeArray("Upper 95 PI"),
+  zeroMigration: rangeArray("Zero migration"),
+});
+
 const summary = obj("Country summary.", {
   ...identity,
   population: { ...point, description: "Population (latest of World Bank / UN)." },
@@ -110,6 +212,7 @@ const summary = obj("Country summary.", {
     halvingYears: intN("Years for each generation's size to halve at this ratio (30-year generations); null if ratio >= 1."),
   }),
   risk: obj("Risk summary (top 3 factors; all factors in countries/{ISO3}.json and risk.json).", riskCore),
+  confidence: { ...LEVEL, description: "How sure this place's numbers are, overall: good, fair or poor (details in countries/{ISO3}.json confidence). Null for WLD." },
 });
 
 const riskComponent = obj("One risk component.", {
@@ -206,6 +309,9 @@ const detail = obj("Everything about one country.", {
     topOrigins: arr("Top 10 countries of birth of people living here who were born abroad.", partner),
     topDestinations: arr("Top 10 countries where people born here now live.", partner),
   }),
+  confidence,
+  forecastRange,
+  crossChecks: arr("Newer or more direct figures compared with the UN's, automatic (Eurostat, UN Statistics Division) and hand-checked.", crossCheck),
   links: obj("Related URLs.", {
     self: T("string", "This file."),
     countries: T("string", "All countries."),
@@ -374,6 +480,7 @@ export function schemas() {
         sources: arr("Upstream sources with exact URLs and vintages.", T("object", "Source.")),
         endpoints: arr("Published files.", T("object", "Endpoint.", { required: ["path", "url", "format", "description"] })),
         dataGaps: arr("Known gaps and caveats.", T("string", "Gap.")),
+        confidenceRules: T("object", "How each confidence level is decided (levels, matchPct, downgradePct, and the rules per part)."),
         links: T("object", "Docs, methodology, OpenAPI, llms.txt, repo, feedback."),
         license: T("object", "Licences."),
         cors: T("string", "CORS note."),

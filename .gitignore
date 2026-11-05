@@ -7,3 +7,4 @@ public/api/v1/status.json
 public/country/
 public/rankings/
 public/og/
+__pycache__/

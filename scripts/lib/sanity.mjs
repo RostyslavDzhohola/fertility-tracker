@@ -75,8 +75,41 @@ export function sanityCheck(ds, previous = null) {
     if (pw && w?.population?.value && Math.abs(w.population.value / pw - 1) > 0.05) err(`world population moved >5% (${pw} -> ${w.population.value})`);
   }
   if (previous?.details?.size) for (const e of coverageRegressions(previous.details, ds.details)) err(e);
+  for (const e of confidenceChecks(ds)) err(e);
   if (ds.scenarios || previous?.scenarios) for (const e of scenarioChecks(ds, previous?.scenarios ?? null)) err(e);
   return errors;
+}
+
+// ---------- confidence (how sure each number is) ----------
+
+/**
+ * An automatic comparison this many times away from the UN figure, either way, is more likely a misread number (a
+ * footnote digit glued on: 10x) than a real gap. Real gaps can be large: Colombia registered 434,000 births in 2024
+ * where the UN forecast 693,000.
+ */
+export const IMPLAUSIBLE_RATIO = 3;
+
+/**
+ * The quality blocks must be internally consistent: a forecast range brackets the medium forecast, and automatic
+ * population, births and deaths checks (parsed from Eurostat and the UN Statistics Division's tables) stay within a
+ * factor of IMPLAUSIBLE_RATIO of the UN's figure.
+ */
+export function confidenceChecks(ds, { max = 30 } = {}) {
+  const out = [];
+  for (const [iso3, d] of ds.details) {
+    if (out.length >= max) break;
+    for (const p of d.confidence?.forecast?.at ?? []) {
+      if (!(p.lower95 <= p.lower80 && p.lower80 <= p.medium * 1.02 && p.medium <= p.upper80 * 1.02 && p.upper80 <= p.upper95))
+        out.push(`${iso3}: forecast range ${p.year} out of order (${p.lower95} ${p.lower80} ${p.medium} ${p.upper80} ${p.upper95})`);
+    }
+    for (const c of d.crossChecks ?? []) {
+      // People born abroad can differ by more: the UN adds refugees that national registers leave out (Türkiye, Poland).
+      const ratio = c.unFigure?.value && c.figure?.value ? c.unFigure.value / c.figure.value : null;
+      if (c.kind !== "researched" && c.key !== "immigrants" && ratio != null && (ratio > IMPLAUSIBLE_RATIO || ratio < 1 / IMPLAUSIBLE_RATIO))
+        out.push(`${iso3}: ${c.kind} ${c.key} check is ${c.gapPct}% from the UN (${c.figure?.value} vs ${c.unFigure?.value}): check the parsed source`);
+    }
+  }
+  return out.slice(0, max);
 }
 
 // ---------- scenarios.json ----------
@@ -154,7 +187,7 @@ export function scenarioChecks(ds, previous = null, { max = 40 } = {}) {
 const SERIES_KEYS = ["population", "births", "deaths", "naturalChange", "netMigration", "populationChange", "tfr", "medianAge", "share65"];
 const STOCK_KEYS = ["immigrants", "immigrantsPct", "emigrants", "emigrantsPct"];
 const HEADLINE_KEYS = ["population", "tfr", "birthRate", "deathRate", "naturalChangeRate", "netMigration", "populationGrowthPct", "medianAge", "share65"];
-const BLOCK_KEYS = ["components", "migrantStock", "projection", "generations", "migrationCorridors"];
+const BLOCK_KEYS = ["components", "migrantStock", "projection", "generations", "migrationCorridors", "confidence", "forecastRange"];
 
 /**
  * What one country record covers: years with data per series metric, which headline fields and blocks are present,

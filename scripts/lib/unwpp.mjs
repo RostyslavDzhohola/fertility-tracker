@@ -187,6 +187,30 @@ export async function readUpdateCsv(entries, name, acc, { required = [] } = {}) 
 // ---------- population scenarios (scenarios.json) ----------
 
 export const SCENARIO_VARIANTS = { Medium: "medium", "Constant fertility": "constant" };
+/**
+ * The UN's probabilistic range around the medium projection (80 and 95 per cent prediction intervals) and the
+ * Zero-migration scenario, read in the same pass as the scenarios. Published per place as `forecastRange`: how sure
+ * the forecast is, and how much of it rests on migration.
+ */
+export const RANGE_VARIANTS = {
+  "Lower 80 PI": "lower80",
+  "Upper 80 PI": "upper80",
+  "Lower 95 PI": "lower95",
+  "Upper 95 PI": "upper95",
+  "Zero migration": "zeroMigration",
+};
+export const RANGE_KEYS = Object.values(RANGE_VARIANTS);
+
+/** Split one accumulator's places into the scenarios ({medium, constant}) and the ranges (RANGE_KEYS). */
+export function splitRanges(all) {
+  const places = new Map();
+  const ranges = new Map();
+  for (const [code, p] of all) {
+    places.set(code, { medium: p.medium, constant: p.constant });
+    if (RANGE_KEYS.some((k) => p[k]?.some((v) => v != null))) ranges.set(code, Object.fromEntries(RANGE_KEYS.map((k) => [k, p[k]])));
+  }
+  return { places, ranges };
+}
 
 /**
  * Accumulator for WPP2024_TotalPopulationBySex: Map<code, {medium: number[], constant: number[]}> of people
@@ -241,6 +265,21 @@ export function applyScenarioUpdate(places, updated) {
     });
   }
   return adjustments;
+}
+
+/**
+ * The interim update revised only the medium projection, so a revised place's range moves with it: each bound is
+ * rescaled year by year by revised medium / original medium, as applyScenarioUpdate does for the other scenarios.
+ * origMedium: Map<code, number[]> of the medium projection before the update.
+ */
+export function applyRangeUpdate(ranges, origMedium, updated) {
+  for (const [code, rev] of updated) {
+    const r = ranges.get(code);
+    const orig = origMedium.get(code);
+    if (!r || !orig) continue;
+    for (const k of Object.keys(r)) r[k] = r[k].map((v, i) => (v == null || rev.medium[i] == null || !orig[i] ? null : Math.round((v * rev.medium[i]) / orig[i])));
+  }
+  return ranges;
 }
 
 // ---------- demographic indicators and age groups (the yearly series) ----------
@@ -436,7 +475,7 @@ export async function fetchUnWpp({ log = () => {}, scenarioYears = [2024, 2100],
     fetchUpdateZip(),
     readGzipCsv(WPP_CSV.indicatorsMedium, indicatorsAccumulator, { required: INDICATOR_COLUMNS }),
     readGzipCsv(WPP_CSV.ageGroupsMedium, ageAccumulator, { required: AGE_COLUMNS }),
-    readGzipCsv(WPP_CSV.populationBySex, () => populationAccumulator({ codes: null, startYear, endYear }), { required: POPULATION_COLUMNS }),
+    readGzipCsv(WPP_CSV.populationBySex, () => populationAccumulator({ codes: null, startYear, endYear, variants: { ...SCENARIO_VARIANTS, ...RANGE_VARIANTS } }), { required: POPULATION_COLUMNS }),
   ]);
   const err = (r) => (r.status === "rejected" ? String(r.reason?.message ?? r.reason) : null);
   const entry = (id, title, url, required, result, columns, timespan, extra = {}) => ({
@@ -453,7 +492,7 @@ export async function fetchUnWpp({ log = () => {}, scenarioYears = [2024, 2100],
   const entries = [
     entry("demographicIndicators", "Demographic indicators, medium variant: population (1 July), births, deaths, net migration, fertility rate, median age", WPP_CSV.indicatorsMedium, true, ind, ["TPopulation1July", "Births", "Deaths", "NetMigrations", "TFR", "MedianAgePop"], "1950-2023 estimates, 2024-2100 medium projection"),
     entry("ageGroups", "Population by 5-year age group, medium variant (65+ share)", WPP_CSV.ageGroupsMedium, false, age, ["AgeGrpStart", "PopTotal"], "1950-2023 estimates, 2024-2100 medium projection"),
-    entry("populationScenarios", "Total population by projection scenario: Medium and Constant fertility (scenarios.json)", WPP_CSV.populationBySex, false, pop, ["Variant", "PopTotal"], `${startYear}-${endYear}`),
+    entry("populationScenarios", "Total population by projection scenario: Medium and Constant fertility (scenarios.json); 80% and 95% prediction intervals and Zero migration (forecastRange in countries/{ISO3}.json)", WPP_CSV.populationBySex, false, pop, ["Variant", "PopTotal"], `${startYear}-${endYear}`),
     entry("interimUpdate", "Interim update of 19 January 2026: revised Togo population and vital events (estimates and medium projection)", WPP_UPDATE.url, true, upd, Object.values(WPP_UPDATE.files), "1950-2100", { releaseNote: WPP_UPDATE.releaseNote, released: WPP_UPDATE.released }),
   ];
   // The update is required: without it (or with an incomplete one) Togo would silently keep the superseded figures.
@@ -483,13 +522,16 @@ export async function fetchUnWpp({ log = () => {}, scenarioYears = [2024, 2100],
   }
   let scenarios = null;
   if (pop.status === "fulfilled") {
-    const places = pop.value.value;
-    const adjustments = applyScenarioUpdate(places, sliceYears(checked.population, updateYears[0], startYear, endYear));
+    const { places, ranges } = splitRanges(pop.value.value);
+    const revised = sliceYears(checked.population, updateYears[0], startYear, endYear);
+    const origMedium = new Map([...revised.keys()].filter((c) => places.has(c)).map((c) => [c, places.get(c).medium.slice()]));
+    const adjustments = applyScenarioUpdate(places, revised);
+    applyRangeUpdate(ranges, origMedium, revised);
     // Every corrected place must have been adjusted: a missing adjustment means its original rows were not found.
     const notAdjusted = checked.places.filter((c) => !adjustments.some((a) => a.iso3 === c));
     if (notAdjusted.length) {
       Object.assign(entries[2], { status: "unavailable", error: `no ${WPP_CSV.populationBySex.split("/").pop()} rows to correct for ${notAdjusted.join(" ")}` });
-    } else scenarios = { startYear, endYear, places, adjustments, vintage: { lastModified: pop.value.lastModified, updateLastModified: update.lastModified } };
+    } else scenarios = { startYear, endYear, places, ranges, adjustments, vintage: { lastModified: pop.value.lastModified, updateLastModified: update.lastModified } };
   }
   for (const e of entries) {
     if (e.status === "ok") e.updated = [...updatedCodes].sort();
