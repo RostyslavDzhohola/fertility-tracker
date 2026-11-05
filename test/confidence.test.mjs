@@ -34,6 +34,19 @@ test("gaps and verdicts: within 2% matches; otherwise which side the UN is on", 
   assert.equal(verdictOf(5), "un-higher");
   assert.equal(verdictOf(null), "context");
   assert.equal(gapPct(null, 5), null);
+  // Losses: the sign says which number is lower, whatever the other figure's sign.
+  assert.ok(gapPct(-7330, -1291) < 0, "a bigger loss is lower");
+  assert.ok(gapPct(-24230, -28531) > 0, "a smaller loss is higher");
+  assert.ok(gapPct(5495, -2779) > 0);
+});
+
+test("a hand-checked note's verdict must agree with its numbers, losses included", async () => {
+  const { noteProblems } = await import("../scripts/checks/merge-crosschecks.mjs");
+  const note = (verdict, other, un) => ({ key: "net", text: "x", verdict, links: [{ label: "l", href: "https://x" }], accessed: "2026-10-29", figure: { value: other, what: "o", date: "2025" }, unFigure: { value: un, what: "u", date: "2025" } });
+  assert.deepEqual(noteProblems(note("un-higher", -28531, -24230)), []);
+  assert.match(noteProblems(note("un-lower", -28531, -24230)).join(), /verdict "un-lower"/);
+  assert.deepEqual(noteProblems(note("un-lower", -1291, -7330)), []);
+  assert.deepEqual(noteProblems(note("context", 939395, -568882)), [], "context compares different things");
 });
 
 test("the UN population on a date sits between its 1 July figures", () => {
@@ -274,6 +287,17 @@ test("the cross-check queue puts weak data, big gaps and big places first, and s
   assert.equal(fresh.fresh, true);
   assert.equal(fresh.score, 0);
   assert.equal(queueScore(place({ crossChecks: [{ kind: "researched", key: "today", accessed: "2026-01-01" }] }), { now }).fresh, false);
+});
+
+test("the cross-check queue offers the places most at risk of shrinking first, solid data or not", async () => {
+  const { byRisk } = await import("../scripts/checks/crosscheck-queue.mjs");
+  const rows = [
+    { iso3: "NGA", riskScore: 12, score: 20, population: 230e6 },
+    { iso3: "JPN", riskScore: 77, score: 0, population: 123e6 },
+    { iso3: "KOR", riskScore: 77, score: 3, population: 52e6 },
+    { iso3: "HKG", riskScore: 88, score: 0, population: 7e6 },
+  ];
+  assert.deepEqual([...rows].sort(byRisk).map((r) => r.iso3), ["HKG", "KOR", "JPN", "NGA"]);
 });
 
 test("merging hand-checked notes keeps only what the verifier passed, applies its fixes, and drops invalid notes", async () => {

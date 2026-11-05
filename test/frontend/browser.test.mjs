@@ -48,6 +48,12 @@ function send(method, params = {}, sessionId) {
 // The app is up: data loaded, pages created, and (on the globe page) the globe has drawn.
 const APP_READY = `document.documentElement.classList.contains("ready") && !!window.FT && (document.getElementById("view-globe").hidden || FT.home.globe.ready)`;
 
+// Pins what a no-argument `new Date()` returns (todayYear reads it), so tests with today's year in a sentence don't age.
+const pinToday = (iso) => (s) =>
+  s("Page.addScriptToEvaluateOnNewDocument", {
+    source: `(() => { const RealDate = Date; const now = new RealDate(${JSON.stringify(iso)}).getTime(); globalThis.Date = class extends RealDate { constructor(...a) { if (a.length) super(...a); else super(now); } }; })();`,
+  });
+
 async function openPage({ width = 1440, height = 900, mobile = false, path: urlPath = "/?year=2100", ready = APP_READY, setup, reducedMotion = false, dark = false }) {
   const { targetId } = await send("Target.createTarget", { url: "about:blank" });
   const { sessionId } = await send("Target.attachToTarget", { targetId, flatten: true });
@@ -576,7 +582,7 @@ test("§9.8 Back and Forward move between pages; the year and scenario travel in
     await page.key("Enter", { text: "\r", vk: 13 });
     await page.waitFor(`location.pathname === "/country/JPN" && document.getElementById("cv-name").textContent === "Japan"`);
     assert.equal(await page.eval("document.activeElement.id"), "cv-name", "focus moves to the new title after a search");
-    assert.match(await page.eval("document.title"), /^Japan: .* · Fertility Tracker$/);
+    assert.match(await page.eval("document.title"), /^Japan population: .* · Fertility Tracker$/);
     assert.deepEqual(page.errors, []);
   } finally {
     await page.close();
@@ -1231,6 +1237,9 @@ test("every place has its own share page: a country link previews that country; 
   assert.match(html, /<link rel="canonical" href="https:\/\/fertility-tracker-live\.vercel\.app\/country\/TWN">/);
   assert.match(html, /<meta property="og:title" content="Taiwan: [^"]+ people by 2100, [^"]+ vs today">/);
   assert.equal((await fetch(`${base}/country/XXX`)).status, 404);
+  // Search engines find every page from robots.txt and the sitemap.
+  assert.match(await (await fetch(`${base}/robots.txt`)).text(), /^Sitemap: https:\/\/fertility-tracker-live\.vercel\.app\/sitemap\.xml$/m);
+  assert.match(await (await fetch(`${base}/sitemap.xml`)).text(), /<loc>https:\/\/fertility-tracker-live\.vercel\.app\/country\/TWN<\/loc>/);
   const kor = await fetch(`${base}/KOR`, { redirect: "manual" });
   assert.equal(kor.status, 307);
   assert.equal(kor.headers.get("location"), "/country/KOR");
@@ -1247,6 +1256,40 @@ test("every place has its own share page: a country link previews that country; 
     await page.waitFor(`document.getElementById("nf-title")?.textContent === "We don't have a place with the code XXX."`, 3000);
     await sleep(300);
     assert.equal(await page.eval("location.pathname"), "/country/XXX");
+  } finally {
+    await page.close();
+  }
+});
+
+test("the JSON-LD follows the page: a place's own Dataset, the whole one on the rankings, and back again", opts, async () => {
+  const page = await openPage({ path: "/country/JPN" });
+  const ld = `JSON.parse(document.getElementById("dataset-jsonld").textContent).url`;
+  try {
+    assert.equal(await page.eval(ld), "https://fertility-tracker-live.vercel.app/country/JPN");
+    await page.eval(`FT.navigate("/country/KOR"), 0`);
+    await page.waitFor(`document.getElementById("cv-name").textContent === "South Korea"`);
+    assert.equal(await page.eval(ld), "https://fertility-tracker-live.vercel.app/country/KOR");
+    assert.equal(await page.eval(`JSON.parse(document.getElementById("dataset-jsonld").textContent).distribution[0].contentUrl`), "https://fertility-tracker-live.vercel.app/api/v1/countries/KOR.json");
+    await page.eval(`FT.navigate("/rankings"), 0`);
+    await page.waitFor(`location.pathname === "/rankings" && !document.getElementById("view-rankings").hidden`);
+    assert.equal(await page.eval(ld), "https://fertility-tracker-live.vercel.app/");
+    await page.eval("history.back(), 0");
+    await page.waitFor(`location.pathname === "/country/KOR" && !document.getElementById("view-country").hidden`);
+    assert.equal(await page.eval(ld), "https://fertility-tracker-live.vercel.app/country/KOR");
+    assert.deepEqual(page.errors, []);
+  } finally {
+    await page.close();
+  }
+});
+
+test("a place's <noscript> says what the app says: Kosovo grows a little longer first", opts, async () => {
+  const html = await (await fetch(`${base}/country/XKX`)).text();
+  const said = html.match(/<noscript>[\s\S]*?<p>([^<]+)<\/p>/)[1];
+  const page = await openPage({ path: "/country/XKX" });
+  try {
+    await page.waitFor(`document.getElementById("cv-verdict").textContent.length > 0`);
+    const verdict = await page.eval(`document.getElementById("cv-verdict").textContent`);
+    assert.ok(said.startsWith(verdict), `noscript "${said}" vs app "${verdict}"`);
   } finally {
     await page.close();
   }
@@ -1467,7 +1510,8 @@ test("a shared picture's legend follows its scale: trend for the globe, the 2100
 });
 
 test("Post on X at the bottom of a country page shares the picture, and Ukraine's chart says what newer counts show", opts, async () => {
-  const page = await openPage({ path: "/country/UKR?year=2026" });
+  // The sentence's years run up to today's, so pin today to 2026 or it changes every January.
+  const page = await openPage({ path: "/country/UKR?year=2026", setup: pinToday("2026-06-01T00:00:00Z") });
   try {
     await page.waitFor(`!!document.getElementById("x-btn") && !!FT.data.details.get("UKR")?.data`, 5000);
     assert.match(await page.eval(`document.querySelector(".xcheck-wrap").textContent`), /two thirds of Ukraine's refugees/);

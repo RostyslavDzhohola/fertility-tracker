@@ -216,8 +216,8 @@ zip is re-read on every run, so a re-upload of the same zip is picked up automat
   CSVs) is refused the same way, with a message naming the missing rows. The validator's UN DESA tables come from
   www.un.org; if those are unreachable, the data counts as unvalidated: scheduled and manual runs fail without committing or deploying, and a push to
   `main` deploys its code with the last committed data. Re-run the workflow once the source is back.
-- **Share pages and cards are built at deploy, not committed.** `public/country/`, `public/rankings/` and `public/og/`
-  are gitignored; the deploy workflow builds them from the data it ships ("Build the share pages and link-preview
+- **Share pages and cards are built at deploy, not committed.** `public/country/`, `public/rankings/`, `public/og/`,
+  `public/sitemap.xml` and `public/robots.txt` are gitignored; the deploy workflow builds them from the data it ships ("Build the share pages and link-preview
   cards") and fails rather than deploy without them. The same step regenerates the place redirects in `vercel.json` (`/KOR`,
   `/kor`, `/country/kor` → `/country/KOR`), and the data commit includes `vercel.json` when a place was added. By
   hand: `node scripts/pages/build-pages.mjs`; the site test fails while `vercel.json` is out of step with the data. X caches a link's card for about a week: a changed card shows

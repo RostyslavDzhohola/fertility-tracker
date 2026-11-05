@@ -24,6 +24,10 @@ export function noteProblems(n) {
   if (!Array.isArray(n.links) || !n.links.length || n.links.some((l) => !/^https?:\/\//.test(l?.href ?? "") || !l.label)) out.push("links");
   if (!/^\d{4}-\d{2}-\d{2}$/.test(n.accessed ?? "")) out.push("accessed date");
   for (const f of ["figure", "unFigure"]) if (n[f] != null && (typeof n[f].what !== "string" || n[f].date == null)) out.push(f);
+  // "UN higher" means the UN's number is the bigger one, also for losses: −24,230 is higher than −28,531.
+  const [other, un] = [n.figure?.value, n.unFigure?.value];
+  if (Number.isFinite(other) && Number.isFinite(un) && ((n.verdict === "un-higher" && !(un > other)) || (n.verdict === "un-lower" && !(un < other))))
+    out.push(`verdict "${n.verdict}" but the UN's ${un} vs ${other}`);
   return out;
 }
 

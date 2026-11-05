@@ -552,13 +552,13 @@ export function createCountryPage({ navigate, siteUrl }) {
     // Hand-checked notes on today's number and on net migration already sit next to them (under the chart and under
     // "Why it's happening"): here, only a pointer to them.
     const all = detail.crossChecks ?? [];
-    const inline = all.filter((x) => x.kind === "researched" && (x.key === "today" || x.key === "net"));
+    const inline = ["today", "net"].map((k) => crossCheck(rec.iso3, k)).filter(Boolean);
     const checks = all.filter((x) => !inline.includes(x));
     el.sureChecksWrap.hidden = false;
     el.sureChecks.replaceChildren(
       ...checks.map(checkItem),
       ...(inline.length ? [h("li", { class: "sure-pointer" }, `More notes from other sources sit ${inline.some((x) => x.key === "today") ? "under the chart" : ""}${inline.length > 1 ? " and " : ""}${inline.some((x) => x.key === "net") ? "under “Why it's happening”" : ""}.`)] : []),
-      ...(!all.length ? [h("li", { class: "sure-pointer" }, `No newer national figure found yet for ${L.theName(rec)}. Countries are checked by hand a few at a time, weakest data first.`)] : []),
+      ...(!all.length ? [h("li", { class: "sure-pointer" }, `No newer national figure found yet for ${L.theName(rec)}. Countries are checked by hand a few at a time, those most at risk of shrinking first.`)] : []),
     );
     el.sureHow.replaceChildren(
       "How we grade: ",

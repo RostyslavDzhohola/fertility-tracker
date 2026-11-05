@@ -8,7 +8,7 @@ import { tmpdir } from "node:os";
 import { gzipSync } from "node:zlib";
 import vm from "node:vm";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const root = path.join(repo, "public");
@@ -87,6 +87,12 @@ test("head points people and agents at the data (root-absolute), with JSON-LD", 
   // Day and night follow the system (style.css has both palettes).
   assert.match(html, /<meta name="color-scheme" content="light dark">/);
   assert.match(pages["api/index.html"], /<link rel="service-desc" type="application\/json" href="\/api\/v1\/openapi\.json">/);
+});
+
+test("the home page's JSON-LD is logic.js SITE_DATASET, the whole dataset the place pages are part of", async () => {
+  const L = await import(pathToFileURL(path.join(root, "js/logic.js")).href);
+  const ld = JSON.parse(html.match(/<script type="application\/ld\+json" id="dataset-jsonld">([\s\S]*?)<\/script>/)[1]);
+  assert.deepEqual(ld, L.SITE_DATASET);
 });
 
 test("noscript links the CSVs, the API docs and llms.txt", () => {
@@ -242,16 +248,54 @@ test("share pages: each place's page is index.html with its own title, descripti
     assert.equal(tag(/<meta name="twitter:image" content="([^"]+)">/), "https://fertility-tracker-live.vercel.app/og/TWN.jpg");
     assert.equal(tag(/<meta name="twitter:card" content="([^"]+)">/), "summary_large_image");
     assert.match(tag(/<meta property="og:title" content="([^"]+)">/), /^Taiwan: [\d.]+ million people by 2100, −\d+% vs today$/);
-    assert.match(tag(/<meta name="description" content="([^"]+)">/), /babies per woman/);
-    assert.match(tag(/<title>([^<]+)<\/title>/), /^Taiwan: .+ · Fertility Tracker$/);
-    // Only the head changes: the app is the same file.
-    const body = (h) => h.slice(h.indexOf("<body>"));
+    // Search results show about 160 characters: the population and the fertility rate come first and fit, even for long
+    // names (only the "2.1 keeps a country the same size" may be cut).
+    const description = tag(/<meta name="description" content="([^"]+)">/);
+    assert.match(description, /^Population of Taiwan: [\d.]+ million today, [\d.]+ million by 2100 \(UN forecast, −\d+%\)\. Fertility rate: [\d.]+ babies per woman/);
+    for (const c of countries) {
+      const d = (await readFile(path.join(dir, `country/${c.iso3}/index.html`), "utf8")).match(/<meta name="description" content="([^"]+)">/)[1];
+      const plain = d.replace(/&[a-z]+;|&#\d+;/g, "x");
+      const facts = plain.includes("babies per woman") ? plain.indexOf("babies per woman") + "babies per woman".length : plain.length;
+      assert.ok(facts <= 160, `${c.iso3}: the facts end at character ${facts}`);
+    }
+    assert.match(tag(/<title>([^<]+)<\/title>/), /^Taiwan population: .+ · Fertility Tracker$/);
+    // Only the head and the <noscript> change: the app is the same file.
+    const body = (h) => h.slice(h.indexOf("<body>")).replace(/<noscript>[\s\S]*?<\/noscript>/, "");
     assert.equal(body(page), body(html));
+    // Without JavaScript the page still says what it shows, and links its data, the rankings and the CSVs.
+    const ns = page.match(/<noscript>([\s\S]*?)<\/noscript>/)[1];
+    assert.match(ns, /<h1>Taiwan: population, births, deaths and moving, 1950 to 2100<\/h1>/);
+    assert.match(ns, /For every 100 people in Taiwan today, about \d+ will be left in 2100 \(UN forecast\)\./);
+    assert.match(ns, /Risk score: \d+ \/ 100, tier \w+, #\d+ of \d+\./);
+    for (const href of ["/api/v1/countries/TWN.json", "/rankings", "/api/v1/countries.csv", "/api/", "/llms.txt"]) assert.ok(ns.includes(`href="${href}"`), href);
+    // Its JSON-LD describes that place's data, as part of the whole dataset.
+    const ld = JSON.parse(page.match(/<script type="application\/ld\+json" id="dataset-jsonld">([\s\S]*?)<\/script>/)[1]);
+    assert.equal(ld["@type"], "Dataset");
+    assert.equal(ld.url, "https://fertility-tracker-live.vercel.app/country/TWN");
+    assert.deepEqual(ld.spatialCoverage, { "@type": "Place", name: "Taiwan" });
+    assert.equal(ld.distribution[0].contentUrl, "https://fertility-tracker-live.vercel.app/api/v1/countries/TWN.json");
+    assert.equal(ld.isPartOf.url, "https://fertility-tracker-live.vercel.app/");
+    // Google's Dataset rules: a description of 50-5000 characters, on the nested Dataset too.
+    for (const d of [ld, ld.isPartOf]) assert.ok(d.name && d.description.length >= 50 && d.description.length <= 5000, d.name);
+    assert.match(ld.dateModified, /^\d{4}-\d{2}-\d{2}T/);
     // Names with quotes or ampersands stay well-formed.
     const civ = await readFile(path.join(dir, "country/CIV/index.html"), "utf8");
     assert.match(civ, /<meta property="og:title" content="Cote d'Ivoire: /);
     const rk = await readFile(path.join(dir, "rankings/index.html"), "utf8");
     assert.match(rk, /<link rel="canonical" href="https:\/\/fertility-tracker-live\.vercel\.app\/rankings">/);
+    // The rankings link every ranked place, so crawlers reach each page without JavaScript.
+    const rkNs = rk.match(/<noscript>([\s\S]*?)<\/noscript>/)[1];
+    const ranked = countries.filter((c) => c.ranked === true && !(c.flags ?? []).includes("small-population"));
+    assert.equal((rkNs.match(/<li><a href="\/country\/[A-Z]{3}">/g) ?? []).length, ranked.length);
+    // The sitemap lists the home page, the rankings, the API docs and every place; robots.txt points to it.
+    const sitemap = await readFile(path.join(dir, "sitemap.xml"), "utf8");
+    const locs = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
+    assert.equal(locs.length, countries.length + 3);
+    assert.equal(new Set(locs).size, locs.length);
+    assert.ok(locs.includes("https://fertility-tracker-live.vercel.app/") && locs.includes("https://fertility-tracker-live.vercel.app/rankings"));
+    assert.ok(locs.includes("https://fertility-tracker-live.vercel.app/country/TWN"));
+    assert.match(sitemap, /<lastmod>\d{4}-\d{2}-\d{2}<\/lastmod>/);
+    assert.match(await readFile(path.join(dir, "robots.txt"), "utf8"), /^User-agent: \*\nAllow: \/\n\nSitemap: https:\/\/fertility-tracker-live\.vercel\.app\/sitemap\.xml$/m);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

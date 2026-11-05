@@ -444,8 +444,10 @@ test("plain verdicts and the 100-people sentence", () => {
   assert.equal(L.migrationSentence(87800), "87,800 more people arrive than leave each year.");
   assert.equal(L.migrationSentence(10), "About as many people move in as move out.");
   assert.match(L.bornDiedSentence(twn.components), /^132,000 born and 205,000 died in 2023: more people die than are born\.$/);
-  assert.equal(L.documentTitle("country", twn, p), "Taiwan: shrinking fast by 2100 · Fertility Tracker");
-  assert.equal(L.documentTitle("rankings"), "Where populations will shrink most · Fertility Tracker");
+  assert.equal(L.documentTitle("country", twn, p), "Taiwan population: shrinking fast by 2100 · Fertility Tracker");
+  assert.equal(L.documentTitle("country", { iso3: "WLD", name: "World" }, 23), "World population: growing by 2100 · Fertility Tracker");
+  assert.equal(L.documentTitle("country", twn, null), "Taiwan population, 1950 to 2100 · Fertility Tracker");
+  assert.equal(L.documentTitle("rankings"), "Countries ranked by population decline to 2100 · Fertility Tracker");
   assert.equal(L.documentTitle("globe"), L.HOME_TITLE);
   assert.match(L.xPostText(twn, 0.437), /^Taiwan: 0\.87 babies per woman\. For every 100 people today, about 44 will be left in 2100 \(UN forecast\)\.$/);
   assert.equal(L.rankLabel(twn, 200), "#3 of 200");
