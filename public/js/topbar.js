@@ -3,7 +3,7 @@
 import { $, h, setAttr, focusNoScroll } from "./dom.js";
 import * as L from "./logic.js";
 import { createSearch } from "./search.js";
-import { emailChooser } from "./ui.js";
+import { emailLink } from "./ui.js";
 
 // opts: getPlaces, getRecord, getPct(iso3), getYear(), topPlaces(n), onSelect(iso3), getFeedback(), siteUrl(),
 //   getContext() → { iso3, name } of the place on screen (country page or globe card), for the feedback links
@@ -66,7 +66,7 @@ export function createTopbar(opts) {
     // Feedback started on a place says which place.
     const ctx = { ...(opts.getContext?.() ?? {}), siteUrl: site };
     const gh = fb ? L.buildChooserUrl(fb, ctx) : null;
-    const email = emailChooser(fb, ctx, { prefix: "fb-email" });
+    const email = emailLink(fb, ctx, { id: "fb-email-btn" });
     const x = L.xProfileUrl(fb);
     const handle = L.xHandle(fb);
     fbPanel.replaceChildren(
@@ -76,9 +76,8 @@ export function createTopbar(opts) {
         "div",
         { class: "fb-actions" },
         gh ? h("a", { class: "btn btn-primary", href: gh, target: "_blank", rel: "noopener", id: "fb-github" }, "Give feedback on GitHub") : "",
-        email.toggle,
+        email,
       ),
-      email.panel,
       h("p", { class: "fb-note" }, "GitHub issues are public; email stays private."),
       x && handle ? h("p", { class: "fb-note" }, "Follow updates on X: ", h("a", { href: x, rel: "noopener" }, `@${handle}`)) : "",
     );

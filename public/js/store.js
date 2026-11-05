@@ -12,7 +12,8 @@ export const data = {
   searchPlaces: [],
   scen: null,
   today: new Date().getFullYear(),
-  start: 2024,
+  first: 1950, // the slider's first year (UN estimates)
+  start: 2024, // the first forecast year
   end: L.END_YEAR,
   latestEstimateYear: 2023,
   generatedAt: null,
@@ -65,6 +66,7 @@ export function applyCountries(json) {
 export function applyScenarios(json) {
   data.scen = json;
   data.start = json.startYear ?? 2024;
+  data.first = L.firstYear(json);
   data.end = json.endYear ?? L.END_YEAR;
   data.today = L.todayYear(json);
 }
@@ -116,6 +118,15 @@ export function pctNow(iso3, year = state.year, mix = state.mix) {
   return r == null ? null : (r - 1) * 100;
 }
 
+// % a year over the last few years at the current (or given) year, blended between the scenarios like popNow.
+export function trendNow(iso3, year = state.year, mix = state.mix) {
+  const a = L.trendAt(data.scen, iso3, year, "medium");
+  if (mix <= 0) return a;
+  const b = L.trendAt(data.scen, iso3, year, "constant");
+  if (a == null || b == null) return a ?? b;
+  return a + (b - a) * mix;
+}
+
 // % change by 2100 in one scenario (rankings, verdicts).
 export function pct2100(iso3, scenario = "medium") {
   return L.pctVsToday(data.scen, iso3, data.end, scenario, data.today);
@@ -160,7 +171,7 @@ export function yearInt() {
 let glide = 0;
 
 export function setYear(y, { animate = false, source = "user" } = {}) {
-  const target = Math.max(data.today, Math.min(data.end, y));
+  const target = Math.max(data.first, Math.min(data.end, y));
   if (source === "user") {
     touch();
     if (state.playing) pause();
@@ -215,15 +226,16 @@ export function setScenario(s, { source = "user", animate = true } = {}) {
 
 let playRaf = 0;
 let playLast = 0;
-let playDuration = 6000; // ms for today → 2100
+let playSpeed = 100 / 8000; // years per ms: 2000 → 2100 in 8 s
 
-export function play({ from = null, duration = 6000, source = "user" } = {}) {
+// duration: ms for the whole run from where it starts to 2100.
+export function play({ from = null, duration = null, source = "user" } = {}) {
   if (source === "user") touch();
   state.intro = source === "auto";
   cancelAnimationFrame(glide);
-  playDuration = duration;
   if (from != null) state.year = from;
-  else if (state.year >= data.end - 0.01) state.year = data.today;
+  else if (state.year >= data.end - 0.01) state.year = Math.max(data.first, L.REPLAY_FROM);
+  playSpeed = duration ? Math.max(1, data.end - state.year) / duration : 100 / 8000;
   state.playing = true;
   playLast = 0;
   emit("play");
@@ -236,8 +248,7 @@ function playStep(t) {
   if (!state.playing) return;
   const dt = playLast ? Math.min(50, t - playLast) : 0;
   playLast = t;
-  const speed = (data.end - data.today) / playDuration;
-  state.year = Math.min(data.end, state.year + dt * speed);
+  state.year = Math.min(data.end, state.year + dt * playSpeed);
   emit("year");
   if (state.year >= data.end) {
     state.year = data.end;

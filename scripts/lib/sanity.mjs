@@ -107,6 +107,11 @@ export function scenarioChecks(ds, previous = null, { max = 40 } = {}) {
       if (!Array.isArray(a) || a.length !== n) out.push(`scenarios.json: ${rec.iso3} ${k} has ${a?.length ?? 0} years, expected ${n}`);
       else if (a.some((v) => v == null || !Number.isInteger(v) || v < 0)) out.push(`scenarios.json: ${rec.iso3} ${k} has missing or invalid values`);
     }
+    // The shared past: one value per year from estimateStartYear, each the series' UN estimate.
+    const ne = sc.startYear - (sc.estimateStartYear ?? sc.startYear);
+    const est = p.estimate;
+    if (!Array.isArray(est) || est.length !== ne) out.push(`scenarios.json: ${rec.iso3} estimate has ${est?.length ?? 0} years, expected ${ne}`);
+    else if (est.some((v) => v == null || !Number.isInteger(v) || v < 0)) out.push(`scenarios.json: ${rec.iso3} estimate has missing or invalid values`);
     const m0 = p.medium?.[0];
     const c0 = p.constant?.[0];
     if (m0 > 0 && c0 != null && Math.abs(c0 / m0 - 1) > 0.01) out.push(`scenarios.json: ${rec.iso3} constant starts ${c0} vs medium ${m0} in ${sc.startYear} (scenarios must share the same base population)`);
@@ -115,6 +120,11 @@ export function scenarioChecks(ds, previous = null, { max = 40 } = {}) {
       const v = p.medium?.[r.year - sc.startYear];
       return r.year >= sc.startYear && r.year <= sc.endYear && r.population != null && v != null && Math.abs(v - r.population) > Math.max(2, r.population * 0.0005);
     });
+    const badPast = series.filter((r) => {
+      const v = p.estimate?.[r.year - sc.estimateStartYear];
+      return r.year >= sc.estimateStartYear && r.year < sc.startYear && r.population != null && v != null && v !== Math.round(r.population);
+    });
+    if (badPast.length) out.push(`scenarios.json: ${rec.iso3} estimate differs from the series population in ${badPast.length} years (e.g. ${badPast[0].year}: ${p.estimate[badPast[0].year - sc.estimateStartYear]} vs ${badPast[0].population})`);
     if (bad.length) out.push(`scenarios.json: ${rec.iso3} medium differs from the series population in ${bad.length} years (e.g. ${bad[0].year}: ${p.medium[bad[0].year - sc.startYear]} vs ${bad[0].population})`);
   }
   const w = sc.places.get("WLD");
@@ -125,12 +135,15 @@ export function scenarioChecks(ds, previous = null, { max = 40 } = {}) {
     if (sc.startYear > previous.startYear || sc.endYear < previous.endYear) {
       out.push(`scenarios.json: year range would shrink from ${previous.startYear}-${previous.endYear} to ${sc.startYear}-${sc.endYear}`);
     }
+    if (previous.estimateStartYear != null && !(sc.estimateStartYear <= previous.estimateStartYear)) {
+      out.push(`scenarios.json: the past would shrink from ${previous.estimateStartYear} to ${sc.estimateStartYear ?? "none"}`);
+    }
     const values = (a) => (a ?? []).filter((v) => v != null).length;
     for (const [code, prev] of Object.entries(previous.places ?? {})) {
       if (out.length >= max) break;
       const cur = sc.places.get(code);
       if (!cur) out.push(`scenarios.json: ${code} would be dropped (it was published before)`);
-      else for (const k of SCENARIO_KEYS) if (values(cur[k]) < values(prev[k])) out.push(`scenarios.json: ${code} ${k} would lose values (${values(prev[k])} -> ${values(cur[k])})`);
+      else for (const k of [...SCENARIO_KEYS, "estimate"]) if (values(cur[k]) < values(prev[k])) out.push(`scenarios.json: ${code} ${k} would lose values (${values(prev[k])} -> ${values(cur[k])})`);
     }
   }
   return out.slice(0, max);

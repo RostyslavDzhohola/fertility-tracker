@@ -9,6 +9,7 @@
     "generatedAt",
     "source",
     "unit",
+    "estimateStartYear",
     "startYear",
     "endYear",
     "scenarios",
@@ -36,9 +37,13 @@
       "description": "Unit of every number in places.",
       "const": "people"
     },
+    "estimateStartYear": {
+      "type": "integer",
+      "description": "First year in each place's estimate array (index 0)."
+    },
     "startYear": {
       "type": "integer",
-      "description": "First year in each array (index 0)."
+      "description": "First year in each scenario array (index 0)."
     },
     "endYear": {
       "type": "integer",
@@ -186,10 +191,24 @@
         "type": "object",
         "description": "Population paths for one place.",
         "required": [
+          "estimate",
           "medium",
           "constant"
         ],
         "properties": {
+          "estimate": {
+            "type": "array",
+            "description": "The past both scenarios share: UN estimates of people on 1 July for each year estimateStartYear..startYear - 1 (index = year - estimateStartYear); null = missing.",
+            "items": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "description": "People.",
+              "minimum": 0
+            },
+            "minItems": 1
+          },
           "medium": {
             "type": "array",
             "description": "UN forecast (medium): people on 1 July for each year startYear..endYear (index = year - startYear); null = missing.",

@@ -642,42 +642,6 @@ body.page-globe .topbar-inner > * {
   gap: 8px;
   margin: 14px 0 8px;
 }
-.fb-address {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 8px;
-  font-size: 13px;
-}
-.fb-address .email-text {
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-.fb-address .btn {
-  flex: none;
-  white-space: nowrap;
-}
-/* "Email us" opens these: web mail works on any computer, the mail app only where one is set up. */
-.email-choices {
-  margin: 4px 0 10px;
-  padding: 12px;
-  border-radius: 14px;
-  background: var(--paper-2);
-}
-.email-label {
-  color: var(--muted);
-  font-size: 13px;
-  font-weight: 700;
-}
-.email-apps {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 8px;
-}
-.email-apps .btn {
-  padding: 0 14px;
-}
 
 .load-banner {
   position: fixed;
@@ -773,6 +737,11 @@ body.page-globe {
   gap: 6px;
   color: var(--ink-2);
   font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+.tip-sub {
+  color: var(--muted);
+  font-size: 13px;
   font-variant-numeric: tabular-nums;
 }
 .tip-hint {
@@ -1020,7 +989,7 @@ body.page-globe {
   border-radius: 4px;
   box-shadow: inset 0 0 0 1px var(--hairline);
 }
-/* Each swatch spans its band of the ramp (logic.js RAMP / OUTLOOK). */
+/* Each swatch spans its band of the globe ramp (logic.js TREND_RAMP / TREND). */
 .lg-sw.lg-growing {
   background: linear-gradient(90deg, #c7e2c6, #62b7a6 50%, #13737a);
 }
@@ -1028,13 +997,10 @@ body.page-globe {
   background: #eee5cd;
 }
 .lg-sw.lg-shrinking {
-  background: linear-gradient(90deg, #f3cd99, #f4b26e 40%, #e98144);
+  background: linear-gradient(90deg, #f2d9a9, #f4b26e 40%, #e5703f);
 }
 .lg-sw.lg-fast {
-  background: linear-gradient(90deg, #e57a43, #da573a 50%, #be3a30);
-}
-.lg-sw.lg-half {
-  background: linear-gradient(90deg, #9a958f, #4c4a48);
+  background: linear-gradient(90deg, #da573a, #be3a30 45%, #5e120e);
 }
 
 .dock {
@@ -1149,6 +1115,16 @@ body.page-globe {
   flex: 1;
   min-width: 120px;
   padding-bottom: 18px;
+  container-type: inline-size;
+}
+/* A short slider (the country page, phones): 2000 and 2050 crowd "Today"; their tick marks stay. */
+@container (max-width: 420px) {
+  .tc-tick.minor {
+    visibility: hidden;
+  }
+  .tc-tick.minor::before {
+    visibility: visible;
+  }
 }
 .tc-ticks {
   position: absolute;
@@ -1180,6 +1156,19 @@ body.page-globe {
 }
 .tc-tick.end {
   transform: translateX(-70%);
+}
+.tc-tick.start {
+  transform: translateX(-30%);
+}
+/* Today divides the UN's estimates (left) from its forecast (right). */
+.tc-tick.today {
+  color: var(--ink-2);
+  font-weight: 800;
+}
+.tc-tick.today::before {
+  top: -12px;
+  height: 9px;
+  background: var(--ink-2);
 }
 .tc-scen {
   flex: none;
@@ -1399,10 +1388,8 @@ body.page-globe {
 }
 .pct[data-band="shrinking"],
 .pct[data-band="fast"],
-.pct[data-band="half"],
 .ro-pct[data-band="shrinking"],
-.ro-pct[data-band="fast"],
-.ro-pct[data-band="half"] {
+.ro-pct[data-band="fast"] {
   color: var(--down-ink);
 }
 .pct[data-band="growing"],
@@ -1608,8 +1595,7 @@ body.page-globe {
   letter-spacing: -0.02em;
 }
 .verdict[data-band="shrinking"],
-.verdict[data-band="fast"],
-.verdict[data-band="half"] {
+.verdict[data-band="fast"] {
   color: var(--down-ink);
 }
 .verdict[data-band="growing"] {
@@ -1629,7 +1615,7 @@ body.page-globe {
 }
 .meter-track {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 6px;
   margin-top: 12px;
   max-width: 640px;
@@ -1905,19 +1891,11 @@ body.page-globe {
   font-weight: 750;
   font-variant-numeric: tabular-nums;
 }
-.chart-svg .hover line {
-  stroke: var(--faint);
-  stroke-dasharray: 3 3;
-}
-.chart-svg .hover circle {
-  fill: var(--ink);
-}
-.chart-svg .hover .m-bubble rect {
-  fill: var(--ink);
-}
+/* Press and drag moves the year; a vertical swipe still scrolls the page on touch screens. */
 .chart-svg .hit {
   fill: transparent;
   cursor: ew-resize;
+  touch-action: pan-y;
 }
 
 .why-tiles {
@@ -2029,9 +2007,44 @@ body.page-globe {
   font-weight: 800;
   font-variant-numeric: tabular-nums;
 }
-/* Born, died, moved: three bars on one scale, then the change they add up to. */
+/* Births, deaths, immigration: three bars on one scale in two groups, then the change they add up to. */
 .flows .bd-row {
   grid-template-columns: 92px minmax(0, 1fr);
+}
+.bd-group {
+  margin-top: 6px;
+  color: var(--ink-2);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.bd-group:first-child {
+  margin-top: 0;
+}
+.bd-group + .bd-row {
+  margin-top: 2px;
+}
+.bd-group:not(:first-child) {
+  padding-top: 10px;
+  border-top: 1px dashed var(--line-2);
+}
+.bd-sub {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  padding-top: 4px;
+  border-top: 1px dotted var(--line-2);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+.bd-sub b {
+  color: var(--ink-2);
+  font-size: 15px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
 }
 .bd-row.moved .bd-fill {
   background: var(--chart-medium);
@@ -2304,6 +2317,27 @@ body.page-globe {
   align-items: center;
   min-height: 44px;
   font-weight: 600;
+}
+/* Each row is one button: the place and its number; pressing it shows where the number comes from. */
+.partners .src.partner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  text-decoration: none;
+}
+.partners .src.partner .p-name {
+  margin-right: auto;
+  font-weight: 600;
+  text-decoration: underline dotted var(--faint);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 4px;
+}
+.partners .src.partner:hover .p-name,
+.partners .src.partner[aria-expanded="true"] .p-name {
+  text-decoration-color: currentColor;
 }
 .partners .num {
   color: var(--ink-2);
@@ -2638,10 +2672,10 @@ body.page-globe {
 
 /* ------------------------------------------------------------------ medium screens */
 
-/* Moving in vs out: two labelled arrows and the yearly net in words. */
+/* Immigration: two labelled arrows (people alive who moved), then the yearly net, past and forecast. */
 .mv-row {
   display: grid;
-  grid-template-columns: 58px minmax(0, 1fr);
+  grid-template-columns: 92px minmax(0, 1fr);
   grid-template-rows: auto auto;
   column-gap: 10px;
   align-items: center;
@@ -2651,6 +2685,70 @@ body.page-globe {
   color: var(--muted);
   font-weight: 700;
   font-size: 13px;
+  line-height: 1.25;
+}
+.mv-val small {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 650;
+}
+.net-yearly {
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.net-title {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+.net-chart {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-top: 6px;
+  overflow: visible;
+}
+.net-chart .nb.pos {
+  fill: var(--grow);
+}
+.net-chart .nb.neg {
+  fill: var(--chart-constant);
+}
+.net-chart .nb.fc {
+  opacity: 0.42;
+}
+.net-chart .nz {
+  stroke: var(--line-2);
+  stroke-width: 1;
+}
+.net-chart .nt {
+  stroke: var(--ink-2);
+  stroke-width: 1.2;
+  stroke-dasharray: 2 2;
+}
+.net-chart .nl {
+  fill: var(--muted);
+  font-size: 11px;
+  font-weight: 650;
+}
+.net-chart .nl.today {
+  fill: var(--ink-2);
+  font-weight: 800;
+}
+.net-keys {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 14px;
+  margin-top: 6px;
+  font-size: 14px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+.net-keys .fc {
+  color: var(--ink-2);
 }
 .mv-track {
   height: 22px;
@@ -3419,10 +3517,10 @@ body.page-globe {
   .tc-year-num {
     font-size: 26px;
   }
-  .tc-tick:first-child {
-    visibility: hidden; /* 2030 sits too close to 2050 at this width; its tick mark stays */
+  .tc-tick.minor {
+    visibility: hidden; /* 2000 and 2050 crowd "Today" at this width; their tick marks stay */
   }
-  .tc-tick:first-child::before {
+  .tc-tick.minor::before {
     visibility: visible;
   }
 }
@@ -3518,4 +3616,150 @@ body.page-globe {
   .snap-actions .btn {
     flex: 1 1 auto;
   }
+}
+
+/* ------------------------------------------------------------------ where a number comes from (sources.js) */
+
+/* A number you can press: dotted underline and a small "i". */
+.src {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+  text-decoration: underline dotted var(--faint);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+.src:hover,
+.src[aria-expanded="true"] {
+  color: var(--accent-text);
+  text-decoration-color: currentColor;
+}
+.src:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.src-i {
+  flex: none;
+  align-self: center;
+  color: var(--faint);
+}
+.src:hover .src-i,
+.src[aria-expanded="true"] .src-i {
+  color: currentColor;
+}
+
+.src-pop {
+  position: absolute;
+  z-index: 60;
+  width: min(400px, calc(100vw - 24px));
+  max-height: min(70vh, 560px);
+  overflow: auto;
+  padding: 16px 18px 14px;
+  border-radius: 16px;
+  background: var(--card);
+  color: var(--ink);
+  box-shadow: var(--shadow-2), 0 0 0 1px var(--hairline);
+  font-size: 14px;
+  line-height: 1.45;
+}
+.src-pop.sheet {
+  position: fixed;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  top: auto;
+  width: auto;
+  max-height: 70vh;
+}
+.src-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.src-title {
+  flex: 1;
+  font-weight: 750;
+  font-size: 15px;
+  line-height: 1.35;
+}
+.src-title:focus {
+  outline: none;
+}
+.src-close {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  margin: -6px -8px 0 0;
+}
+.src-rows {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 4px 12px;
+  margin-top: 10px;
+}
+.src-rows dt {
+  color: var(--muted);
+  font-weight: 650;
+}
+.src-note {
+  margin-top: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--paper-2);
+  color: var(--ink-2);
+}
+.src-from {
+  margin-top: 10px;
+  color: var(--ink-2);
+}
+.src-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin-top: 6px;
+  font-weight: 650;
+}
+.src-pop a {
+  color: var(--accent-text);
+}
+.src-field {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.src-field code {
+  font-size: 12px;
+}
+
+/* "Other sources: …": a newer or independent count next to the UN's (crosscheck.js). */
+.src-check,
+.xcheck {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--chart-constant);
+  border-radius: 4px 10px 10px 4px;
+  background: var(--paper-2);
+  color: var(--ink-2);
+  font-size: 14px;
+  line-height: 1.45;
+}
+.xcheck-wrap .xcheck {
+  max-width: 720px;
+  margin-top: 12px;
+}
+.src-check .src-links,
+.xcheck .src-links {
+  margin-top: 4px;
+  font-size: 13px;
+}
+.xcheck a {
+  color: var(--accent-text);
 }

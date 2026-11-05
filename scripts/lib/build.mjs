@@ -91,19 +91,31 @@ function migrantStock(code, ims, wb) {
   return { latest: { ...latest, source: "UN-DESA" }, series };
 }
 
+/** First year of the past both scenarios share (scenarios.json `estimate`). */
+export const ESTIMATE_START_YEAR = 1950;
+
 /**
  * Population scenarios for scenarios.json, restricted to the published records (sorted by code).
  * scenarios = { startYear, endYear, places: Map<code, {medium, constant}>, adjustments, vintage } | null.
+ * seriesOf(code) → the place's yearly series: its UN estimates (1 July population, 1950 to the year before startYear)
+ * become `estimate`, the past both scenarios share, so the globe can play from 1950.
  */
-export function scenarioPlaces(scenarios, codes) {
+export function scenarioPlaces(scenarios, codes, seriesOf = () => null) {
   if (!scenarios?.places) return null;
   const places = new Map();
+  const n = scenarios.startYear - ESTIMATE_START_YEAR;
   for (const code of [...codes].sort()) {
     const p = scenarios.places.get(code);
-    if (p) places.set(code, { medium: p.medium, constant: p.constant });
+    if (!p) continue;
+    const estimate = new Array(Math.max(0, n)).fill(null);
+    for (const r of seriesOf(code) ?? []) {
+      const i = r.year - ESTIMATE_START_YEAR;
+      if (r.variant === "estimate" && i >= 0 && i < n && Number.isFinite(r.population)) estimate[i] = Math.round(r.population);
+    }
+    places.set(code, { estimate, medium: p.medium, constant: p.constant });
   }
   const kept = new Set(places.keys());
-  return { ...scenarios, places, adjustments: (scenarios.adjustments ?? []).filter((a) => kept.has(a.iso3)) };
+  return { ...scenarios, estimateStartYear: ESTIMATE_START_YEAR, places, adjustments: (scenarios.adjustments ?? []).filter((a) => kept.has(a.iso3)) };
 }
 
 /**
@@ -219,7 +231,7 @@ export function buildDataset(raw) {
     ranking,
     unranked,
     latestEstimateYear: estYear,
-    scenarios: scenarioPlaces(raw.scenarios, records.map((r) => r.iso3)),
+    scenarios: scenarioPlaces(raw.scenarios, records.map((r) => r.iso3), (code) => details.get(code)?.series),
   };
 }
 
