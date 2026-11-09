@@ -389,7 +389,7 @@ export function createHome({ navigate, onFocusChange, siteUrl = () => L.SITE_URL
   function select(iso3, { source = "map", fly = true } = {}) {
     const rec = data.records.get(iso3);
     if (!rec) return;
-    if (source !== "init") finishIntro();
+    if (source !== "init") skipIntro();
     selected = iso3;
     globe.stopSpin();
     openCard(rec);
@@ -586,17 +586,35 @@ export function createHome({ navigate, onFocusChange, siteUrl = () => L.SITE_URL
 
   // First paint of the globe: outlines, counter, spin and (first visit) the intro. Runs again after a failed load.
   let introDecided = null;
+  let introPending = false; // the year is at the intro's start, waiting for the first frame to play
+
+  // A pick before or during the intro shows the place at the year the page opens on, not at a year in passing.
+  function skipIntro() {
+    if (introPending) {
+      introPending = false;
+      setYear(data.end, { source: "auto" });
+    }
+    finishIntro();
+  }
   async function start(route, first) {
     if (introDecided == null) introDecided = first && introWanted(route);
     const intro = introDecided && !state.touched;
     const introFrom = Math.max(data.first, L.REPLAY_FROM);
-    if (intro && !started) setYear(introFrom, { source: "auto" });
+    if (intro && !started) {
+      introPending = true;
+      setYear(introFrom, { source: "auto" });
+    }
     const ok = await loadGeo();
     if (!ok || started) return ok;
     started = true;
     renderCounter();
     if (!lastRoute.focus && !media.reduced()) globe.startSpin();
-    if (intro && !state.touched) requestAnimationFrame(() => visible && !state.touched && play({ from: introFrom, duration: 7000, source: "auto" }));
+    if (intro && !state.touched)
+      requestAnimationFrame(() => {
+        const go = introPending && visible && !state.touched;
+        introPending = false;
+        if (go) play({ from: introFrom, duration: 7000, source: "auto" });
+      });
     if (lastRoute.focus && data.records.has(lastRoute.focus) && lastRoute.focus !== selected) select(lastRoute.focus, { source: "init" });
     return true;
   }
