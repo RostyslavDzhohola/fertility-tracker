@@ -152,8 +152,8 @@ site). The rules are published in `index.json` as `confidenceRules`:
   old census (WPP 2024 Summary of Results, annex 1: 23 places). The newest census counts even when the UN couldn't use
   it yet (reported to the UN Statistics Division after the 2024 revision). One step lower when a newer official
   population differs from the UN's by more than 5%.
-- **Births and deaths.** Good: both reported to the UN Statistics Division as virtually complete (at least 90%), for 2018
-  or later. Fair: registered, but incomplete or out of date, so the UN corrects them. Poor: no usable registration; the
+- **Births and deaths.** Good: both reported to the UN Statistics Division as virtually complete (at least 90%), for a year
+  in the last 8 (a rolling window: 2018 or later in 2026, 2019 or later in 2027). Fair: registered, but incomplete or out of date, so the UN corrects them. Poor: no usable registration; the
   UN estimates births and deaths from surveys. Where a country reported nothing, what the UN says it used decides.
 - **People born abroad.** Good: counted by country of birth and reassessed by UN DESA for 2024. Fair: counted by
   citizenship (this misses people who became citizens and counts children born there to foreign parents), or by

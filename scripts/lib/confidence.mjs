@@ -69,6 +69,9 @@ export const MATCH_PCT = 2;
 export const DOWNGRADE_PCT = 5;
 
 export const LEVELS = ["good", "fair", "poor"];
+// Registration counts as recent for 8 years (2018 on, when built in 2026) and as usable for 16.
+export const REGISTRATION_RECENT_YEARS = 8;
+export const REGISTRATION_USABLE_YEARS = 16;
 export const LEVEL_RULES = {
   today: {
     good:
@@ -78,7 +81,7 @@ export const LEVEL_RULES = {
     downgrade: `One step lower when a newer official population differs from the UN's by more than ${DOWNGRADE_PCT}%`,
   },
   birthsDeaths: {
-    good: "Births and deaths both registered and reported as virtually complete (at least 90%), for 2018 or later",
+    good: `Births and deaths both registered and reported as virtually complete (at least 90%), for a year in the last ${REGISTRATION_RECENT_YEARS}`,
     fair: "Registered, but at least one of the two incomplete or out of date: the UN corrects them",
     poor: "No usable registration (or only one of the two registered): the UN estimates births and deaths from surveys and models",
   },
@@ -317,20 +320,23 @@ function todayLevel({ lastCount, register }, year) {
   return age <= 10 ? "good" : age <= OLD_CENSUS_YEARS ? "fair" : "poor";
 }
 
-const isComplete = (v, from = 2018) => v?.code === "C" && v.year >= from;
-function birthsDeathsLevel(pvsrPlace, ds) {
+const isComplete = (v, from) => v?.code === "C" && v.year >= from;
+// Windows roll with the build year, so a report ages out instead of counting as recent forever.
+function birthsDeathsLevel(pvsrPlace, ds, year) {
+  const recent = year - REGISTRATION_RECENT_YEARS;
+  const usable = year - REGISTRATION_USABLE_YEARS;
   const b = pvsrPlace?.births;
   const d = pvsrPlace?.deaths;
-  if (isComplete(b) && isComplete(d)) return "good";
+  if (isComplete(b, recent) && isComplete(d, recent)) return "good";
   // Registered, but incomplete (U) or complete only for an old year.
   if (["C", "U"].includes(b?.code) || ["C", "U"].includes(d?.code)) return "fair";
   // No registration code from the national office: what the UN says it used.
   const rb = ds?.registeredBirthsThrough ?? 0;
   const rd = ds?.registeredDeathsThrough ?? 0;
-  if (!b && !d && rb >= 2018 && rd >= 2018 && !ds.birthsAdjusted && !ds.deathsAdjusted) return "good";
-  // Both registered for 2010 or later, though incompletely; one of the two alone (Nigeria registers some deaths, no
+  if (!b && !d && rb >= recent && rd >= recent && !ds.birthsAdjusted && !ds.deathsAdjusted) return "good";
+  // Both registered in the last 16 years, though incompletely; one of the two alone (Nigeria registers some deaths, no
   // births) leaves the rest to surveys.
-  if (rb >= 2010 && rd >= 2010) return "fair";
+  if (rb >= usable && rd >= usable) return "fair";
   return "poor";
 }
 
@@ -528,7 +534,7 @@ export function buildConfidence({ rec, series, seriesOf = () => null, range, sto
   ];
 
   let today = ds || pvsrCensus ? todayLevel({ lastCount: Number.isFinite(lastCount) ? lastCount : null, register }, year) : null;
-  const birthsDeaths = ds || pvsrPlace ? birthsDeathsLevel(pvsrPlace, ds) : null;
+  const birthsDeaths = ds || pvsrPlace ? birthsDeathsLevel(pvsrPlace, ds, year) : null;
   // Kept current between censuses: every birth and death registered, and the country's own recent figure agrees with
   // the UN's (Sweden and the Netherlands count everyone through registers; their last listed census is 2011).
   // Only automatic, like-for-like population figures newer than what the UN used can move the level: a census after
