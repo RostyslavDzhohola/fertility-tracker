@@ -867,6 +867,32 @@ test("B4 the intro starts with the first painted frame, stops on the first touch
   } finally {
     await page.close();
   }
+  // Searching a place during the intro skips to its last frame: the card shows 2100, not a year in passing.
+  const pick = await openPage({ path: "/", ready: `!!window.FT && FT.home && FT.home.globe.ready` });
+  try {
+    await pick.waitFor(`FT.state.playing && FT.state.intro && FT.state.year > 2005`, 2000);
+    await pick.eval(`FT.home.selectFromSearch("JPN"), 0`);
+    await sleep(120);
+    assert.deepEqual(await pick.eval(`({ playing: FT.state.playing, intro: FT.state.intro, year: FT.state.year, touched: FT.state.touched })`), { playing: false, intro: false, year: 2100, touched: false });
+    assert.match(await pick.eval(`document.getElementById("card").textContent`), /2100/);
+  } finally {
+    await pick.close();
+  }
+  // A pick that lands before the intro's first frame cancels it too (the outlines are held back to make room for it).
+  const slowGeo = (s) =>
+    s("Page.addScriptToEvaluateOnNewDocument", {
+      source: `(() => { const f = window.fetch; window.fetch = (u, ...a) => (String(u).includes("/geo/countries-110m") ? new Promise((r) => setTimeout(r, 1500)).then(() => f(u, ...a)) : f(u, ...a)); })();`,
+    });
+  const early = await openPage({ path: "/", setup: slowGeo, ready: `!!window.FT && !!FT.home && FT.data.ready` });
+  try {
+    const before = await early.eval(`(() => { const s = { playing: FT.state.playing, year: FT.state.year, drawn: FT.home.globe.ready }; FT.home.selectFromSearch("JPN"); return s; })()`);
+    assert.deepEqual(before, { playing: false, year: 2000, drawn: false }, "the pick came before the intro started");
+    await early.waitFor(`FT.home.globe.ready`, 8000);
+    await sleep(600);
+    assert.deepEqual(await early.eval(`({ playing: FT.state.playing, intro: FT.state.intro, year: FT.state.year })`), { playing: false, intro: false, year: 2100 });
+  } finally {
+    await early.close();
+  }
   // Left alone, the intro ends at 2100 and the slider asks to be dragged until Play is pressed.
   const idle = await openPage({ path: "/", ready: `!!window.FT && FT.home && FT.home.globe.ready` });
   try {

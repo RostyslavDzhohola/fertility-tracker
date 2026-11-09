@@ -262,6 +262,18 @@ export function pause() {
   emit("year");
 }
 
+// Picking a place during the intro skips to its last frame, so the card shows the year the page opens on.
+export function finishIntro() {
+  if (!state.intro) return;
+  state.intro = false;
+  state.playing = false;
+  cancelAnimationFrame(playRaf);
+  state.year = data.end;
+  emit("play");
+  emit("year");
+  emit("intro-end");
+}
+
 export function togglePlay() {
   if (state.intro) {
     // Pressing Play (or Pause) during the intro takes over: the intro stops where it is.

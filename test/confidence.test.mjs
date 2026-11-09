@@ -7,6 +7,7 @@ import {
   buildConfidence,
   DOWNGRADE_PCT,
   estimateDate,
+  usesForecast,
   eurostatIso2,
   gapPct,
   lastUnCount,
@@ -109,6 +110,15 @@ test("births and deaths: complete registration is good, gaps are fair, surveys a
   assert.equal(level(null, null, { registeredBirthsThrough: 2022, registeredDeathsThrough: 2022 }), "good", "the UN's own inputs when the country reported nothing");
   assert.equal(level(null, null, { registeredBirthsThrough: 2022, registeredDeathsThrough: 2022, birthsAdjusted: true }), "fair");
   assert.equal(level(null, null, { registeredBirthsThrough: null, registeredDeathsThrough: 2022 }), "poor", "Nigeria: some deaths registered, no births");
+  // The windows roll with the build year: the same evidence ages out.
+  const at = (year, b, d, o) => run({ ...ds(o), ...(b || d ? pvsr({ births: b, deaths: d }) : {}) }, { year }).confidence.birthsDeaths.level;
+  const c2018 = { year: 2018, code: "C" };
+  assert.equal(at(2026, c2018, c2018), "good");
+  assert.equal(at(2027, c2018, c2018), "fair", "complete for 2018 is no longer recent in 2027");
+  assert.equal(at(2029, null, null, { registeredBirthsThrough: 2021, registeredDeathsThrough: 2021 }), "good");
+  assert.equal(at(2030, null, null, { registeredBirthsThrough: 2021, registeredDeathsThrough: 2021 }), "fair");
+  assert.equal(at(2038, null, null, { registeredBirthsThrough: 2021, registeredDeathsThrough: 2021 }), "poor");
+  assert.match(LEVEL_RULES.birthsDeaths.good, /in the last 8/);
 });
 
 test("people born abroad: by birthplace is good, citizenship fair, none poor; one step lower if only carried forward", () => {
@@ -360,4 +370,15 @@ test("a census that couldn't reach everyone is shown, but not used as the last h
   const c = out.crossChecks.find((x) => x.key === "census");
   assert.equal(c.partial, true);
   assert.equal(out.confidence.today.downgraded, false, "a partly estimated total doesn't lower the level");
+});
+
+test("a UN figure for a day is marked a forecast when either 1 July figure around it is one", () => {
+  // Last estimate: 1 July 2023. 1 January 2024 sits between July 2023 (estimate) and July 2024 (forecast).
+  assert.equal(usesForecast("2024-01-01", 2023), true);
+  assert.equal(usesForecast("2023-12-31", 2023), true);
+  assert.equal(usesForecast("2023-07-01", 2023), false);
+  assert.equal(usesForecast("2023-01-01", 2023), false);
+  assert.equal(usesForecast("2022-12-31", 2023), false);
+  assert.equal(usesForecast("2024", 2023), true);
+  assert.equal(usesForecast("2023", 2023), false);
 });
