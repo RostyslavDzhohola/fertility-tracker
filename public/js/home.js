@@ -3,7 +3,7 @@
 
 import { $, h, setText, setAttr, media, focusNoScroll, announce, idle } from "./dom.js";
 import * as L from "./logic.js";
-import { data, state, subscribe, popNow, ratioNow, pctNow, trendNow, pct2100, outlookPct, fetchJson, setYear, play, yearInt } from "./store.js";
+import { data, state, subscribe, popNow, ratioNow, pctNow, trendNow, pct2100, outlookPct, fetchJson, setYear, play, finishIntro, yearInt } from "./store.js";
 import { createGlobe, buildLayerIdle } from "./globe.js";
 import { createTimeControls } from "./controls.js";
 import { peopleRow } from "./people.js";
@@ -389,6 +389,7 @@ export function createHome({ navigate, onFocusChange, siteUrl = () => L.SITE_URL
   function select(iso3, { source = "map", fly = true } = {}) {
     const rec = data.records.get(iso3);
     if (!rec) return;
+    if (source !== "init") finishIntro();
     selected = iso3;
     globe.stopSpin();
     openCard(rec);
