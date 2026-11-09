@@ -7,6 +7,7 @@ import {
   buildConfidence,
   DOWNGRADE_PCT,
   estimateDate,
+  usesForecast,
   eurostatIso2,
   gapPct,
   lastUnCount,
@@ -360,4 +361,15 @@ test("a census that couldn't reach everyone is shown, but not used as the last h
   const c = out.crossChecks.find((x) => x.key === "census");
   assert.equal(c.partial, true);
   assert.equal(out.confidence.today.downgraded, false, "a partly estimated total doesn't lower the level");
+});
+
+test("a UN figure for a day is marked a forecast when either 1 July figure around it is one", () => {
+  // Last estimate: 1 July 2023. 1 January 2024 sits between July 2023 (estimate) and July 2024 (forecast).
+  assert.equal(usesForecast("2024-01-01", 2023), true);
+  assert.equal(usesForecast("2023-12-31", 2023), true);
+  assert.equal(usesForecast("2023-07-01", 2023), false);
+  assert.equal(usesForecast("2023-01-01", 2023), false);
+  assert.equal(usesForecast("2022-12-31", 2023), false);
+  assert.equal(usesForecast("2024", 2023), true);
+  assert.equal(usesForecast("2023", 2023), false);
 });

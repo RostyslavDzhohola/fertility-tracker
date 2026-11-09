@@ -291,6 +291,15 @@ export function unPopulationOn(series, date) {
   return Math.round(a + (b - a) * f);
 }
 
+/** Whether unPopulationOn(date) leans on a forecast: the later of the two 1 July figures it reads is past the last estimate. */
+export function usesForecast(date, latestEstimateYear) {
+  const [y, m, d] = String(date).split("-").map(Number);
+  if (!m || !d) return y > latestEstimateYear;
+  const t = Date.UTC(y, m - 1, d);
+  const july = Date.UTC(y, 6, 1);
+  return (t > july ? y + 1 : y) > latestEstimateYear;
+}
+
 /** The forecast's spread at a year, from forecastRange and the medium series. */
 function rangeAt(range, series, year) {
   if (!range) return null;
@@ -381,7 +390,7 @@ function autoChecks({ rec, series, seriesOf, ds, pvsrPlace, footnotes, eurostat,
         value: un,
         what: `UN figure for the same day (between its 1 July ${esYear - 1} and ${esYear} figures)${extra.length ? `, adding ${extra.join(", ")}, which Eurostat counts as part of it` : ""}`,
         date,
-        forecast: esYear - 1 > latestEstimateYear,
+        forecast: usesForecast(date, latestEstimateYear),
       },
       notes: popNotes,
       ...graded(gap, popNotes),
@@ -397,7 +406,7 @@ function autoChecks({ rec, series, seriesOf, ds, pvsrPlace, footnotes, eurostat,
       kind: "unsd",
       asOf: unsdAsOf,
       figure: { value: e.total, what: "official estimate the country reported to the UN Statistics Division", date: date ?? String(e.year), provisional: !!e.provisional, estimated: false },
-      unFigure: { value: un, what: date ? "UN figure for the same day" : `UN figure for 1 July ${e.year} (the national figure's period can't be lined up with a day)`, date: date ?? `${e.year}-07-01`, forecast: e.year > latestEstimateYear },
+      unFigure: { value: un, what: date ? "UN figure for the same day" : `UN figure for 1 July ${e.year} (the national figure's period can't be lined up with a day)`, date: date ?? `${e.year}-07-01`, forecast: usesForecast(date ?? `${e.year}-07-01`, latestEstimateYear) },
       notes: popNotes,
       ...(date ? graded(gap, estNotes) : { gapPct: null, verdict: "context" }),
       links: [{ label: "UN Statistics Division: latest census and estimates (table 2)", href: "https://unstats.un.org/unsd/demographic-social/products/vitstats/seratab2.pdf" }],
@@ -413,7 +422,7 @@ function autoChecks({ rec, series, seriesOf, ds, pvsrPlace, footnotes, eurostat,
       kind: "unsd",
       asOf: unsdAsOf,
       figure: { value: c.total, what: "people counted by the census", date: c.date, provisional: !!c.provisional, estimated: false },
-      unFigure: { value: un, what: "UN figure for the census day", date: c.date, forecast: Number(c.date.slice(0, 4)) > latestEstimateYear },
+      unFigure: { value: un, what: "UN figure for the census day", date: c.date, forecast: usesForecast(c.date, latestEstimateYear) },
       ...graded(gap, allNotes("2", placeNotes("2"), c.notes ?? [])),
       partial: allNotes("2", c.notes ?? []).some((t) => PARTIAL_COUNT.test(t)),
       unUsedUpTo: unLast,
