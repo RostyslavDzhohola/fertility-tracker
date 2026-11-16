@@ -454,6 +454,7 @@ export function createHome({ navigate, onFocusChange, siteUrl = () => L.SITE_URL
     const iso3 = selected ?? "WLD";
     const rec = data.records.get(iso3);
     if (!rec) return;
+    skipIntro();
     globe.stopSpin();
     closeRiskPanel();
     el.tip.hidden = true;
