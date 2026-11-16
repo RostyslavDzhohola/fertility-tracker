@@ -878,6 +878,18 @@ test("B4 the intro starts with the first painted frame, stops on the first touch
   } finally {
     await pick.close();
   }
+  // So does Share: the picture shows 2100, not the year the intro was passing.
+  const snap = await openPage({ path: "/", ready: `!!window.FT && FT.home && FT.home.globe.ready` });
+  try {
+    await snap.waitFor(`FT.state.playing && FT.state.intro && FT.state.year > 2005`, 2000);
+    await snap.eval(`document.getElementById("share-view").click(), 0`);
+    await sleep(120);
+    assert.deepEqual(await snap.eval(`({ playing: FT.state.playing, intro: FT.state.intro, year: FT.state.year })`), { playing: false, intro: false, year: 2100 });
+    await snap.waitFor(`!!document.querySelector("dialog[open] img")?.alt`, 30000);
+    assert.match(await snap.eval(`document.querySelector("dialog[open] img").alt`), /in 2100/);
+  } finally {
+    await snap.close();
+  }
   // A pick that lands before the intro's first frame cancels it too (the outlines are held back to make room for it).
   const slowGeo = (s) =>
     s("Page.addScriptToEvaluateOnNewDocument", {
