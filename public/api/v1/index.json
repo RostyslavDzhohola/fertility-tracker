@@ -3,8 +3,8 @@
   "description": "Fertility, births, deaths, net migration, migrant stocks, UN projections to 2100 (medium and constant-fertility scenarios) and a population-decline risk score for every country. Static files, no key, CORS open, refreshed weekly.",
   "apiVersion": "v1",
   "schemaVersion": "1.0.0",
-  "generatedAt": "2026-11-16T16:02:31Z",
-  "contentHash": "7e95f1bc2a203bdf0273c745aeb8b4642018bb046a7a67c08b03fa2d3f044637",
+  "generatedAt": "2026-11-16T22:17:36Z",
+  "contentHash": "3fa5dd8d83200cc15440a49e2068131f456cd7d204c832a90e1d31a81431fc13",
   "baseUrl": "https://fertility-tracker-live.vercel.app/api/v1/",
   "latestEstimateYear": 2023,
   "replacementTfr": 2.1,
@@ -281,21 +281,21 @@
           "title": "Population and Vital Statistics Report, tables 2 and 3 (latest census, official estimate, registered births and deaths)",
           "url": "https://unstats.un.org/unsd/demographic-social/products/vitstats/",
           "status": "ok",
-          "lastUpdated": "2026-10-05",
+          "lastUpdated": "2026-11-13",
           "file": "scripts/data/unsd-pvsr.json",
           "tables": {
             "2": {
               "url": "https://unstats.un.org/unsd/demographic-social/products/vitstats/seratab2.pdf",
-              "lastUpdated": "2026-10-05",
-              "sha256": "da007f1147916e70fb7225912ae3227041e02e62c5e03df914e4531eb989ca99"
+              "lastUpdated": "2026-11-13",
+              "sha256": "568fbf174012284983ab38241096333e2b78fdb403d99d9cdb9e76f76e65756b"
             },
             "3": {
               "url": "https://unstats.un.org/unsd/demographic-social/products/vitstats/seratab3.pdf",
-              "lastUpdated": "2026-10-05",
-              "sha256": "3360719d1687e2187cecd2e48b9431bbaa31e34a632684e3e6f57bcff4aa172d"
+              "lastUpdated": "2026-11-13",
+              "sha256": "64e83c95d5fcb99f1972c26a74dbda43898fdecfa6dfac5ebbd4a58ddb4b9777"
             }
           },
-          "current": false
+          "current": true
         },
         {
           "id": "crossChecks",
@@ -413,8 +413,7 @@
     "projection.change2050Pct / change2100Pct are relative to projection.basePopulation in projection.baseYear (UN WPP, latest estimate year), not to the headline population (often a newer World Bank figure).",
     "Taiwan and 20 small territories are not in the World Bank database: their figures come from UN sources only, their region is borrowed from a neighbour, and incomeGroup is null.",
     "Places with fewer than 100,000 people are scored where possible but not ranked: small numbers make rates noisy.",
-    "confidence (countries/{ISO3}.json) says how sure each place's numbers are: when it was last counted, whether births and deaths are registered, how its migrants were counted, and how wide the UN's own forecast range is. Levels follow confidenceRules in index.json. crossChecks compare UN figures with newer national ones: within 2% they \"match\". Automatic checks cover Eurostat countries and what national offices report to the UN Statistics Division; hand-checked notes cover the places listed in scripts/data/crosschecks.json.",
-    "A new edition of Population and Vital Statistics Report, tables 2 and 3 (latest census, official estimate, registered births and deaths) is online; scripts/data/unsd-pvsr.json still holds the previous one until it is extracted again (scripts/extract/README.md)."
+    "confidence (countries/{ISO3}.json) says how sure each place's numbers are: when it was last counted, whether births and deaths are registered, how its migrants were counted, and how wide the UN's own forecast range is. Levels follow confidenceRules in index.json. crossChecks compare UN figures with newer national ones: within 2% they \"match\". Automatic checks cover Eurostat countries and what national offices report to the UN Statistics Division; hand-checked notes cover the places listed in scripts/data/crosschecks.json."
   ],
   "confidenceRules": {
     "levels": [
