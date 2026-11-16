@@ -3,8 +3,8 @@
   "description": "Fertility, births, deaths, net migration, migrant stocks, UN projections to 2100 (medium and constant-fertility scenarios) and a population-decline risk score for every country. Static files, no key, CORS open, refreshed weekly.",
   "apiVersion": "v1",
   "schemaVersion": "1.0.0",
-  "generatedAt": "2026-11-09T20:29:12Z",
-  "contentHash": "7a6748a8b61df948459588c18ce5109f2f1934fa86e01a45b938af394241cc92",
+  "generatedAt": "2026-11-16T16:02:31Z",
+  "contentHash": "7e95f1bc2a203bdf0273c745aeb8b4642018bb046a7a67c08b03fa2d3f044637",
   "baseUrl": "https://fertility-tracker-live.vercel.app/api/v1/",
   "latestEstimateYear": 2023,
   "replacementTfr": 2.1,
@@ -178,7 +178,7 @@
       "homepage": "https://data.worldbank.org/",
       "license": "CC BY 4.0",
       "citation": "World Bank, World Development Indicators",
-      "vintage": "2026-10-08",
+      "vintage": "2026-11-11",
       "nextUpdate": null,
       "coverage": "Latest reported year per country and indicator",
       "datasets": [
@@ -194,63 +194,63 @@
           "title": "Fertility rate, total (births per woman)",
           "url": "https://api.worldbank.org/v2/country/all/indicator/SP.DYN.TFRT.IN?format=json&per_page=20000&mrnev=1",
           "status": "ok",
-          "lastUpdated": "2026-10-08"
+          "lastUpdated": "2026-11-11"
         },
         {
           "id": "SP.POP.TOTL",
           "title": "Population, total",
           "url": "https://api.worldbank.org/v2/country/all/indicator/SP.POP.TOTL?format=json&per_page=20000&mrnev=1",
           "status": "ok",
-          "lastUpdated": "2026-10-08"
+          "lastUpdated": "2026-11-11"
         },
         {
           "id": "SP.DYN.CBRT.IN",
           "title": "Birth rate, crude (per 1,000 people)",
           "url": "https://api.worldbank.org/v2/country/all/indicator/SP.DYN.CBRT.IN?format=json&per_page=20000&mrnev=1",
           "status": "ok",
-          "lastUpdated": "2026-10-08"
+          "lastUpdated": "2026-11-11"
         },
         {
           "id": "SP.DYN.CDRT.IN",
           "title": "Death rate, crude (per 1,000 people)",
           "url": "https://api.worldbank.org/v2/country/all/indicator/SP.DYN.CDRT.IN?format=json&per_page=20000&mrnev=1",
           "status": "ok",
-          "lastUpdated": "2026-10-08"
+          "lastUpdated": "2026-11-11"
         },
         {
           "id": "SM.POP.NETM",
           "title": "Net migration",
           "url": "https://api.worldbank.org/v2/country/all/indicator/SM.POP.NETM?format=json&per_page=20000&mrnev=1",
           "status": "ok",
-          "lastUpdated": "2026-10-08"
+          "lastUpdated": "2026-11-11"
         },
         {
           "id": "SP.POP.GROW",
           "title": "Population growth (annual %)",
           "url": "https://api.worldbank.org/v2/country/all/indicator/SP.POP.GROW?format=json&per_page=20000&mrnev=1",
           "status": "ok",
-          "lastUpdated": "2026-10-08"
+          "lastUpdated": "2026-11-11"
         },
         {
           "id": "SP.POP.65UP.TO.ZS",
           "title": "Population ages 65 and above (% of total population)",
           "url": "https://api.worldbank.org/v2/country/all/indicator/SP.POP.65UP.TO.ZS?format=json&per_page=20000&mrnev=1",
           "status": "ok",
-          "lastUpdated": "2026-10-08"
+          "lastUpdated": "2026-11-11"
         },
         {
           "id": "SM.POP.TOTL",
           "title": "International migrant stock, total",
           "url": "https://api.worldbank.org/v2/country/all/indicator/SM.POP.TOTL?format=json&per_page=20000&mrnev=1",
           "status": "ok",
-          "lastUpdated": "2026-10-08"
+          "lastUpdated": "2026-11-11"
         },
         {
           "id": "SM.POP.TOTL.ZS",
           "title": "International migrant stock (% of population)",
           "url": "https://api.worldbank.org/v2/country/all/indicator/SM.POP.TOTL.ZS?format=json&per_page=20000&mrnev=1",
           "status": "ok",
-          "lastUpdated": "2026-10-08"
+          "lastUpdated": "2026-11-11"
         }
       ]
     },
@@ -262,7 +262,7 @@
       "homepage": "https://github.com/RostyslavDzhohola/fertility-tracker/blob/main/docs/METHODOLOGY.md#how-sure-is-each-number",
       "license": "UN: CC BY 3.0 IGO; Eurostat: CC BY 4.0",
       "citation": "United Nations, DESA, Population Division (2024). World Population Prospects 2024: Data Sources; United Nations Statistics Division, Population and Vital Statistics Report; Eurostat",
-      "vintage": "2026-10-30",
+      "vintage": "2026-11-15",
       "nextUpdate": null,
       "coverage": "confidence, forecastRange and crossChecks in countries/{ISO3}.json; confidence (overall level) in countries.json",
       "datasets": [
@@ -295,7 +295,7 @@
               "sha256": "3360719d1687e2187cecd2e48b9431bbaa31e34a632684e3e6f57bcff4aa172d"
             }
           },
-          "current": true
+          "current": false
         },
         {
           "id": "crossChecks",
@@ -335,7 +335,7 @@
           "title": "Eurostat migr_pop3ctb: population on 1 January born abroad",
           "url": "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/migr_pop3ctb?format=JSON&lang=EN&c_birth=FOR&age=TOTAL&sex=T&unit=NR&sinceTimePeriod=2023",
           "status": "ok",
-          "lastUpdated": "2026-09-25",
+          "lastUpdated": "2026-11-15",
           "page": "https://ec.europa.eu/eurostat/databrowser/view/migr_pop3ctb/default/table?lang=en"
         }
       ]
@@ -413,7 +413,8 @@
     "projection.change2050Pct / change2100Pct are relative to projection.basePopulation in projection.baseYear (UN WPP, latest estimate year), not to the headline population (often a newer World Bank figure).",
     "Taiwan and 20 small territories are not in the World Bank database: their figures come from UN sources only, their region is borrowed from a neighbour, and incomeGroup is null.",
     "Places with fewer than 100,000 people are scored where possible but not ranked: small numbers make rates noisy.",
-    "confidence (countries/{ISO3}.json) says how sure each place's numbers are: when it was last counted, whether births and deaths are registered, how its migrants were counted, and how wide the UN's own forecast range is. Levels follow confidenceRules in index.json. crossChecks compare UN figures with newer national ones: within 2% they \"match\". Automatic checks cover Eurostat countries and what national offices report to the UN Statistics Division; hand-checked notes cover the places listed in scripts/data/crosschecks.json."
+    "confidence (countries/{ISO3}.json) says how sure each place's numbers are: when it was last counted, whether births and deaths are registered, how its migrants were counted, and how wide the UN's own forecast range is. Levels follow confidenceRules in index.json. crossChecks compare UN figures with newer national ones: within 2% they \"match\". Automatic checks cover Eurostat countries and what national offices report to the UN Statistics Division; hand-checked notes cover the places listed in scripts/data/crosschecks.json.",
+    "A new edition of Population and Vital Statistics Report, tables 2 and 3 (latest census, official estimate, registered births and deaths) is online; scripts/data/unsd-pvsr.json still holds the previous one until it is extracted again (scripts/extract/README.md)."
   ],
   "confidenceRules": {
     "levels": [
